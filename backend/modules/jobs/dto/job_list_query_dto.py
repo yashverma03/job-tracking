@@ -1,0 +1,29 @@
+from rest_framework import serializers
+
+from modules.jobs.enums.job_referral_status import JobReferralStatus
+from modules.jobs.enums.job_status import JobStatus
+from modules.jobs.types.job_types import JobFilterParams
+
+
+class JobListQueryDTO(serializers.Serializer):
+    status = serializers.ChoiceField(choices=JobStatus.choices, required=False, allow_null=True)
+    referral_status = serializers.ChoiceField(
+        choices=JobReferralStatus.choices, required=False, allow_null=True
+    )
+    date_from = serializers.DateField(required=False, allow_null=True)
+    date_to = serializers.DateField(required=False, allow_null=True)
+    search = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    page = serializers.IntegerField(required=False, min_value=1, default=1)
+    limit = serializers.IntegerField(min_value=1)
+
+    def to_filter_params(self) -> JobFilterParams:
+        data = self.validated_data
+        return JobFilterParams(
+            page=data.get('page', 1),
+            limit=data['limit'],
+            status=data.get('status'),
+            referral_status=data.get('referral_status'),
+            date_from=data.get('date_from'),
+            date_to=data.get('date_to'),
+            search=data.get('search'),
+        )

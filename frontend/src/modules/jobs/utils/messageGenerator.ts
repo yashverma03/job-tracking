@@ -1,0 +1,121 @@
+import type { Job } from '../types/job.types'
+import {
+  PROFILE_EMAIL,
+  PROFILE_EXPERIENCE_SUMMARY,
+  PROFILE_NAME,
+  PROFILE_PHONE,
+  PROFILE_PORTFOLIO_URL,
+  PROFILE_RESUME_URL,
+  PROFILE_SKILLS_SUMMARY,
+  PROFILE_TITLE,
+} from '../constants/profile.constants'
+
+function jobIdSuffix(job: Job): string {
+  return job.official_id ? ` (ID: ${job.official_id})` : ''
+}
+
+function formatJobsList(jobs: Job[]): string {
+  const multipleJobs = jobs.length > 1
+  return jobs
+    .map((job, index) => {
+      const numbering = multipleJobs ? `${index + 1}. ` : ''
+      return `${numbering}${job.title ?? 'Untitled role'}${jobIdSuffix(job)}\n${job.url}`
+    })
+    .join('\n')
+}
+
+function sharedCompanyName(jobs: Job[]): string | null {
+  const [first, ...rest] = jobs
+  const allSameCompany = rest.every((job) => job.company_name === first.company_name)
+  return allSameCompany ? first.company_name : null
+}
+
+export function getShortReferralMessage(jobs: Job[]): string {
+  if (jobs.length === 0) return ''
+
+  const [firstJob] = jobs
+  const isSingle = jobs.length === 1
+
+  const jobsBlock = isSingle
+    ? `Job: ${firstJob.url}${jobIdSuffix(firstJob)}`
+    : `Jobs:\n${jobs.map((job) => job.url).join('\n')}`
+
+  return `
+Hi, I'm ${PROFILE_NAME}, ${PROFILE_TITLE}.
+I'm interested in the ${firstJob.title ?? 'role'} role at ${firstJob.company_name ?? 'your organisation'} and would appreciate your referral.
+
+${jobsBlock}
+Resume: ${PROFILE_RESUME_URL}
+
+Thanks
+`.trim()
+}
+
+export function getReferralMessage(jobs: Job[]): string {
+  if (jobs.length === 0) return ''
+
+  const jobsList = formatJobsList(jobs)
+  const company = sharedCompanyName(jobs) ?? 'your organisation'
+
+  return `
+Hi,
+
+I hope you're doing well.
+
+${PROFILE_EXPERIENCE_SUMMARY}
+
+${PROFILE_SKILLS_SUMMARY}
+
+My experience in developing reliable and efficient software applications makes me a strong fit for this role. I request your kind referral for the following role${jobs.length > 1 ? 's' : ''} at ${company}:
+
+${jobsList}
+
+Please find my resume attached for your reference.
+
+Best regards,
+${PROFILE_NAME}
+${PROFILE_EMAIL}
+${PROFILE_PHONE}
+`.trim()
+}
+
+export function getEmailMessage(jobs: Job[]): string {
+  if (jobs.length === 0) return ''
+
+  const isSingle = jobs.length === 1
+  const [firstJob] = jobs
+  const company = sharedCompanyName(jobs)
+
+  const subject = isSingle
+    ? `Application for ${firstJob.title ?? 'the role'}`
+    : `Application for ${jobs.length} roles`
+
+  const applySentence = isSingle
+    ? `I am enthusiastic about the opportunity and would like to apply for the role of ${firstJob.title ?? 'this role'} at ${firstJob.company_name ?? 'your organisation'}.`
+    : `I am enthusiastic about these opportunities and would like to apply for the following role${jobs.length > 1 ? 's' : ''}${company ? ` at ${company}` : ''}:`
+
+  const jobsBlock = isSingle
+    ? `Job: ${firstJob.url}${jobIdSuffix(firstJob)}`
+    : formatJobsList(jobs)
+
+  return `
+${subject}
+
+Hi,
+
+${PROFILE_EXPERIENCE_SUMMARY}
+
+${PROFILE_SKILLS_SUMMARY}
+
+My experience in developing reliable and efficient software applications makes me a strong fit for this role. ${applySentence} Thank you for considering my application. Please find my resume attached for your reference.
+
+Resume: ${PROFILE_RESUME_URL}
+Portfolio: ${PROFILE_PORTFOLIO_URL}
+${jobsBlock}
+
+Best regards,
+${PROFILE_NAME}
+${PROFILE_EMAIL}
+${PROFILE_PHONE}
+`.trim()
+}

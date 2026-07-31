@@ -13,7 +13,7 @@ import sys
 from django.core.wsgi import get_wsgi_application
 from dotenv import load_dotenv
 
-from utils.env import get_env
+from common.utils.env import get_env
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, '.env'))
