@@ -11,10 +11,16 @@ import os
 import sys
 
 from django.core.wsgi import get_wsgi_application
+from dotenv import load_dotenv
+
+from utils.env import get_env
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
 application = get_wsgi_application()
 
 if 'runserver' in sys.argv:
-    print(f"Backend started successfully! Running at http://localhost:{os.environ.get('PORT', '3000')}")
+    print(f"Backend started successfully! Running at http://localhost:{get_env('PORT')}")
