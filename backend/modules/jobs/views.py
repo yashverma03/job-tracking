@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from modules.jobs.dto import JobCreateDTO, JobListQueryDTO, JobResponseDTO, JobUpdateDTO
-from modules.jobs.service import job_service
+from modules.jobs.services import job_service
 
 
 class JobListCreateView(APIView):

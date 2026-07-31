@@ -125,6 +125,7 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
                     <input
                       {...field}
                       className={styles.input}
+                      autoFocus
                       onBlur={(event: FocusEvent<HTMLInputElement>) => {
                         field.onBlur(event)
                         form.setFieldValue('url', cleanJobUrl(event.target.value))

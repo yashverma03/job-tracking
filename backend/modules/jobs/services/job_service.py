@@ -11,18 +11,19 @@ from modules.jobs.types.job_types import JobFilterParams
 SEARCH_FIELDS = ['url', 'title', 'company_name', 'official_id', 'description']
 
 
-def _strip_query_params(url: str) -> str:
+def _normalize_url(url: str) -> str:
     parts = urlsplit(url)
-    return urlunsplit((parts.scheme, parts.netloc, parts.path, '', parts.fragment))
+    path = parts.path.rstrip('/')
+    return urlunsplit((parts.scheme, parts.netloc, path, '', ''))
 
 
 def _ensure_url_not_duplicate(url: str | None) -> None:
     if not url:
         return
 
-    normalized_url = _strip_query_params(url)
+    normalized_url = _normalize_url(url)
     existing_urls = _active_jobs_queryset().filter(url__isnull=False).values_list('url', flat=True)
-    if any(_strip_query_params(existing_url) == normalized_url for existing_url in existing_urls):
+    if any(_normalize_url(existing_url) == normalized_url for existing_url in existing_urls):
         raise ApiError(
             'A job with this URL already exists.',
             status_code=400,
