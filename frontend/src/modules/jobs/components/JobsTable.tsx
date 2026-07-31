@@ -1,6 +1,10 @@
+import dayjs from 'dayjs'
+
 import { MessageButtons } from './MessageButtons'
 import type { Job } from '../types/job.types'
 import styles from './JobsTable.module.css'
+
+const CREATED_AT_FORMAT = 'DD MMM YYYY'
 
 interface Column {
   key: keyof Job
@@ -8,7 +12,6 @@ interface Column {
 }
 
 const COLUMNS: Column[] = [
-  { key: 'id', label: 'ID' },
   { key: 'url', label: 'URL' },
   { key: 'referralStatus', label: 'Referral Status' },
   { key: 'status', label: 'Status' },
@@ -20,8 +23,6 @@ const COLUMNS: Column[] = [
   { key: 'minYears', label: 'Min Years' },
   { key: 'maxYears', label: 'Max Years' },
   { key: 'notes', label: 'Notes' },
-  { key: 'createdAt', label: 'Created At' },
-  { key: 'updatedAt', label: 'Updated At' },
 ]
 
 interface JobsTableProps {
@@ -29,16 +30,17 @@ interface JobsTableProps {
   selectedIds: Set<number>
   onToggleSelect: (id: number) => void
   onEdit: (job: Job) => void
-  onDelete: (id: number) => void
 }
 
-export function JobsTable({ jobs, selectedIds, onToggleSelect, onEdit, onDelete }: JobsTableProps) {
+export function JobsTable({ jobs, selectedIds, onToggleSelect, onEdit }: JobsTableProps) {
   return (
     <div className={styles.tableWrapper}>
       <table className={styles.table}>
         <thead className={styles.thead}>
           <tr>
             <th className={styles.th} />
+            <th className={styles.th}>ID</th>
+            <th className={styles.th}>Created At</th>
             {COLUMNS.map((column) => (
               <th key={column.key} className={styles.th}>
                 {column.label}
@@ -50,7 +52,7 @@ export function JobsTable({ jobs, selectedIds, onToggleSelect, onEdit, onDelete 
         </thead>
         <tbody className={styles.tbody}>
           {jobs.map((job) => (
-            <tr key={job.id}>
+            <tr key={job.id} className={styles.row}>
               <td className={styles.td}>
                 <input
                   type="checkbox"
@@ -58,6 +60,8 @@ export function JobsTable({ jobs, selectedIds, onToggleSelect, onEdit, onDelete 
                   onChange={() => onToggleSelect(job.id)}
                 />
               </td>
+              <td className={styles.cellText}>{job.id}</td>
+              <td className={styles.cellText}>{dayjs(job.createdAt).format(CREATED_AT_FORMAT)}</td>
               {COLUMNS.map((column) => (
                 <td key={column.key} className={styles.cellText}>
                   {job[column.key] ?? ''}
@@ -69,9 +73,6 @@ export function JobsTable({ jobs, selectedIds, onToggleSelect, onEdit, onDelete 
               <td className={styles.actionsCell}>
                 <button type="button" className={styles.editButton} onClick={() => onEdit(job)}>
                   Edit
-                </button>
-                <button type="button" className={styles.deleteButton} onClick={() => onDelete(job.id)}>
-                  Delete
                 </button>
               </td>
             </tr>

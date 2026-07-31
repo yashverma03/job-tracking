@@ -1,5 +1,6 @@
 import type { ChangeEvent } from 'react'
 
+import { Dropdown } from '../../../common/components/Dropdown'
 import { JOB_REFERRAL_STATUS_OPTIONS, JOB_STATUS_OPTIONS } from '../constants/job.constants'
 import type { JobListQueryParams } from '../interfaces/job.interfaces'
 import styles from './JobsFilters.module.css'
@@ -8,6 +9,12 @@ interface JobsFiltersProps {
   filters: JobListQueryParams
   onChange: (filters: JobListQueryParams) => void
 }
+
+const STATUS_OPTIONS = JOB_STATUS_OPTIONS.map((option) => ({ value: option, label: option }))
+const REFERRAL_STATUS_OPTIONS = JOB_REFERRAL_STATUS_OPTIONS.map((option) => ({
+  value: option,
+  label: option,
+}))
 
 export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
   const updateFilter = (patch: Partial<JobListQueryParams>) => {
@@ -20,13 +27,11 @@ export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
       updateFilter({ [key]: value || undefined })
     }
 
-  const handleStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const value = event.target.value
+  const handleStatusChange = (value: string) => {
     updateFilter({ status: value ? (value as JobListQueryParams['status']) : undefined })
   }
 
-  const handleReferralStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const value = event.target.value
+  const handleReferralStatusChange = (value: string) => {
     updateFilter({
       referralStatus: value ? (value as JobListQueryParams['referralStatus']) : undefined,
     })
@@ -34,36 +39,24 @@ export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
 
   return (
     <div className={styles.container}>
-      <label className={styles.field}>
-        Status
-        <select className={styles.input} value={filters.status ?? ''} onChange={handleStatusChange}>
-          <option value="">All</option>
-          {JOB_STATUS_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Dropdown
+        label="Status"
+        value={filters.status ?? ''}
+        onChange={handleStatusChange}
+        options={STATUS_OPTIONS}
+        allowEmpty
+      />
+
+      <Dropdown
+        label="Referral status"
+        value={filters.referralStatus ?? ''}
+        onChange={handleReferralStatusChange}
+        options={REFERRAL_STATUS_OPTIONS}
+        allowEmpty
+      />
 
       <label className={styles.field}>
-        Referral status
-        <select
-          className={styles.input}
-          value={filters.referralStatus ?? ''}
-          onChange={handleReferralStatusChange}
-        >
-          <option value="">All</option>
-          {JOB_REFERRAL_STATUS_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className={styles.field}>
-        From
+        <span className={styles.label}>From</span>
         <input
           type="date"
           className={styles.input}
@@ -73,7 +66,7 @@ export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
       </label>
 
       <label className={styles.field}>
-        To
+        <span className={styles.label}>To</span>
         <input
           type="date"
           className={styles.input}
@@ -83,10 +76,9 @@ export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
       </label>
 
       <label className={styles.searchField}>
-        Search
+        <span className={styles.label}>Search</span>
         <input
           type="text"
-          placeholder="URL, title, company, official ID, description"
           className={styles.input}
           value={filters.search ?? ''}
           onChange={handleTextChange('search')}

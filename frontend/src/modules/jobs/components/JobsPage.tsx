@@ -20,7 +20,7 @@ export function JobsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   const { data, isLoading, isError } = useJobsQuery(filters)
-  const { createMutation, updateMutation, deleteMutation } = useJobMutations()
+  const { createMutation, updateMutation } = useJobMutations()
 
   const jobs = useMemo(() => data?.items ?? [], [data])
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1
@@ -60,15 +60,6 @@ export function JobsPage() {
     closeForm()
   }
 
-  const handleDelete = (id: number) => {
-    deleteMutation.mutate(id)
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      next.delete(id)
-      return next
-    })
-  }
-
   const goToPage = (page: number) => setFilters((prev) => ({ ...prev, page }))
 
   return (
@@ -76,6 +67,9 @@ export function JobsPage() {
       <div className={styles.header}>
         <h1 className={styles.title}>Job Tracker</h1>
         <button type="button" className={styles.addButton} onClick={openAddForm}>
+          <span className={styles.addButtonIcon} aria-hidden="true">
+            +
+          </span>
           Add Job
         </button>
       </div>
@@ -94,7 +88,6 @@ export function JobsPage() {
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
             onEdit={openEditForm}
-            onDelete={handleDelete}
           />
 
           <div className={styles.pagination}>

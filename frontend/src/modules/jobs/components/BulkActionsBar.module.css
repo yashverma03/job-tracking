@@ -1,9 +1,9 @@
 @reference "../../../index.css";
 
 .container {
-  @apply flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-2;
+  @apply flex items-center justify-between rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 shadow-sm;
 }
 
 .count {
-  @apply text-sm text-blue-800;
+  @apply text-sm font-semibold text-indigo-800;
 }

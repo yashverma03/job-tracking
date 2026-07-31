@@ -1,41 +1,42 @@
 @reference "../../../index.css";
 
 .overlay {
-  @apply fixed inset-0 flex items-center justify-center bg-black/30 p-4;
+  @apply fixed inset-0 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm;
 }
 
 .modal {
-  @apply w-full max-w-lg rounded-lg bg-white p-6 shadow-lg;
+  @apply max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-7 shadow-2xl;
 }
 
 .heading {
-  @apply mb-4 text-lg font-semibold;
+  @apply mb-5 text-xl font-bold text-slate-800;
 }
 
 .form {
-  @apply flex flex-col gap-3;
+  @apply flex flex-col gap-4;
 }
 
 .label {
-  @apply flex flex-col text-sm;
+  @apply flex flex-col gap-1 text-sm font-medium text-slate-600;
 }
 
 .input {
-  @apply mt-1 w-full rounded border border-gray-300 px-2 py-1;
+  @apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-800 shadow-sm transition-colors;
+  @apply hover:border-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 focus:outline-none;
 }
 
 .errorText {
-  @apply text-xs text-red-600;
+  @apply text-xs font-normal text-red-600;
 }
 
 .actions {
-  @apply mt-2 flex justify-end gap-2;
+  @apply mt-3 flex justify-end gap-3 border-t border-slate-100 pt-4;
 }
 
 .cancelButton {
-  @apply rounded border border-gray-300 px-3 py-1 text-sm;
+  @apply rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50;
 }
 
 .submitButton {
-  @apply rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700;
+  @apply rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700;
 }

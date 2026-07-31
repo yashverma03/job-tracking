@@ -3,6 +3,7 @@ import type { FocusEvent } from 'react'
 import { Formik, Form, Field, type FieldProps } from 'formik'
 import * as Yup from 'yup'
 
+import { Dropdown } from '../../../common/components/Dropdown'
 import {
   DEFAULT_JOB_REFERRAL_STATUS,
   DEFAULT_JOB_STATUS,
@@ -23,6 +24,12 @@ const jobFormSchema = Yup.object({
   status: Yup.string().oneOf(JOB_STATUS_OPTIONS).required(),
   referralStatus: Yup.string().oneOf(JOB_REFERRAL_STATUS_OPTIONS).required(),
 })
+
+const STATUS_OPTIONS = JOB_STATUS_OPTIONS.map((option) => ({ value: option, label: option }))
+const REFERRAL_STATUS_OPTIONS = JOB_REFERRAL_STATUS_OPTIONS.map((option) => ({
+  value: option,
+  label: option,
+}))
 
 function jobToFormValues(job: Job | null): JobFormValues {
   return {
@@ -55,7 +62,7 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
           validationSchema={jobFormSchema}
           onSubmit={(values) => onSubmit({ ...values, url: cleanJobUrl(values.url) })}
         >
-          {({ errors, touched }) => (
+          {({ errors, touched, values, setFieldValue }) => (
             <Form className={styles.form}>
               <label className={styles.label}>
                 URL *
@@ -94,27 +101,19 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
                 <Field as="textarea" name="description" className={styles.input} rows={4} />
               </label>
 
-              <label className={styles.label}>
-                Job status
-                <Field as="select" name="status" className={styles.input}>
-                  {JOB_STATUS_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </Field>
-              </label>
+              <Dropdown
+                label="Job status"
+                value={values.status}
+                onChange={(value) => setFieldValue('status', value)}
+                options={STATUS_OPTIONS}
+              />
 
-              <label className={styles.label}>
-                Referral status
-                <Field as="select" name="referralStatus" className={styles.input}>
-                  {JOB_REFERRAL_STATUS_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </Field>
-              </label>
+              <Dropdown
+                label="Referral status"
+                value={values.referralStatus}
+                onChange={(value) => setFieldValue('referralStatus', value)}
+                options={REFERRAL_STATUS_OPTIONS}
+              />
 
               <div className={styles.actions}>
                 <button type="button" className={styles.cancelButton} onClick={onClose}>

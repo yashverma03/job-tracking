@@ -1,23 +1,28 @@
 @reference "../../../index.css";
 
 .page {
-  @apply mx-auto flex max-w-7xl flex-col gap-4 p-6;
+  @apply mx-auto flex max-w-7xl flex-col gap-5 p-6;
 }
 
 .header {
-  @apply flex items-center justify-between;
+  @apply flex flex-col items-center justify-center gap-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-6 py-8 text-white shadow-md;
 }
 
 .title {
-  @apply text-2xl font-semibold;
+  @apply text-2xl font-bold tracking-tight;
 }
 
 .addButton {
-  @apply rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700;
+  @apply flex items-center gap-2 rounded-xl bg-amber-400 px-8 py-4 text-base font-bold text-indigo-900 shadow-lg transition-all;
+  @apply hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-xl active:translate-y-0;
+}
+
+.addButtonIcon {
+  @apply flex h-6 w-6 items-center justify-center rounded-full bg-indigo-900 text-lg leading-none text-amber-300;
 }
 
 .statusText {
-  @apply text-sm text-gray-500;
+  @apply text-sm text-slate-500;
 }
 
 .errorText {
@@ -25,7 +30,7 @@
 }
 
 .pagination {
-  @apply flex items-center justify-between text-sm;
+  @apply flex items-center justify-between text-sm text-slate-600;
 }
 
 .paginationButtons {
@@ -33,5 +38,6 @@
 }
 
 .pageButton {
-  @apply rounded border border-gray-300 px-3 py-1 disabled:opacity-50;
+  @apply rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-colors;
+  @apply hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white;
 }
