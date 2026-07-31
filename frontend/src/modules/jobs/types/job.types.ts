@@ -13,8 +13,6 @@ export interface Job {
   officialId: string | null
   description: string | null
   location: string | null
-  minYears: number | null
-  maxYears: number | null
   notes: string | null
   createdAt: string
   updatedAt: string

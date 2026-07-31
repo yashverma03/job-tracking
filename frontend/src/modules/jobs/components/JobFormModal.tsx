@@ -28,8 +28,6 @@ const jobFormSchema = Yup.object({
   officialId: Yup.string(),
   description: Yup.string(),
   location: Yup.string(),
-  minYears: Yup.number().optional(),
-  maxYears: Yup.number().optional(),
   notes: Yup.string(),
   status: Yup.string().oneOf(JOB_STATUS_OPTIONS).required(),
   referralStatus: Yup.string().oneOf(JOB_REFERRAL_STATUS_OPTIONS).required(),
@@ -43,8 +41,6 @@ function jobToFormValues(job: Job | null): JobFormValues {
     officialId: job?.officialId ?? '',
     description: job?.description ?? '',
     location: job?.location ?? '',
-    minYears: job?.minYears?.toString() ?? '',
-    maxYears: job?.maxYears?.toString() ?? '',
     notes: job?.notes ?? '',
     status: job?.status ?? DEFAULT_JOB_STATUS,
     referralStatus: job?.referralStatus ?? DEFAULT_JOB_REFERRAL_STATUS,
@@ -59,8 +55,6 @@ function toJobPayload(values: JobFormValues): JobCreateRequest {
     officialId: values.officialId,
     description: values.description,
     location: values.location,
-    minYears: values.minYears === '' ? undefined : Number(values.minYears),
-    maxYears: values.maxYears === '' ? undefined : Number(values.maxYears),
     notes: values.notes,
     status: values.status,
     referralStatus: values.referralStatus,
@@ -158,16 +152,6 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
                   <label className={styles.label}>
                     Location
                     <Field name="location" className={styles.input} />
-                  </label>
-
-                  <label className={styles.label}>
-                    Min years
-                    <Field name="minYears" type="number" className={styles.input} />
-                  </label>
-
-                  <label className={styles.label}>
-                    Max years
-                    <Field name="maxYears" type="number" className={styles.input} />
                   </label>
 
                   <label className={styles.label}>

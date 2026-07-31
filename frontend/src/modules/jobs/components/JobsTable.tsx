@@ -25,8 +25,6 @@ const COLUMNS: Column[] = [
   { key: 'officialId', label: 'Official ID', width: 110 },
   { key: 'description', label: 'Description', truncate: true, width: 100 },
   { key: 'location', label: 'Location', width: 130 },
-  { key: 'minYears', label: 'Min years', width: 56 },
-  { key: 'maxYears', label: 'Max years', width: 56 },
 ];
 
 const CHECKBOX_COLUMN_WIDTH = 40;
