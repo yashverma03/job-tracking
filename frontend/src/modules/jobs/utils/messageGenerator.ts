@@ -38,8 +38,8 @@ function buildShortReferralJobsBlock(jobs: Job[], useJobIdOnly: boolean): string
 
   if (useJobIdOnly) {
     return isSingle
-      ? `Job ID: ${firstJob.id}`
-      : `Job IDs: ${jobs.map((job) => job.id).join(', ')}`
+      ? `Job ID: ${firstJob.officialId}`
+      : `Job IDs: ${jobs.map((job) => job.officialId).join(', ')}`
   }
 
   return isSingle
