@@ -1,6 +1,6 @@
 # Job Tracker
 
-## Backend (Django, port 3000)
+## Backend (Django, port 20001)
 
 ```
 cd backend
@@ -8,10 +8,10 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-python manage.py runserver 3000
+python manage.py runserver 20001
 ```
 
-## Frontend (Vite + React + TS, port 3100)
+## Frontend (Vite + React + TS, port 20002)
 
 ```
 cd frontend

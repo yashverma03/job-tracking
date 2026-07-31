@@ -129,6 +129,7 @@ export function JobsTable({
                   value={job.status}
                   onChange={(value) => handleStatusChange(job, value)}
                   options={STATUS_DROPDOWN_OPTIONS}
+                  highlighted={job.status === 'To Apply'}
                 />
               </td>
               <td className={styles.cellTruncate} style={{ width: REFERRAL_STATUS_COLUMN_WIDTH }}>
@@ -138,6 +139,7 @@ export function JobsTable({
                   value={job.referralStatus}
                   onChange={(value) => handleReferralStatusChange(job, value)}
                   options={REFERRAL_STATUS_DROPDOWN_OPTIONS}
+                  highlighted={job.referralStatus === 'Referral required'}
                 />
               </td>
               {COLUMNS.map((column) => {
