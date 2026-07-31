@@ -117,7 +117,7 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
               )}
 
               <label className={styles.label}>
-                URL *
+                URL
                 <Field name="url">
                   {({ field, form }: FieldProps<string>) => (
                     <input
