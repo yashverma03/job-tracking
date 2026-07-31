@@ -30,15 +30,27 @@ function sharedCompanyName(jobs: Job[]): string | null {
   return allSameCompany ? first.companyName : null
 }
 
-export function getShortReferralMessage(jobs: Job[]): string {
-  if (jobs.length === 0) return ''
+const SHORT_REFERRAL_MESSAGE_MAX_LENGTH = 300
 
+function buildShortReferralJobsBlock(jobs: Job[], useJobIdOnly: boolean): string {
   const [firstJob] = jobs
   const isSingle = jobs.length === 1
 
-  const jobsBlock = isSingle
+  if (useJobIdOnly) {
+    return isSingle
+      ? `Job ID: ${firstJob.id}`
+      : `Job IDs: ${jobs.map((job) => job.id).join(', ')}`
+  }
+
+  return isSingle
     ? `Job: ${firstJob.url}${jobIdSuffix(firstJob)}`
     : `Jobs:\n${jobs.map((job) => job.url).join('\n')}`
+}
+
+function buildShortReferralMessage(jobs: Job[], useJobIdOnly: boolean): string {
+  const [firstJob] = jobs
+
+  const jobsBlock = buildShortReferralJobsBlock(jobs, useJobIdOnly)
 
   return `
 Hi, I'm ${PROFILE_NAME}, ${PROFILE_TITLE}.
@@ -49,6 +61,17 @@ Resume: ${PROFILE_RESUME_URL}
 
 Thanks
 `.trim()
+}
+
+export function getShortReferralMessage(jobs: Job[]): string {
+  if (jobs.length === 0) return ''
+
+  const messageWithUrl = buildShortReferralMessage(jobs, false)
+  if (messageWithUrl.length <= SHORT_REFERRAL_MESSAGE_MAX_LENGTH) {
+    return messageWithUrl
+  }
+
+  return buildShortReferralMessage(jobs, true)
 }
 
 export function getReferralMessage(jobs: Job[]): string {
