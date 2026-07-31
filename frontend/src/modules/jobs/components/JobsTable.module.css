@@ -55,3 +55,11 @@
 .editButton {
   @apply flex h-8 w-8 items-center justify-center rounded-md border border-indigo-800 bg-indigo-950 text-indigo-300 transition-colors hover:bg-indigo-900;
 }
+
+.statusCellInner {
+  @apply flex items-center gap-1.5;
+}
+
+.quickActionButton {
+  @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-emerald-700 bg-emerald-950 text-emerald-300 transition-colors hover:bg-emerald-800 hover:text-emerald-100;
+}
