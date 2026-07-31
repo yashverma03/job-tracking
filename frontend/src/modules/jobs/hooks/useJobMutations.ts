@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import axios from 'axios'
 import toast from 'react-hot-toast'
 
 import { createJob, deleteJob, updateJob } from '../../../common/api/jobs/jobs.service'
@@ -7,6 +8,14 @@ import type { JobCreateRequest, JobUpdateRequest } from '../interfaces/job.inter
 interface UpdateMutationArgs {
   id: number
   payload: JobUpdateRequest
+}
+
+function extractErrorMessage(error: unknown): string | undefined {
+  if (!axios.isAxiosError(error)) return undefined
+  const data = error.response?.data
+  return data && typeof data === 'object' && typeof data.message === 'string'
+    ? data.message
+    : undefined
 }
 
 export function useJobMutations() {
@@ -19,7 +28,7 @@ export function useJobMutations() {
       invalidateJobs()
       toast.success('Job added')
     },
-    onError: () => toast.error('Failed to add job'),
+    onError: (error) => toast.error(extractErrorMessage(error) ?? 'Failed to add job'),
   })
 
   const updateMutation = useMutation({

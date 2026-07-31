@@ -1,4 +1,4 @@
-import type { FocusEvent } from 'react'
+import type { FocusEvent, KeyboardEvent } from 'react'
 
 import dayjs from 'dayjs'
 import { Formik, Form, Field, type FieldProps } from 'formik'
@@ -90,8 +90,16 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
           validationSchema={jobFormSchema}
           onSubmit={(values) => onSubmit(toJobPayload(values))}
         >
-          {({ errors, touched, values, setFieldValue }) => (
-            <Form className={styles.form}>
+          {({ errors, touched, values, setFieldValue, submitForm }) => (
+            <Form
+              className={styles.form}
+              onKeyDown={(event: KeyboardEvent<HTMLFormElement>) => {
+                if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                  event.preventDefault()
+                  submitForm()
+                }
+              }}
+            >
               {isEdit && (
                 <>
                   <label className={styles.label}>

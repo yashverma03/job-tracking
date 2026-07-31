@@ -53,11 +53,10 @@ export function JobsPage() {
 
   const handleFormSubmit = (payload: JobCreateRequest) => {
     if (editingJob) {
-      updateMutation.mutate({ id: editingJob.id, payload })
+      updateMutation.mutate({ id: editingJob.id, payload }, { onSuccess: closeForm })
     } else {
-      createMutation.mutate(payload)
+      createMutation.mutate(payload, { onSuccess: closeForm })
     }
-    closeForm()
   }
 
   const goToPage = (page: number) => {
