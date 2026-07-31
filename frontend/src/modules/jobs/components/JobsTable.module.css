@@ -48,6 +48,10 @@
   @apply block w-full truncate text-left text-indigo-300 underline decoration-indigo-700 decoration-dotted underline-offset-2 transition-colors hover:text-indigo-200;
 }
 
+.copyButton {
+  @apply block w-full truncate text-left transition-colors hover:text-indigo-300;
+}
+
 .actionsCell {
   @apply p-3 align-top;
 }

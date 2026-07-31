@@ -145,7 +145,14 @@ export function JobsTable({
                 className={styles.cellWrap}
                 style={{ width: ID_COLUMN_WIDTH }}
               >
-                {job.id}
+                <button
+                  type="button"
+                  className={styles.copyButton}
+                  onClick={() => copy(String(job.id))}
+                  title="Click to copy"
+                >
+                  {job.id}
+                </button>
               </td>
               <td
                 className={styles.cellTruncate}
@@ -222,6 +229,7 @@ export function JobsTable({
                     </td>
                   );
                 }
+                const value = job[column.key];
                 return (
                   <td
                     key={column.key}
@@ -230,7 +238,16 @@ export function JobsTable({
                     }
                     style={{ width: column.width }}
                   >
-                    {job[column.key] ?? ''}
+                    {value ? (
+                      <button
+                        type="button"
+                        className={styles.copyButton}
+                        onClick={() => copy(String(value))}
+                        title="Click to copy"
+                      >
+                        {value}
+                      </button>
+                    ) : null}
                   </td>
                 );
               })}
