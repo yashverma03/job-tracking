@@ -149,7 +149,7 @@ export function JobsTable({
                           type="button"
                           className={styles.urlButton}
                           onClick={() => copy(job.url as string)}
-                          title="Click to copy"
+                          title={job.url}
                         >
                           {job.url}
                         </button>
