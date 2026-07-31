@@ -10,6 +10,16 @@ import {
   PROFILE_TITLE,
 } from '../constants/profile.constants'
 
+function assertJobsHaveRequiredFields(jobs: Job[]): void {
+  jobs.forEach((job) => {
+    if (!job.companyName || !job.title || !(job.url || job.officialId)) {
+      throw new Error(
+        `Job ${job.id} is missing required fields for message generation: company name, title, and (URL or job ID) must all be present.`,
+      )
+    }
+  })
+}
+
 function jobIdSuffix(job: Job): string {
   return job.officialId ? ` (ID: ${job.officialId})` : ''
 }
@@ -65,6 +75,7 @@ Thanks
 
 export function getShortReferralMessage(jobs: Job[]): string {
   if (jobs.length === 0) return ''
+  assertJobsHaveRequiredFields(jobs)
 
   const messageWithUrl = buildShortReferralMessage(jobs, false)
   if (messageWithUrl.length <= SHORT_REFERRAL_MESSAGE_MAX_LENGTH) {
@@ -76,6 +87,7 @@ export function getShortReferralMessage(jobs: Job[]): string {
 
 export function getReferralMessage(jobs: Job[]): string {
   if (jobs.length === 0) return ''
+  assertJobsHaveRequiredFields(jobs)
 
   const jobsList = formatJobsList(jobs)
   const company = sharedCompanyName(jobs) ?? 'your organisation'
@@ -104,6 +116,7 @@ ${PROFILE_PHONE}
 
 export function getEmailMessage(jobs: Job[]): string {
   if (jobs.length === 0) return ''
+  assertJobsHaveRequiredFields(jobs)
 
   const isSingle = jobs.length === 1
   const [firstJob] = jobs
