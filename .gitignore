@@ -152,3 +152,18 @@ vite.config.ts.timestamp-*
 
 .claude
 .vscode/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+db.sqlite3
+db.sqlite3-journal
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+staticfiles/
