@@ -14,8 +14,10 @@
     "axios": "^1.19.0",
     "dayjs": "1.11.21",
     "formik": "^2.4.9",
+    "lucide-react": "^1.28.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-hot-toast": "^2.6.0",
     "yup": "^1.7.1"
   },
   "devDependencies": {

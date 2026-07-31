@@ -1,15 +1,11 @@
-import { useCallback, useState } from 'react'
-
-const COPIED_RESET_DELAY_MS = 2000
+import { useCallback } from 'react'
+import toast from 'react-hot-toast'
 
 export function useClipboard() {
-  const [copied, setCopied] = useState(false)
-
   const copy = useCallback(async (text: string) => {
     await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), COPIED_RESET_DELAY_MS)
+    toast.success('Copied to clipboard')
   }, [])
 
-  return { copied, copy }
+  return { copy }
 }

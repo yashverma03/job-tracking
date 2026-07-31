@@ -11,6 +11,10 @@ export interface JobCreateRequest {
   title?: string
   officialId?: string
   description?: string
+  location?: string
+  minYears?: number
+  maxYears?: number
+  notes?: string
   status?: JobStatus
   referralStatus?: JobReferralStatus
 }
@@ -33,6 +37,10 @@ export interface JobFormValues {
   title: string
   officialId: string
   description: string
+  location: string
+  minYears: string
+  maxYears: string
+  notes: string
   status: JobStatus
   referralStatus: JobReferralStatus
 }

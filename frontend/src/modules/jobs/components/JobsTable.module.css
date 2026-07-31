@@ -1,41 +1,57 @@
 @reference "../../../index.css";
 
 .tableWrapper {
-  @apply overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm;
+  @apply overflow-x-auto rounded-xl border border-slate-800 bg-slate-900 shadow-sm;
 }
 
 .table {
-  @apply min-w-full divide-y divide-slate-200 text-sm;
+  @apply w-full table-fixed divide-y divide-slate-800 text-sm;
 }
 
 .thead {
-  @apply bg-slate-100;
+  @apply bg-slate-800;
 }
 
 .th {
-  @apply sticky top-0 z-10 whitespace-nowrap bg-slate-100 p-3 text-left text-xs font-semibold tracking-wide text-slate-600 uppercase;
+  @apply sticky top-0 z-10 bg-slate-800 p-3 text-left text-xs font-semibold text-slate-300;
 }
 
 .tbody {
-  @apply divide-y divide-slate-100 bg-white;
+  @apply divide-y divide-slate-800 bg-slate-900;
 }
 
 .row {
-  @apply transition-colors hover:bg-indigo-50/60;
+  @apply transition-colors hover:bg-indigo-950/40;
 }
 
-.td {
-  @apply p-3;
+.checkboxCell {
+  @apply w-10 p-3 align-top;
 }
 
-.cellText {
-  @apply max-w-xs truncate p-3 text-slate-700;
+.checkbox {
+  @apply h-5 w-5 accent-indigo-500;
+}
+
+.messagesCell {
+  @apply w-56 p-3 align-top;
+}
+
+.cellWrap {
+  @apply w-[110px] p-3 align-top break-words whitespace-normal text-slate-300;
+}
+
+.cellTruncate {
+  @apply w-[180px] truncate p-3 align-top text-slate-300;
+}
+
+.urlButton {
+  @apply block w-full truncate text-left text-indigo-300 underline decoration-indigo-700 decoration-dotted underline-offset-2 transition-colors hover:text-indigo-200;
 }
 
 .actionsCell {
-  @apply whitespace-nowrap p-3;
+  @apply w-16 p-3 align-top;
 }
 
 .editButton {
-  @apply rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-100;
+  @apply flex h-8 w-8 items-center justify-center rounded-md border border-indigo-800 bg-indigo-950 text-indigo-300 transition-colors hover:bg-indigo-900;
 }

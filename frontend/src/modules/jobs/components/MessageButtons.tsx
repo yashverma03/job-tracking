@@ -12,7 +12,7 @@ interface MessageButtonsProps {
 }
 
 export function MessageButtons({ jobs }: MessageButtonsProps) {
-  const { copy, copied } = useClipboard()
+  const { copy } = useClipboard()
 
   if (jobs.length === 0) return null
 
@@ -27,7 +27,6 @@ export function MessageButtons({ jobs }: MessageButtonsProps) {
       <button type="button" className={styles.button} onClick={() => copy(getEmailMessage(jobs))}>
         Email msg
       </button>
-      {copied && <span className={styles.copiedText}>Copied!</span>}
     </div>
   )
 }
