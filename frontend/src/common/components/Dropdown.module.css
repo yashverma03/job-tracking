@@ -18,8 +18,7 @@
 }
 
 .selectHighlighted {
-  @apply border-amber-400/60 bg-amber-500/10 text-amber-200;
-  @apply hover:border-amber-400 focus:border-amber-400 focus:ring-amber-400/30;
+  @apply text-amber-300 font-medium;
 }
 
 .arrow {

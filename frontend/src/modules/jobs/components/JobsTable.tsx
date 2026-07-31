@@ -23,7 +23,7 @@ const COLUMNS: Column[] = [
   { key: 'companyName', label: 'Company name', width: 140 },
   { key: 'title', label: 'Title', width: 160 },
   { key: 'officialId', label: 'Official ID', width: 110 },
-  { key: 'description', label: 'Description', truncate: true, width: 180 },
+  { key: 'description', label: 'Description', truncate: true, width: 100 },
   { key: 'location', label: 'Location', width: 130 },
   { key: 'minYears', label: 'Min years', width: 56 },
   { key: 'maxYears', label: 'Max years', width: 56 },
@@ -33,7 +33,7 @@ const CHECKBOX_COLUMN_WIDTH = 40;
 const ACTIONS_COLUMN_WIDTH = 64;
 const ID_COLUMN_WIDTH = 56;
 const STATUS_COLUMN_WIDTH = 130;
-const REFERRAL_STATUS_COLUMN_WIDTH = 140;
+const REFERRAL_STATUS_COLUMN_WIDTH = 180;
 const MESSAGES_COLUMN_WIDTH = 224;
 
 interface JobsTableProps {
@@ -76,7 +76,7 @@ export function JobsTable({
               ID
             </th>
             <th className={`${styles.th} ${styles.cellTruncate}`} style={{ width: STATUS_COLUMN_WIDTH }}>
-              Status
+              Job Status
             </th>
             <th
               className={`${styles.th} ${styles.cellTruncate}`}
