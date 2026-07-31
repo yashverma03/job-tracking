@@ -1,0 +1,13 @@
+@reference "../../../index.css";
+
+.container {
+  @apply flex items-center gap-1;
+}
+
+.button {
+  @apply rounded border border-gray-300 bg-white px-2 py-1 text-xs hover:bg-gray-50;
+}
+
+.copiedText {
+  @apply text-xs text-green-600;
+}

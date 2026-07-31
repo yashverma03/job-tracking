@@ -11,7 +11,7 @@ import {
 } from '../constants/profile.constants'
 
 function jobIdSuffix(job: Job): string {
-  return job.official_id ? ` (ID: ${job.official_id})` : ''
+  return job.officialId ? ` (ID: ${job.officialId})` : ''
 }
 
 function formatJobsList(jobs: Job[]): string {
@@ -26,8 +26,8 @@ function formatJobsList(jobs: Job[]): string {
 
 function sharedCompanyName(jobs: Job[]): string | null {
   const [first, ...rest] = jobs
-  const allSameCompany = rest.every((job) => job.company_name === first.company_name)
-  return allSameCompany ? first.company_name : null
+  const allSameCompany = rest.every((job) => job.companyName === first.companyName)
+  return allSameCompany ? first.companyName : null
 }
 
 export function getShortReferralMessage(jobs: Job[]): string {
@@ -42,7 +42,7 @@ export function getShortReferralMessage(jobs: Job[]): string {
 
   return `
 Hi, I'm ${PROFILE_NAME}, ${PROFILE_TITLE}.
-I'm interested in the ${firstJob.title ?? 'role'} role at ${firstJob.company_name ?? 'your organisation'} and would appreciate your referral.
+I'm interested in the ${firstJob.title ?? 'role'} role at ${firstJob.companyName ?? 'your organisation'} and would appreciate your referral.
 
 ${jobsBlock}
 Resume: ${PROFILE_RESUME_URL}
@@ -91,7 +91,7 @@ export function getEmailMessage(jobs: Job[]): string {
     : `Application for ${jobs.length} roles`
 
   const applySentence = isSingle
-    ? `I am enthusiastic about the opportunity and would like to apply for the role of ${firstJob.title ?? 'this role'} at ${firstJob.company_name ?? 'your organisation'}.`
+    ? `I am enthusiastic about the opportunity and would like to apply for the role of ${firstJob.title ?? 'this role'} at ${firstJob.companyName ?? 'your organisation'}.`
     : `I am enthusiastic about these opportunities and would like to apply for the following role${jobs.length > 1 ? 's' : ''}${company ? ` at ${company}` : ''}:`
 
   const jobsBlock = isSingle

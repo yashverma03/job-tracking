@@ -1,5 +1,6 @@
 import { MessageButtons } from './MessageButtons'
 import type { Job } from '../types/job.types'
+import styles from './JobsTable.module.css'
 
 interface Column {
   key: keyof Job
@@ -9,18 +10,18 @@ interface Column {
 const COLUMNS: Column[] = [
   { key: 'id', label: 'ID' },
   { key: 'url', label: 'URL' },
-  { key: 'referral_status', label: 'Referral Status' },
+  { key: 'referralStatus', label: 'Referral Status' },
   { key: 'status', label: 'Status' },
-  { key: 'company_name', label: 'Company Name' },
+  { key: 'companyName', label: 'Company Name' },
   { key: 'title', label: 'Title' },
-  { key: 'official_id', label: 'Official ID' },
+  { key: 'officialId', label: 'Official ID' },
   { key: 'description', label: 'Description' },
   { key: 'location', label: 'Location' },
-  { key: 'min_years', label: 'Min Years' },
-  { key: 'max_years', label: 'Max Years' },
+  { key: 'minYears', label: 'Min Years' },
+  { key: 'maxYears', label: 'Max Years' },
   { key: 'notes', label: 'Notes' },
-  { key: 'created_at', label: 'Created At' },
-  { key: 'updated_at', label: 'Updated At' },
+  { key: 'createdAt', label: 'Created At' },
+  { key: 'updatedAt', label: 'Updated At' },
 ]
 
 interface JobsTableProps {
@@ -33,24 +34,24 @@ interface JobsTableProps {
 
 export function JobsTable({ jobs, selectedIds, onToggleSelect, onEdit, onDelete }: JobsTableProps) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50">
+    <div className={styles.tableWrapper}>
+      <table className={styles.table}>
+        <thead className={styles.thead}>
           <tr>
-            <th className="p-2" />
+            <th className={styles.th} />
             {COLUMNS.map((column) => (
-              <th key={column.key} className="whitespace-nowrap p-2 text-left font-medium text-gray-600">
+              <th key={column.key} className={styles.th}>
                 {column.label}
               </th>
             ))}
-            <th className="p-2 text-left font-medium text-gray-600">Messages</th>
-            <th className="p-2 text-left font-medium text-gray-600">Actions</th>
+            <th className={styles.th}>Messages</th>
+            <th className={styles.th}>Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100 bg-white">
+        <tbody className={styles.tbody}>
           {jobs.map((job) => (
             <tr key={job.id}>
-              <td className="p-2">
+              <td className={styles.td}>
                 <input
                   type="checkbox"
                   checked={selectedIds.has(job.id)}
@@ -58,26 +59,18 @@ export function JobsTable({ jobs, selectedIds, onToggleSelect, onEdit, onDelete 
                 />
               </td>
               {COLUMNS.map((column) => (
-                <td key={column.key} className="max-w-xs truncate p-2">
+                <td key={column.key} className={styles.cellText}>
                   {job[column.key] ?? ''}
                 </td>
               ))}
-              <td className="p-2">
+              <td className={styles.td}>
                 <MessageButtons jobs={[job]} />
               </td>
-              <td className="whitespace-nowrap p-2">
-                <button
-                  type="button"
-                  className="mr-2 text-blue-600 hover:underline"
-                  onClick={() => onEdit(job)}
-                >
+              <td className={styles.actionsCell}>
+                <button type="button" className={styles.editButton} onClick={() => onEdit(job)}>
                   Edit
                 </button>
-                <button
-                  type="button"
-                  className="text-red-600 hover:underline"
-                  onClick={() => onDelete(job.id)}
-                >
+                <button type="button" className={styles.deleteButton} onClick={() => onDelete(job.id)}>
                   Delete
                 </button>
               </td>

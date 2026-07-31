@@ -7,13 +7,14 @@ import { BulkActionsBar } from './BulkActionsBar'
 import { JobFormModal } from './JobFormModal'
 import { useJobMutations } from '../hooks/useJobMutations'
 import { useJobsQuery } from '../hooks/useJobsQuery'
-import type { JobFilters as JobFiltersState, JobFormValues } from '../interfaces/job.interfaces'
+import type { JobFormValues, JobListQueryParams } from '../interfaces/job.interfaces'
 import type { Job } from '../types/job.types'
+import styles from './JobsPage.module.css'
 
-const INITIAL_FILTERS: JobFiltersState = { page: 1, limit: DEFAULT_PAGE_SIZE }
+const INITIAL_FILTERS: JobListQueryParams = { page: 1, limit: DEFAULT_PAGE_SIZE }
 
 export function JobsPage() {
-  const [filters, setFilters] = useState<JobFiltersState>(INITIAL_FILTERS)
+  const [filters, setFilters] = useState<JobListQueryParams>(INITIAL_FILTERS)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [editingJob, setEditingJob] = useState<Job | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -22,7 +23,7 @@ export function JobsPage() {
   const { createMutation, updateMutation, deleteMutation } = useJobMutations()
 
   const jobs = useMemo(() => data?.items ?? [], [data])
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1
 
   const selectedJobs = useMemo(
     () => jobs.filter((job) => selectedIds.has(job.id)),
@@ -71,14 +72,10 @@ export function JobsPage() {
   const goToPage = (page: number) => setFilters((prev) => ({ ...prev, page }))
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Job Tracker</h1>
-        <button
-          type="button"
-          className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
-          onClick={openAddForm}
-        >
+    <div className={styles.page}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Job Tracker</h1>
+        <button type="button" className={styles.addButton} onClick={openAddForm}>
           Add Job
         </button>
       </div>
@@ -87,8 +84,8 @@ export function JobsPage() {
 
       <BulkActionsBar selectedJobs={selectedJobs} />
 
-      {isLoading && <p className="text-sm text-gray-500">Loading jobs...</p>}
-      {isError && <p className="text-sm text-red-600">Failed to load jobs.</p>}
+      {isLoading && <p className={styles.statusText}>Loading jobs...</p>}
+      {isError && <p className={styles.errorText}>Failed to load jobs.</p>}
 
       {!isLoading && !isError && (
         <>
@@ -100,14 +97,14 @@ export function JobsPage() {
             onDelete={handleDelete}
           />
 
-          <div className="flex items-center justify-between text-sm">
+          <div className={styles.pagination}>
             <span>
               Page {filters.page} of {totalPages} ({data?.total ?? 0} jobs)
             </span>
-            <div className="flex gap-2">
+            <div className={styles.paginationButtons}>
               <button
                 type="button"
-                className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50"
+                className={styles.pageButton}
                 disabled={filters.page <= 1}
                 onClick={() => goToPage(filters.page - 1)}
               >
@@ -115,7 +112,7 @@ export function JobsPage() {
               </button>
               <button
                 type="button"
-                className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50"
+                className={styles.pageButton}
                 disabled={filters.page >= totalPages}
                 onClick={() => goToPage(filters.page + 1)}
               >

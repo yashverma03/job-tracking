@@ -1,3 +1,4 @@
+from djangorestframework_camel_case.util import underscoreize
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -7,7 +8,7 @@ from modules.jobs.service import job_service
 
 class JobListCreateView(APIView):
     def get(self, request):
-        query_dto = JobListQueryDTO(data=request.query_params)
+        query_dto = JobListQueryDTO(data=underscoreize(request.query_params))
         query_dto.is_valid(raise_exception=True)
         filters = query_dto.to_filter_params()
 

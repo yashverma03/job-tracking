@@ -1,0 +1,37 @@
+@reference "../../../index.css";
+
+.page {
+  @apply mx-auto flex max-w-7xl flex-col gap-4 p-6;
+}
+
+.header {
+  @apply flex items-center justify-between;
+}
+
+.title {
+  @apply text-2xl font-semibold;
+}
+
+.addButton {
+  @apply rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700;
+}
+
+.statusText {
+  @apply text-sm text-gray-500;
+}
+
+.errorText {
+  @apply text-sm text-red-600;
+}
+
+.pagination {
+  @apply flex items-center justify-between text-sm;
+}
+
+.paginationButtons {
+  @apply flex gap-2;
+}
+
+.pageButton {
+  @apply rounded border border-gray-300 px-3 py-1 disabled:opacity-50;
+}

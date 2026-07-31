@@ -1,0 +1,41 @@
+@reference "../../../index.css";
+
+.overlay {
+  @apply fixed inset-0 flex items-center justify-center bg-black/30 p-4;
+}
+
+.modal {
+  @apply w-full max-w-lg rounded-lg bg-white p-6 shadow-lg;
+}
+
+.heading {
+  @apply mb-4 text-lg font-semibold;
+}
+
+.form {
+  @apply flex flex-col gap-3;
+}
+
+.label {
+  @apply flex flex-col text-sm;
+}
+
+.input {
+  @apply mt-1 w-full rounded border border-gray-300 px-2 py-1;
+}
+
+.errorText {
+  @apply text-xs text-red-600;
+}
+
+.actions {
+  @apply mt-2 flex justify-end gap-2;
+}
+
+.cancelButton {
+  @apply rounded border border-gray-300 px-3 py-1 text-sm;
+}
+
+.submitButton {
+  @apply rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700;
+}

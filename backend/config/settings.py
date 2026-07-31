@@ -72,6 +72,12 @@ CORS_ALLOWED_ORIGINS = [
 
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'common.exceptions.handlers.custom_exception_handler',
+    'DEFAULT_RENDERER_CLASSES': (
+        'djangorestframework_camel_case.render.CamelCaseJSONRenderer',
+    ),
+    'DEFAULT_PARSER_CLASSES': (
+        'djangorestframework_camel_case.parser.CamelCaseJSONParser',
+    ),
 }
 
 ROOT_URLCONF = 'config.urls'

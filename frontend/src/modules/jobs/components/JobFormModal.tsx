@@ -12,26 +12,27 @@ import {
 import type { JobFormValues } from '../interfaces/job.interfaces'
 import type { Job } from '../types/job.types'
 import { cleanJobUrl } from '../utils/urlCleaner'
+import styles from './JobFormModal.module.css'
 
 const jobFormSchema = Yup.object({
   url: Yup.string().trim().required('URL is required'),
-  company_name: Yup.string(),
+  companyName: Yup.string(),
   title: Yup.string(),
-  official_id: Yup.string(),
+  officialId: Yup.string(),
   description: Yup.string(),
   status: Yup.string().oneOf(JOB_STATUS_OPTIONS).required(),
-  referral_status: Yup.string().oneOf(JOB_REFERRAL_STATUS_OPTIONS).required(),
+  referralStatus: Yup.string().oneOf(JOB_REFERRAL_STATUS_OPTIONS).required(),
 })
 
 function jobToFormValues(job: Job | null): JobFormValues {
   return {
     url: job?.url ?? '',
-    company_name: job?.company_name ?? '',
+    companyName: job?.companyName ?? '',
     title: job?.title ?? '',
-    official_id: job?.official_id ?? '',
+    officialId: job?.officialId ?? '',
     description: job?.description ?? '',
     status: job?.status ?? DEFAULT_JOB_STATUS,
-    referral_status: job?.referral_status ?? DEFAULT_JOB_REFERRAL_STATUS,
+    referralStatus: job?.referralStatus ?? DEFAULT_JOB_REFERRAL_STATUS,
   }
 }
 
@@ -41,16 +42,13 @@ interface JobFormModalProps {
   onSubmit: (values: JobFormValues) => void
 }
 
-const INPUT_CLASS = 'mt-1 w-full rounded border border-gray-300 px-2 py-1'
-const LABEL_CLASS = 'flex flex-col text-sm'
-
 export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
   const isEdit = job !== null
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/30 p-4">
-      <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
-        <h2 className="mb-4 text-lg font-semibold">{isEdit ? 'Edit Job' : 'Add Job'}</h2>
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
+        <h2 className={styles.heading}>{isEdit ? 'Edit Job' : 'Add Job'}</h2>
 
         <Formik
           initialValues={jobToFormValues(job)}
@@ -58,14 +56,14 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
           onSubmit={(values) => onSubmit({ ...values, url: cleanJobUrl(values.url) })}
         >
           {({ errors, touched }) => (
-            <Form className="flex flex-col gap-3">
-              <label className={LABEL_CLASS}>
+            <Form className={styles.form}>
+              <label className={styles.label}>
                 URL *
                 <Field name="url">
                   {({ field, form }: FieldProps<string>) => (
                     <input
                       {...field}
-                      className={INPUT_CLASS}
+                      className={styles.input}
                       onBlur={(event: FocusEvent<HTMLInputElement>) => {
                         field.onBlur(event)
                         form.setFieldValue('url', cleanJobUrl(event.target.value))
@@ -73,34 +71,32 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
                     />
                   )}
                 </Field>
-                {touched.url && errors.url && (
-                  <span className="text-xs text-red-600">{errors.url}</span>
-                )}
+                {touched.url && errors.url && <span className={styles.errorText}>{errors.url}</span>}
               </label>
 
-              <label className={LABEL_CLASS}>
+              <label className={styles.label}>
                 Company name
-                <Field name="company_name" className={INPUT_CLASS} />
+                <Field name="companyName" className={styles.input} />
               </label>
 
-              <label className={LABEL_CLASS}>
+              <label className={styles.label}>
                 Title
-                <Field name="title" className={INPUT_CLASS} />
+                <Field name="title" className={styles.input} />
               </label>
 
-              <label className={LABEL_CLASS}>
+              <label className={styles.label}>
                 Job ID
-                <Field name="official_id" className={INPUT_CLASS} />
+                <Field name="officialId" className={styles.input} />
               </label>
 
-              <label className={LABEL_CLASS}>
+              <label className={styles.label}>
                 Job description
-                <Field as="textarea" name="description" className={INPUT_CLASS} rows={4} />
+                <Field as="textarea" name="description" className={styles.input} rows={4} />
               </label>
 
-              <label className={LABEL_CLASS}>
+              <label className={styles.label}>
                 Job status
-                <Field as="select" name="status" className={INPUT_CLASS}>
+                <Field as="select" name="status" className={styles.input}>
                   {JOB_STATUS_OPTIONS.map((option) => (
                     <option key={option} value={option}>
                       {option}
@@ -109,9 +105,9 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
                 </Field>
               </label>
 
-              <label className={LABEL_CLASS}>
+              <label className={styles.label}>
                 Referral status
-                <Field as="select" name="referral_status" className={INPUT_CLASS}>
+                <Field as="select" name="referralStatus" className={styles.input}>
                   {JOB_REFERRAL_STATUS_OPTIONS.map((option) => (
                     <option key={option} value={option}>
                       {option}
@@ -120,18 +116,11 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
                 </Field>
               </label>
 
-              <div className="mt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  className="rounded border border-gray-300 px-3 py-1 text-sm"
-                  onClick={onClose}
-                >
+              <div className={styles.actions}>
+                <button type="button" className={styles.cancelButton} onClick={onClose}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
-                >
+                <button type="submit" className={styles.submitButton}>
                   {isEdit ? 'Save' : 'Add'}
                 </button>
               </div>

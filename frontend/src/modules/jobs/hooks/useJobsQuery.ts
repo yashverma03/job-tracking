@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { fetchJobs } from '../../../common/api/jobs/jobs.service'
-import type { JobFilters } from '../interfaces/job.interfaces'
+import type { JobListQueryParams } from '../interfaces/job.interfaces'
 
-export const jobsQueryKey = (filters: JobFilters) => ['jobs', filters] as const
+export const jobsQueryKey = (params: JobListQueryParams) => ['jobs', params] as const
 
-export function useJobsQuery(filters: JobFilters) {
+export function useJobsQuery(params: JobListQueryParams) {
   return useQuery({
-    queryKey: jobsQueryKey(filters),
-    queryFn: () => fetchJobs(filters),
+    queryKey: jobsQueryKey(params),
+    queryFn: () => fetchJobs(params),
     placeholderData: (previousData) => previousData,
   })
 }

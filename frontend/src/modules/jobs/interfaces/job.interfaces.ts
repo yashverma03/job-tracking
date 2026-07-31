@@ -1,10 +1,27 @@
-import type { JobReferralStatus, JobStatus } from '../types/job.types'
+import type { PaginatedResponse } from '../../../common/types/api.types'
+import type { Job, JobReferralStatus, JobStatus } from '../types/job.types'
 
-export interface JobFilters {
+export type JobResponse = Job
+
+export type JobListResponse = PaginatedResponse<JobResponse>
+
+export interface JobCreateRequest {
+  url: string
+  companyName?: string
+  title?: string
+  officialId?: string
+  description?: string
   status?: JobStatus
-  referral_status?: JobReferralStatus
-  date_from?: string
-  date_to?: string
+  referralStatus?: JobReferralStatus
+}
+
+export type JobUpdateRequest = Partial<JobCreateRequest>
+
+export interface JobListQueryParams {
+  status?: JobStatus
+  referralStatus?: JobReferralStatus
+  dateFrom?: string
+  dateTo?: string
   search?: string
   page: number
   limit: number
@@ -12,10 +29,10 @@ export interface JobFilters {
 
 export interface JobFormValues {
   url: string
-  company_name: string
+  companyName: string
   title: string
-  official_id: string
+  officialId: string
   description: string
   status: JobStatus
-  referral_status: JobReferralStatus
+  referralStatus: JobReferralStatus
 }

@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'db_table': 'jobs',
-                'indexes': [models.Index(fields=['status'], name='job_status_idx'), models.Index(fields=['referral_status'], name='job_referral_status_idx'), models.Index(fields=['company_name'], name='job_company_name_idx'), models.Index(fields=['deleted_at'], name='job_deleted_at_idx'), models.Index(fields=['deleted_at', 'status'], name='job_deleted_status_idx')],
+                'indexes': [models.Index(fields=['status'], name='job_status_idx'), models.Index(fields=['referral_status'], name='job_referral_status_idx'), models.Index(fields=['company_name'], name='job_company_name_idx'), models.Index(fields=['official_id'], name='job_official_id_idx'), models.Index(fields=['title'], name='job_title_idx')],
             },
         ),
     ]

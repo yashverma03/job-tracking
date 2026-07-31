@@ -1,39 +1,42 @@
 import type { ChangeEvent } from 'react'
 
 import { JOB_REFERRAL_STATUS_OPTIONS, JOB_STATUS_OPTIONS } from '../constants/job.constants'
-import type { JobFilters } from '../interfaces/job.interfaces'
+import type { JobListQueryParams } from '../interfaces/job.interfaces'
+import styles from './JobsFilters.module.css'
 
 interface JobsFiltersProps {
-  filters: JobFilters
-  onChange: (filters: JobFilters) => void
+  filters: JobListQueryParams
+  onChange: (filters: JobListQueryParams) => void
 }
 
 export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
-  const updateFilter = (patch: Partial<JobFilters>) => {
+  const updateFilter = (patch: Partial<JobListQueryParams>) => {
     onChange({ ...filters, ...patch, page: 1 })
   }
 
   const handleTextChange =
-    (key: keyof JobFilters) => (event: ChangeEvent<HTMLInputElement>) => {
+    (key: keyof JobListQueryParams) => (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value
       updateFilter({ [key]: value || undefined })
     }
 
-  const handleSelectChange =
-    (key: keyof JobFilters) => (event: ChangeEvent<HTMLSelectElement>) => {
-      const value = event.target.value
-      updateFilter({ [key]: (value || undefined) as never })
-    }
+  const handleStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value
+    updateFilter({ status: value ? (value as JobListQueryParams['status']) : undefined })
+  }
+
+  const handleReferralStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value
+    updateFilter({
+      referralStatus: value ? (value as JobListQueryParams['referralStatus']) : undefined,
+    })
+  }
 
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4">
-      <label className="flex flex-col text-sm">
+    <div className={styles.container}>
+      <label className={styles.field}>
         Status
-        <select
-          className="mt-1 rounded border border-gray-300 px-2 py-1"
-          value={filters.status ?? ''}
-          onChange={handleSelectChange('status')}
-        >
+        <select className={styles.input} value={filters.status ?? ''} onChange={handleStatusChange}>
           <option value="">All</option>
           {JOB_STATUS_OPTIONS.map((option) => (
             <option key={option} value={option}>
@@ -43,12 +46,12 @@ export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
         </select>
       </label>
 
-      <label className="flex flex-col text-sm">
+      <label className={styles.field}>
         Referral status
         <select
-          className="mt-1 rounded border border-gray-300 px-2 py-1"
-          value={filters.referral_status ?? ''}
-          onChange={handleSelectChange('referral_status')}
+          className={styles.input}
+          value={filters.referralStatus ?? ''}
+          onChange={handleReferralStatusChange}
         >
           <option value="">All</option>
           {JOB_REFERRAL_STATUS_OPTIONS.map((option) => (
@@ -59,32 +62,32 @@ export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
         </select>
       </label>
 
-      <label className="flex flex-col text-sm">
+      <label className={styles.field}>
         From
         <input
           type="date"
-          className="mt-1 rounded border border-gray-300 px-2 py-1"
-          value={filters.date_from ?? ''}
-          onChange={handleTextChange('date_from')}
+          className={styles.input}
+          value={filters.dateFrom ?? ''}
+          onChange={handleTextChange('dateFrom')}
         />
       </label>
 
-      <label className="flex flex-col text-sm">
+      <label className={styles.field}>
         To
         <input
           type="date"
-          className="mt-1 rounded border border-gray-300 px-2 py-1"
-          value={filters.date_to ?? ''}
-          onChange={handleTextChange('date_to')}
+          className={styles.input}
+          value={filters.dateTo ?? ''}
+          onChange={handleTextChange('dateTo')}
         />
       </label>
 
-      <label className="flex flex-1 min-w-[200px] flex-col text-sm">
+      <label className={styles.searchField}>
         Search
         <input
           type="text"
           placeholder="URL, title, company, official ID, description"
-          className="mt-1 rounded border border-gray-300 px-2 py-1"
+          className={styles.input}
           value={filters.search ?? ''}
           onChange={handleTextChange('search')}
         />
