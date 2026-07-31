@@ -144,14 +144,16 @@ export function JobsTable({
                 if (column.key === 'url') {
                   return (
                     <td key={column.key} className={styles.cellTruncate} style={{ width: column.width }}>
-                      <button
-                        type="button"
-                        className={styles.urlButton}
-                        onClick={() => copy(job.url)}
-                        title="Click to copy"
-                      >
-                        {job.url}
-                      </button>
+                      {job.url ? (
+                        <button
+                          type="button"
+                          className={styles.urlButton}
+                          onClick={() => copy(job.url as string)}
+                          title="Click to copy"
+                        >
+                          {job.url}
+                        </button>
+                      ) : null}
                     </td>
                   );
                 }

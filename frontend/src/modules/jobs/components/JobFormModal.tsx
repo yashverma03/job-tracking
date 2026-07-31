@@ -22,7 +22,7 @@ import styles from './JobFormModal.module.css'
 const CREATED_AT_FORMAT = 'DD MMM YYYY'
 
 const jobFormSchema = Yup.object({
-  url: Yup.string().trim().required('URL is required'),
+  url: Yup.string().trim(),
   companyName: Yup.string(),
   title: Yup.string(),
   officialId: Yup.string(),

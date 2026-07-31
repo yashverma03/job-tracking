@@ -6,7 +6,7 @@ export type JobResponse = Job
 export type JobListResponse = PaginatedResponse<JobResponse>
 
 export interface JobCreateRequest {
-  url: string
+  url?: string
   companyName?: string
   title?: string
   officialId?: string
