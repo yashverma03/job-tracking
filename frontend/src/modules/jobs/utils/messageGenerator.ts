@@ -96,7 +96,7 @@ export function getEmailMessage(jobs: Job[]): string {
 
   const jobsBlock = isSingle
     ? `Job: ${firstJob.url}${jobIdSuffix(firstJob)}`
-    : formatJobsList(jobs)
+    : `Jobs:\n${formatJobsList(jobs)}`
 
   return `
 ${subject}

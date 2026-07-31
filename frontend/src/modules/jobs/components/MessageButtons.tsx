@@ -14,8 +14,6 @@ interface MessageButtonsProps {
 export function MessageButtons({ jobs }: MessageButtonsProps) {
   const { copy } = useClipboard()
 
-  if (jobs.length === 0) return null
-
   return (
     <div className={styles.container}>
       <button type="button" className={styles.button} onClick={() => copy(getShortReferralMessage(jobs))}>

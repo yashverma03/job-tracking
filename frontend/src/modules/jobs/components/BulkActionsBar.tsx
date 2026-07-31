@@ -7,12 +7,12 @@ interface BulkActionsBarProps {
 }
 
 export function BulkActionsBar({ selectedJobs }: BulkActionsBarProps) {
-  if (selectedJobs.length < 2) return null
+  const isVisible = selectedJobs.length >= 2
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{ visibility: isVisible ? 'visible' : 'hidden' }}>
       <span className={styles.count}>{selectedJobs.length} jobs selected</span>
-      <MessageButtons jobs={selectedJobs} />
+      <MessageButtons jobs={isVisible ? selectedJobs : []} />
     </div>
   )
 }
