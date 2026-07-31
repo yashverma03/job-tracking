@@ -19,13 +19,13 @@ export function MessageButtons({ jobs }: MessageButtonsProps) {
   return (
     <div className={styles.container}>
       <button type="button" className={styles.button} onClick={() => copy(getShortReferralMessage(jobs))}>
-        Short referral msg
+        Short
       </button>
       <button type="button" className={styles.button} onClick={() => copy(getReferralMessage(jobs))}>
-        Long referral msg
+        Long
       </button>
       <button type="button" className={styles.button} onClick={() => copy(getEmailMessage(jobs))}>
-        Email msg
+        Email
       </button>
     </div>
   )

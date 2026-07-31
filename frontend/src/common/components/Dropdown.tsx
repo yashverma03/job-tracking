@@ -14,6 +14,7 @@ interface DropdownProps {
   options: DropdownOption[]
   allowEmpty?: boolean
   emptyLabel?: string
+  hideLabel?: boolean
 }
 
 export function Dropdown({
@@ -23,6 +24,7 @@ export function Dropdown({
   options,
   allowEmpty = false,
   emptyLabel = 'All',
+  hideLabel = false,
 }: DropdownProps) {
   const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
     onChange(event.target.value)
@@ -30,7 +32,7 @@ export function Dropdown({
 
   return (
     <label className={styles.container}>
-      <span className={styles.label}>{label}</span>
+      {!hideLabel && <span className={styles.label}>{label}</span>}
       <div className={styles.selectWrapper}>
         <select className={styles.select} value={value} onChange={handleChange}>
           {allowEmpty && <option value="">{emptyLabel}</option>}

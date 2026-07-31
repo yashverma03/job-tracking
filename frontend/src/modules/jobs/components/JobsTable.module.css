@@ -25,7 +25,7 @@
 }
 
 .checkboxCell {
-  @apply w-10 p-3 align-top;
+  @apply p-3 align-top;
 }
 
 .checkbox {
@@ -33,15 +33,15 @@
 }
 
 .messagesCell {
-  @apply w-56 p-3 align-top;
+  @apply p-3 align-top;
 }
 
 .cellWrap {
-  @apply w-[110px] p-3 align-top break-words whitespace-normal text-slate-300;
+  @apply p-3 align-top wrap-break-word whitespace-normal text-slate-300;
 }
 
 .cellTruncate {
-  @apply w-[180px] truncate p-3 align-top text-slate-300;
+  @apply truncate p-3 align-top text-slate-300;
 }
 
 .urlButton {
@@ -49,7 +49,7 @@
 }
 
 .actionsCell {
-  @apply w-16 p-3 align-top;
+  @apply p-3 align-top;
 }
 
 .editButton {

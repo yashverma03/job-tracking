@@ -17,7 +17,7 @@ class JobListQueryDTO(serializers.Serializer):
     limit = serializers.IntegerField(min_value=1)
 
     def to_filter_params(self) -> JobFilterParams:
-        data = self.validated_data
+        data: dict = self.validated_data  # type: ignore[assignment]
         return JobFilterParams(
             page=data.get('page', 1),
             limit=data['limit'],

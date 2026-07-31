@@ -2,6 +2,7 @@ import type { FocusEvent } from 'react'
 
 import dayjs from 'dayjs'
 import { Formik, Form, Field, type FieldProps } from 'formik'
+import { X } from 'lucide-react'
 import * as Yup from 'yup'
 
 import { Dropdown } from '../../../common/components/Dropdown'
@@ -10,6 +11,8 @@ import {
   DEFAULT_JOB_STATUS,
   JOB_REFERRAL_STATUS_OPTIONS,
   JOB_STATUS_OPTIONS,
+  REFERRAL_STATUS_DROPDOWN_OPTIONS,
+  STATUS_DROPDOWN_OPTIONS,
 } from '../constants/job.constants'
 import type { JobCreateRequest, JobFormValues } from '../interfaces/job.interfaces'
 import type { Job } from '../types/job.types'
@@ -31,12 +34,6 @@ const jobFormSchema = Yup.object({
   status: Yup.string().oneOf(JOB_STATUS_OPTIONS).required(),
   referralStatus: Yup.string().oneOf(JOB_REFERRAL_STATUS_OPTIONS).required(),
 })
-
-const STATUS_OPTIONS = JOB_STATUS_OPTIONS.map((option) => ({ value: option, label: option }))
-const REFERRAL_STATUS_OPTIONS = JOB_REFERRAL_STATUS_OPTIONS.map((option) => ({
-  value: option,
-  label: option,
-}))
 
 function jobToFormValues(job: Job | null): JobFormValues {
   return {
@@ -80,9 +77,19 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
   const isEdit = job !== null
 
   return (
-    <div className={styles.overlay}>
+    <div
+      className={styles.overlay}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
       <div className={styles.modal}>
-        <h2 className={styles.heading}>{isEdit ? 'Edit Job' : 'Add Job'}</h2>
+        <div className={styles.headerRow}>
+          <h2 className={styles.heading}>{isEdit ? 'Edit Job' : 'Add Job'}</h2>
+          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
 
         <Formik
           initialValues={jobToFormValues(job)}
@@ -174,14 +181,14 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
                 label="Job status"
                 value={values.status}
                 onChange={(value) => setFieldValue('status', value)}
-                options={STATUS_OPTIONS}
+                options={STATUS_DROPDOWN_OPTIONS}
               />
 
               <Dropdown
                 label="Referral status"
                 value={values.referralStatus}
                 onChange={(value) => setFieldValue('referralStatus', value)}
-                options={REFERRAL_STATUS_OPTIONS}
+                options={REFERRAL_STATUS_DROPDOWN_OPTIONS}
               />
 
               <div className={styles.actions}>
