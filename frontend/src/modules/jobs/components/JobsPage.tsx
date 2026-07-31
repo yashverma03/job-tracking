@@ -60,7 +60,10 @@ export function JobsPage() {
     closeForm()
   }
 
-  const goToPage = (page: number) => setFilters((prev) => ({ ...prev, page }))
+  const goToPage = (page: number) => {
+    setFilters((prev) => ({ ...prev, page }))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
     <div className={styles.page}>
