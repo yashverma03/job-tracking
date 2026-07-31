@@ -55,6 +55,16 @@ export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
         allowEmpty
       />
 
+      <label className={styles.searchField}>
+        <span className={styles.label}>Search</span>
+        <input
+          type="text"
+          className={styles.input}
+          value={filters.search ?? ''}
+          onChange={handleTextChange('search')}
+        />
+      </label>
+
       <label className={styles.field}>
         <span className={styles.label}>From</span>
         <input
@@ -72,16 +82,6 @@ export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
           className={styles.input}
           value={filters.dateTo ?? ''}
           onChange={handleTextChange('dateTo')}
-        />
-      </label>
-
-      <label className={styles.searchField}>
-        <span className={styles.label}>Search</span>
-        <input
-          type="text"
-          className={styles.input}
-          value={filters.search ?? ''}
-          onChange={handleTextChange('search')}
         />
       </label>
     </div>

@@ -13,12 +13,12 @@
 }
 
 .addButton {
-  @apply flex items-center gap-2 rounded-xl bg-amber-400 px-8 py-4 text-base font-bold text-indigo-900 shadow-lg transition-all;
-  @apply hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-xl active:translate-y-0;
+  @apply flex items-center gap-2 rounded-xl bg-emerald-400 px-8 py-4 text-base font-bold text-emerald-950 shadow-lg transition-all;
+  @apply hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-xl active:translate-y-0;
 }
 
 .addButtonIcon {
-  @apply flex h-6 w-6 items-center justify-center rounded-full bg-indigo-900 text-lg leading-none text-amber-300;
+  @apply flex h-6 w-6 items-center justify-center rounded-full bg-emerald-950 text-lg leading-none text-emerald-300;
 }
 
 .statusText {
