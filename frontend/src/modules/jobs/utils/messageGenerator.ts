@@ -24,12 +24,16 @@ function jobIdSuffix(job: Job): string {
   return job.officialId ? ` (ID: ${job.officialId})` : ''
 }
 
+function effectiveUrl(job: Job): string | null {
+  return job.secondaryUrl || job.url
+}
+
 function formatJobsList(jobs: Job[]): string {
   const multipleJobs = jobs.length > 1
   return jobs
     .map((job, index) => {
       const numbering = multipleJobs ? `${index + 1}. ` : ''
-      return `${numbering}${job.title ?? 'Untitled role'}${jobIdSuffix(job)}\n${job.url}`
+      return `${numbering}${job.title ?? 'Untitled role'}${jobIdSuffix(job)}\n${effectiveUrl(job)}`
     })
     .join('\n')
 }
@@ -53,8 +57,8 @@ function buildShortReferralJobsBlock(jobs: Job[], useJobIdOnly: boolean): string
   }
 
   return isSingle
-    ? `Job: ${firstJob.url}${jobIdSuffix(firstJob)}`
-    : `Jobs:\n${jobs.map((job) => job.url).join('\n')}`
+    ? `Job: ${effectiveUrl(firstJob)}${jobIdSuffix(firstJob)}`
+    : `Jobs:\n${jobs.map((job) => effectiveUrl(job)).join('\n')}`
 }
 
 function buildShortReferralMessage(jobs: Job[], useJobIdOnly: boolean): string {
@@ -131,7 +135,7 @@ export function getEmailMessage(jobs: Job[]): string {
     : `I am enthusiastic about these opportunities and would like to apply for the following role${jobs.length > 1 ? 's' : ''}${company ? ` at ${company}` : ''}:`
 
   const jobsBlock = isSingle
-    ? `Job: ${firstJob.url}${jobIdSuffix(firstJob)}`
+    ? `Job: ${effectiveUrl(firstJob)}${jobIdSuffix(firstJob)}`
     : `Jobs:\n${formatJobsList(jobs)}`
 
   return `

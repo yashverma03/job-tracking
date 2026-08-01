@@ -12,6 +12,7 @@ class JobResponseDTO(serializers.ModelSerializer):
         fields = [
             'id',
             'url',
+            'secondary_url',
             'referral_status',
             'status',
             'company_name',

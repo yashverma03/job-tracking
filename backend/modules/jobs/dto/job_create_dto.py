@@ -22,6 +22,7 @@ class JobCreateDTO(serializers.ModelSerializer):
         model = Job
         fields = [
             'url',
+            'secondary_url',
             'referral_status',
             'status',
             'company_name',
@@ -35,6 +36,7 @@ class JobCreateDTO(serializers.ModelSerializer):
         ]
         extra_kwargs = {
             'url': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'secondary_url': {'required': False, 'allow_blank': True, 'allow_null': True},
         }
 
     def validate(self, attrs):

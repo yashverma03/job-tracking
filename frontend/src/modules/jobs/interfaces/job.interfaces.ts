@@ -7,6 +7,7 @@ export type JobListResponse = PaginatedResponse<JobResponse>
 
 export interface JobCreateRequest {
   url?: string
+  secondaryUrl?: string
   companyName?: string
   title?: string
   officialId?: string
@@ -31,6 +32,7 @@ export interface JobListQueryParams {
 
 export interface JobFormValues {
   url: string
+  secondaryUrl: string
   companyName: string
   title: string
   officialId: string

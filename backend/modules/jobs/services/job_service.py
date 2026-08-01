@@ -1,30 +1,18 @@
-from urllib.parse import urlsplit, urlunsplit
-
 from django.db.models import Q
 from django.utils import timezone
 
 from common.exceptions.api_exceptions import ApiError
 from common.types.pagination import PaginatedResult
 from modules.jobs.models import Job
+from modules.jobs.services import job_unique_key_service
 from modules.jobs.types.job_types import JobFilterParams
 from modules.jobs.utils.url_cleaner import clean_job_url
 
 SEARCH_FIELDS = ['url', 'title', 'company_name', 'official_id', 'description']
 
 
-def _normalize_url(url: str) -> str:
-    parts = urlsplit(url)
-    path = parts.path.rstrip('/')
-    return urlunsplit((parts.scheme, parts.netloc, path, '', ''))
-
-
-def _ensure_url_not_duplicate(url: str | None) -> None:
-    if not url:
-        return
-
-    normalized_url = _normalize_url(url)
-    existing_urls = _active_jobs_queryset().filter(url__isnull=False).values_list('url', flat=True)
-    if any(_normalize_url(existing_url) == normalized_url for existing_url in existing_urls):
+def _ensure_url_not_duplicate(url: str | None, secondary_url: str | None) -> None:
+    if job_unique_key_service.is_duplicate(url, secondary_url):
         raise ApiError(
             'A job with this URL already exists.',
             status_code=400,
@@ -74,17 +62,24 @@ def get_job(job_id: int) -> Job:
 def create_job(data: dict) -> Job:
     if data.get('url'):
         data['url'] = clean_job_url(data['url'])
-    _ensure_url_not_duplicate(data.get('url'))
-    return Job.objects.create(**data)
+    if data.get('secondary_url'):
+        data['secondary_url'] = clean_job_url(data['secondary_url'])
+    _ensure_url_not_duplicate(data.get('url'), data.get('secondary_url'))
+    job = Job.objects.create(**data)
+    job_unique_key_service.upsert_unique_keys(job.url, job.secondary_url)
+    return job
 
 
 def update_job(job_id: int, data: dict) -> Job:
     if data.get('url'):
         data['url'] = clean_job_url(data['url'])
+    if data.get('secondary_url'):
+        data['secondary_url'] = clean_job_url(data['secondary_url'])
     job = get_job(job_id)
     for field, value in data.items():
         setattr(job, field, value)
     job.save()
+    job_unique_key_service.upsert_unique_keys(job.url, job.secondary_url)
     return job
 
 

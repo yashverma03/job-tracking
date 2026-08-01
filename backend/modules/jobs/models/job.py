@@ -6,6 +6,7 @@ from modules.jobs.enums.job_status import JobStatus
 
 class Job(models.Model):
     url = models.TextField(null=True, blank=True)
+    secondary_url = models.TextField(null=True, blank=True)
     referral_status = models.TextField(
         choices=JobReferralStatus.choices,
         default=JobReferralStatus.NOT_ASKING,

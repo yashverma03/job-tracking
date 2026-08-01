@@ -20,6 +20,7 @@ interface Column {
 
 const COLUMNS: Column[] = [
   { key: 'url', label: 'URL', truncate: true, width: 70 },
+  { key: 'secondaryUrl', label: 'Secondary URL', truncate: true, width: 70 },
   { key: 'companyName', label: 'Company name', width: 140 },
   { key: 'title', label: 'Title', width: 160 },
   { key: 'officialId', label: 'Official ID', width: 110 },
@@ -209,21 +210,22 @@ export function JobsTable({
                 </div>
               </td>
               {COLUMNS.map((column) => {
-                if (column.key === 'url') {
+                if (column.key === 'url' || column.key === 'secondaryUrl') {
+                  const linkValue = job[column.key] as string | null;
                   return (
                     <td
                       key={column.key}
                       className={styles.cellTruncate}
                       style={{ width: column.width }}
                     >
-                      {job.url ? (
+                      {linkValue ? (
                         <button
                           type="button"
                           className={styles.urlButton}
-                          onClick={() => copy(job.url as string)}
-                          title={job.url}
+                          onClick={() => copy(linkValue)}
+                          title={linkValue}
                         >
-                          {job.url}
+                          {linkValue}
                         </button>
                       ) : null}
                     </td>

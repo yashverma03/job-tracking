@@ -6,6 +6,7 @@ export type JobReferralStatus = (typeof JOB_REFERRAL_STATUS_OPTIONS)[number]
 export interface Job {
   id: number
   url: string | null
+  secondaryUrl: string | null
   referralStatus: JobReferralStatus
   status: JobStatus
   companyName: string | null

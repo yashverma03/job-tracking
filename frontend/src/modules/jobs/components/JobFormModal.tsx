@@ -23,6 +23,7 @@ const CREATED_AT_FORMAT = 'DD MMM YYYY'
 
 const jobFormSchema = Yup.object({
   url: Yup.string().trim(),
+  secondaryUrl: Yup.string().trim(),
   companyName: Yup.string(),
   title: Yup.string(),
   officialId: Yup.string(),
@@ -36,6 +37,7 @@ const jobFormSchema = Yup.object({
 function jobToFormValues(job: Job | null): JobFormValues {
   return {
     url: job?.url ?? '',
+    secondaryUrl: job?.secondaryUrl ?? '',
     companyName: job?.companyName ?? '',
     title: job?.title ?? '',
     officialId: job?.officialId ?? '',
@@ -50,6 +52,7 @@ function jobToFormValues(job: Job | null): JobFormValues {
 function toJobPayload(values: JobFormValues): JobCreateRequest {
   return {
     url: cleanJobUrl(values.url),
+    secondaryUrl: cleanJobUrl(values.secondaryUrl),
     companyName: values.companyName,
     title: values.title,
     officialId: values.officialId,
@@ -149,6 +152,25 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
               <label className={styles.label}>
                 Job ID
                 <Field name="officialId" className={styles.input} />
+              </label>
+
+              <label className={styles.label}>
+                Secondary URL
+                <Field name="secondaryUrl">
+                  {({ field, form }: FieldProps<string>) => (
+                    <input
+                      {...field}
+                      className={styles.input}
+                      onBlur={(event: FocusEvent<HTMLInputElement>) => {
+                        field.onBlur(event)
+                        form.setFieldValue('secondaryUrl', cleanJobUrl(event.target.value))
+                      }}
+                    />
+                  )}
+                </Field>
+                {touched.secondaryUrl && errors.secondaryUrl && (
+                  <span className={styles.errorText}>{errors.secondaryUrl}</span>
+                )}
               </label>
 
               <label className={styles.label}>
