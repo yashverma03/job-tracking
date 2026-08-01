@@ -7,6 +7,7 @@ from common.exceptions.api_exceptions import ApiError
 from common.types.pagination import PaginatedResult
 from modules.jobs.models import Job
 from modules.jobs.types.job_types import JobFilterParams
+from modules.jobs.utils.url_cleaner import clean_job_url
 
 SEARCH_FIELDS = ['url', 'title', 'company_name', 'official_id', 'description']
 
@@ -71,11 +72,15 @@ def get_job(job_id: int) -> Job:
 
 
 def create_job(data: dict) -> Job:
+    if data.get('url'):
+        data['url'] = clean_job_url(data['url'])
     _ensure_url_not_duplicate(data.get('url'))
     return Job.objects.create(**data)
 
 
 def update_job(job_id: int, data: dict) -> Job:
+    if data.get('url'):
+        data['url'] = clean_job_url(data['url'])
     job = get_job(job_id)
     for field, value in data.items():
         setattr(job, field, value)
