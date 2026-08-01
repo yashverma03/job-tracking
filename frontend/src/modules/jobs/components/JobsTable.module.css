@@ -1,7 +1,25 @@
 @reference "../../../index.css";
 
+.tableContainer {
+  @apply rounded-xl border border-slate-800 bg-slate-900 shadow-sm;
+}
+
 .tableWrapper {
-  @apply overflow-x-auto rounded-xl border border-slate-800 bg-slate-900 shadow-sm;
+  @apply overflow-x-auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tableWrapper::-webkit-scrollbar {
+  @apply hidden;
+}
+
+.stickyScrollbar {
+  @apply sticky bottom-0 z-20 h-3.5 overflow-x-auto overflow-y-hidden border-t border-slate-800 bg-slate-900;
+}
+
+.scrollSpacer {
+  @apply h-px;
 }
 
 .table {

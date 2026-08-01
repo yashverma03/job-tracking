@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+
 import { CheckCheck, Pencil } from 'lucide-react';
 
 import { Dropdown } from '../../../common/components/Dropdown';
@@ -53,6 +55,30 @@ export function JobsTable({
   const { copy } = useClipboard();
   const { updateMutation } = useJobMutations();
 
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const bottomScrollRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const isSyncingScroll = useRef(false);
+  const [tableWidth, setTableWidth] = useState(0);
+
+  useEffect(() => {
+    const tableEl = tableRef.current;
+    if (!tableEl) return;
+
+    setTableWidth(tableEl.scrollWidth);
+
+    const resizeObserver = new ResizeObserver(() => setTableWidth(tableEl.scrollWidth));
+    resizeObserver.observe(tableEl);
+    return () => resizeObserver.disconnect();
+  }, [jobs]);
+
+  const syncScroll = (source: HTMLDivElement, target: HTMLDivElement | null) => {
+    if (isSyncingScroll.current || !target) return;
+    isSyncingScroll.current = true;
+    target.scrollLeft = source.scrollLeft;
+    isSyncingScroll.current = false;
+  };
+
   const handleStatusChange = (job: Job, status: string) => {
     updateMutation.mutate({
       id: job.id,
@@ -68,8 +94,13 @@ export function JobsTable({
   };
 
   return (
-    <div className={styles.tableWrapper}>
-      <table className={styles.table}>
+    <div className={styles.tableContainer}>
+      <div
+        className={styles.tableWrapper}
+        ref={tableScrollRef}
+        onScroll={(event) => syncScroll(event.currentTarget, bottomScrollRef.current)}
+      >
+        <table className={styles.table} ref={tableRef}>
         <thead className={styles.thead}>
           <tr>
             <th
@@ -265,7 +296,15 @@ export function JobsTable({
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
+      <div
+        className={styles.stickyScrollbar}
+        ref={bottomScrollRef}
+        onScroll={(event) => syncScroll(event.currentTarget, tableScrollRef.current)}
+      >
+        <div className={styles.scrollSpacer} style={{ width: tableWidth }} />
+      </div>
     </div>
   );
 }
