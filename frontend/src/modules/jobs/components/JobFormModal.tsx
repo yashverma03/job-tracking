@@ -14,7 +14,7 @@ import {
   REFERRAL_STATUS_DROPDOWN_OPTIONS,
   STATUS_DROPDOWN_OPTIONS,
 } from '../constants/job.constants'
-import type { JobCreateRequest, JobFormValues } from '../interfaces/job.interfaces'
+import type { JobFormValues, JobUpdateRequest } from '../interfaces/job.interfaces'
 import type { Job } from '../types/job.types'
 import { cleanJobUrl } from '../utils/urlCleaner'
 import styles from './JobFormModal.module.css'
@@ -32,6 +32,8 @@ const jobFormSchema = Yup.object({
   notes: Yup.string(),
   status: Yup.string().oneOf(JOB_STATUS_OPTIONS).required(),
   referralStatus: Yup.string().oneOf(JOB_REFERRAL_STATUS_OPTIONS).required(),
+  score: Yup.string().trim().matches(/^-?\d*$/, 'Score must be a whole number'),
+  analysis: Yup.string(),
 })
 
 function jobToFormValues(job: Job | null): JobFormValues {
@@ -46,11 +48,13 @@ function jobToFormValues(job: Job | null): JobFormValues {
     notes: job?.notes ?? '',
     status: job?.status ?? DEFAULT_JOB_STATUS,
     referralStatus: job?.referralStatus ?? DEFAULT_JOB_REFERRAL_STATUS,
+    score: job?.score != null ? String(job.score) : '',
+    analysis: job?.analysis ?? '',
   }
 }
 
-function toJobPayload(values: JobFormValues): JobCreateRequest {
-  return {
+function toJobPayload(values: JobFormValues, isEdit: boolean): JobUpdateRequest {
+  const payload: JobUpdateRequest = {
     url: cleanJobUrl(values.url),
     secondaryUrl: cleanJobUrl(values.secondaryUrl),
     companyName: values.companyName,
@@ -62,12 +66,20 @@ function toJobPayload(values: JobFormValues): JobCreateRequest {
     status: values.status,
     referralStatus: values.referralStatus,
   }
+
+  if (isEdit) {
+    const trimmedScore = values.score.trim()
+    payload.score = trimmedScore === '' ? null : Number(trimmedScore)
+    payload.analysis = values.analysis
+  }
+
+  return payload
 }
 
 interface JobFormModalProps {
   job: Job | null
   onClose: () => void
-  onSubmit: (payload: JobCreateRequest) => void
+  onSubmit: (payload: JobUpdateRequest) => void
 }
 
 export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
@@ -91,7 +103,7 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
         <Formik
           initialValues={jobToFormValues(job)}
           validationSchema={jobFormSchema}
-          onSubmit={(values) => onSubmit(toJobPayload(values))}
+          onSubmit={(values) => onSubmit(toJobPayload(values, isEdit))}
         >
           {({ errors, touched, values, setFieldValue, submitForm }) => (
             <Form
@@ -188,6 +200,19 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
                   <label className={styles.label}>
                     Notes
                     <Field as="textarea" name="notes" className={styles.input} rows={3} />
+                  </label>
+
+                  <label className={styles.label}>
+                    Score
+                    <Field name="score" className={styles.input} />
+                    {touched.score && errors.score && (
+                      <span className={styles.errorText}>{errors.score}</span>
+                    )}
+                  </label>
+
+                  <label className={styles.label}>
+                    Analysis
+                    <Field as="textarea" name="analysis" className={styles.input} rows={4} />
                   </label>
                 </>
               )}

@@ -16,6 +16,8 @@ export interface JobCreateRequest {
   notes?: string
   status?: JobStatus
   referralStatus?: JobReferralStatus
+  score?: number | null
+  analysis?: string | null
 }
 
 export type JobUpdateRequest = Partial<JobCreateRequest>
@@ -41,4 +43,6 @@ export interface JobFormValues {
   notes: string
   status: JobStatus
   referralStatus: JobReferralStatus
+  score: string
+  analysis: string
 }

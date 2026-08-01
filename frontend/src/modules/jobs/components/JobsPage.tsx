@@ -7,7 +7,7 @@ import { BulkActionsBar } from './BulkActionsBar'
 import { JobFormModal } from './JobFormModal'
 import { useJobMutations } from '../hooks/useJobMutations'
 import { useJobsQuery } from '../hooks/useJobsQuery'
-import type { JobCreateRequest, JobListQueryParams } from '../interfaces/job.interfaces'
+import type { JobListQueryParams, JobUpdateRequest } from '../interfaces/job.interfaces'
 import type { Job } from '../types/job.types'
 import styles from './JobsPage.module.css'
 
@@ -51,7 +51,7 @@ export function JobsPage() {
 
   const closeForm = () => setIsFormOpen(false)
 
-  const handleFormSubmit = (payload: JobCreateRequest) => {
+  const handleFormSubmit = (payload: JobUpdateRequest) => {
     if (editingJob) {
       updateMutation.mutate({ id: editingJob.id, payload }, { onSuccess: closeForm })
     } else {

@@ -26,6 +26,8 @@ const COLUMNS: Column[] = [
   { key: 'officialId', label: 'Official ID', width: 110 },
   { key: 'description', label: 'Description', truncate: true, width: 100 },
   { key: 'location', label: 'Location', width: 130 },
+  { key: 'score', label: 'Score', width: 80 },
+  { key: 'analysis', label: 'Analysis', truncate: true, width: 140 },
 ];
 
 const CHECKBOX_COLUMN_WIDTH = 40;
@@ -232,6 +234,7 @@ export function JobsTable({
                   );
                 }
                 const value = job[column.key];
+                const hasValue = value !== null && value !== undefined;
                 return (
                   <td
                     key={column.key}
@@ -240,7 +243,7 @@ export function JobsTable({
                     }
                     style={{ width: column.width }}
                   >
-                    {value ? (
+                    {hasValue ? (
                       <button
                         type="button"
                         className={styles.copyButton}

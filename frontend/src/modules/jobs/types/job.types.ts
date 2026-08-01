@@ -17,4 +17,6 @@ export interface Job {
   notes: string | null
   createdAt: string
   updatedAt: string
+  score: number | null
+  analysis: string | null
 }

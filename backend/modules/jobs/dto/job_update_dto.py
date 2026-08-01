@@ -31,10 +31,14 @@ class JobUpdateDTO(serializers.ModelSerializer):
             'min_years',
             'max_years',
             'notes',
+            'score',
+            'analysis',
         ]
         extra_kwargs = {
             'url': {'required': False, 'allow_blank': True, 'allow_null': True},
             'secondary_url': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'score': {'required': False, 'allow_null': True},
+            'analysis': {'required': False, 'allow_blank': True, 'allow_null': True},
         }
 
     def validate(self, attrs):

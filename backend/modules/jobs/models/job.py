@@ -23,6 +23,8 @@ class Job(models.Model):
     min_years = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     max_years = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     notes = models.TextField(null=True, blank=True)
+    score = models.IntegerField(null=True, blank=True)
+    analysis = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
