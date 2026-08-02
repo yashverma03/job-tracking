@@ -31,13 +31,25 @@
       ]
     }
   ],
-  "skills_pool": {
-    "Languages": ["Java", "Python", "JavaScript", "TypeScript"],
-    "Backend": ["Spring Boot", "Django", "Node.js"],
-    "Databases": ["PostgreSQL", "MySQL", "MongoDB"],
-    "DevOps": ["AWS", "Docker", "Kubernetes", "CI/CD"],
-    "Other": ["Redis", "Kafka", "Testing"]
-  },
+  "skills": [
+    "Java",
+    "Python",
+    "JavaScript",
+    "TypeScript",
+    "Spring Boot",
+    "Django",
+    "Node.js",
+    "PostgreSQL",
+    "MySQL",
+    "MongoDB",
+    "AWS",
+    "Docker",
+    "Kubernetes",
+    "CI/CD",
+    "Redis",
+    "Kafka",
+    "Testing"
+  ],
   "certifications": [
     { "label": "AWS Certified Cloud Practitioner", "url": "https://example.com/cert" }
   ],

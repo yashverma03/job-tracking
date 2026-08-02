@@ -8,7 +8,7 @@ from modules.resume.utils.resume_constants import (
     CLAUDE_CLI_TIMEOUT_SECONDS,
     MAX_BULLET_CHARS,
     MAX_SKILL_ITEM_CHARS,
-    MAX_SKILLS_PER_CATEGORY,
+    MAX_SKILLS_TOTAL,
     MAX_SUMMARY_CHARS,
 )
 
@@ -25,12 +25,8 @@ def _build_json_schema(resume_input: ResumeInput) -> dict:
                 'maxItems': len(resume_input.experience),
             },
             'skills': {
-                'type': 'object',
-                'properties': {
-                    category: {'type': 'array', 'items': {'type': 'string'}}
-                    for category in resume_input.skills_pool
-                },
-                'required': list(resume_input.skills_pool.keys()),
+                'type': 'array',
+                'items': {'type': 'string'},
             },
         },
         'required': ['summary', 'experience_bullets', 'skills'],
@@ -43,9 +39,7 @@ def _build_prompt(job_title: str, job_description: str, resume_input: ResumeInpu
         + '\n'.join(f'   - {bullet}' for bullet in entry.base_bullets)
         for i, entry in enumerate(resume_input.experience)
     )
-    skills_section = '\n'.join(
-        f'{category}: {", ".join(items)}' for category, items in resume_input.skills_pool.items()
-    )
+    skills_section = ', '.join(resume_input.skills)
 
     return f"""You are tailoring a candidate's resume content for a specific job application.
 
@@ -57,8 +51,7 @@ Candidate's base work experience (do not invent new roles, companies, or dates â
 emphasize what's most relevant to the job above):
 {experience_section}
 
-Candidate's full skills pool (choose and order the most relevant subset per category, do not invent skills \
-not listed here):
+Candidate's full skills list (choose and order the most relevant subset, do not invent skills not listed here):
 {skills_section}
 
 Return structured output with:
@@ -66,9 +59,8 @@ Return structured output with:
 - "experience_bullets": one array of bullets per experience entry above, in the same order, same count of \
 entries as the input, each bullet at most {MAX_BULLET_CHARS} characters and rewritten/reordered to best fit \
 the job (do not fabricate facts, only rephrase/reprioritize the given base bullets).
-- "skills": an object with the same category keys as the skills pool above, each containing at most \
-{MAX_SKILLS_PER_CATEGORY} of the most relevant items (in relevance order) from that category's pool, each \
-item at most {MAX_SKILL_ITEM_CHARS} characters."""
+- "skills": a flat array of at most {MAX_SKILLS_TOTAL} of the most relevant skills (in relevance order) from \
+the skills list above, each at most {MAX_SKILL_ITEM_CHARS} characters, with no grouping or categorization."""
 
 
 def _run_claude_cli(prompt: str, json_schema: dict) -> dict:
@@ -95,6 +87,8 @@ def _run_claude_cli(prompt: str, json_schema: dict) -> dict:
     if completed.returncode != 0:
         raise ApiError(f'Claude Code CLI failed: {completed.stderr.strip()}', status_code=500)
 
+    print(f'[resume_ai_service] Claude CLI response:\n{completed.stdout}')
+
     try:
         result = json.loads(completed.stdout)
     except json.JSONDecodeError as exc:
@@ -119,10 +113,7 @@ def _enforce_limits(output: dict, resume_input: ResumeInput) -> ResumeAiOutput:
     ]
 
     raw_skills = output['skills']
-    skills = {
-        category: [str(item)[:MAX_SKILL_ITEM_CHARS] for item in raw_skills.get(category, [])][:MAX_SKILLS_PER_CATEGORY]
-        for category in resume_input.skills_pool
-    }
+    skills = [str(item)[:MAX_SKILL_ITEM_CHARS] for item in raw_skills][:MAX_SKILLS_TOTAL]
 
     return ResumeAiOutput(summary=summary, experience_bullets=experience_bullets, skills=skills)
 

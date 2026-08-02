@@ -38,7 +38,7 @@ class ResumeEducation:
 class ResumeInput:
     contact: ResumeContact
     experience: list[ResumeExperienceEntry]
-    skills_pool: dict[str, list[str]]
+    skills: list[str]
     certifications: list[ResumeCertification]
     education: list[ResumeEducation]
 
@@ -47,7 +47,7 @@ class ResumeInput:
 class ResumeAiOutput:
     summary: str
     experience_bullets: list[list[str]]
-    skills: dict[str, list[str]]
+    skills: list[str]
 
 
 @dataclass

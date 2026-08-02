@@ -30,7 +30,7 @@ def load_resume_input() -> ResumeInput:
         return ResumeInput(
             contact=ResumeContact(**raw['contact']),
             experience=[ResumeExperienceEntry(**entry) for entry in raw['experience']],
-            skills_pool=raw['skills_pool'],
+            skills=raw['skills'],
             certifications=[ResumeCertification(**cert) for cert in raw['certifications']],
             education=[ResumeEducation(**edu) for edu in raw['education']],
         )

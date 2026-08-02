@@ -20,19 +20,23 @@ pdfmetrics.registerFont(TTFont('Cambria', '/usr/share/fonts/truetype/crosextra/C
 pdfmetrics.registerFont(TTFont('Cambria-Bold', '/usr/share/fonts/truetype/crosextra/Caladea-Bold.ttf'))
 pdfmetrics.registerFont(TTFont('Calibri', '/usr/share/fonts/truetype/crosextra/Carlito-Regular.ttf'))
 pdfmetrics.registerFont(TTFont('Calibri-Bold', '/usr/share/fonts/truetype/crosextra/Carlito-Bold.ttf'))
+pdfmetrics.registerFont(TTFont('Calibri-Italic', '/usr/share/fonts/truetype/crosextra/Carlito-Italic.ttf'))
 pdfmetrics.registerFont(TTFont('TimesNewRoman', '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf'))
 pdfmetrics.registerFont(TTFont('TimesNewRoman-Bold', '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf'))
 pdfmetrics.registerFontFamily('Cambria', normal='Cambria', bold='Cambria-Bold')
-pdfmetrics.registerFontFamily('Calibri', normal='Calibri', bold='Calibri-Bold')
+pdfmetrics.registerFontFamily('Calibri', normal='Calibri', bold='Calibri-Bold', italic='Calibri-Italic')
 pdfmetrics.registerFontFamily('TimesNewRoman', normal='TimesNewRoman', bold='TimesNewRoman-Bold')
 
-NAME_STYLE = ParagraphStyle('Name', fontName='TimesNewRoman-Bold', fontSize=16, alignment=1, spaceAfter=3)
+NAME_STYLE = ParagraphStyle('Name', fontName='TimesNewRoman-Bold', fontSize=16, alignment=1, spaceAfter=6)
 CONTACT_STYLE = ParagraphStyle('Contact', fontName='Calibri', fontSize=9, alignment=1, textColor=colors.HexColor('#333333'))
-HEADING_STYLE = ParagraphStyle('Heading', fontName='Cambria-Bold', fontSize=12, spaceBefore=14, spaceAfter=3)
+HEADING_STYLE = ParagraphStyle('Heading', fontName='Cambria-Bold', fontSize=12, spaceBefore=16, spaceAfter=6)
 BODY_STYLE = ParagraphStyle('Body', fontName='Calibri', fontSize=11, leading=13)
-BULLET_STYLE = ParagraphStyle('Bullet', fontName='Calibri', fontSize=11, leading=13, leftIndent=14, bulletIndent=2, spaceAfter=1)
+BULLET_STYLE = ParagraphStyle(
+    'Bullet', fontName='Calibri', fontSize=11, leading=13,
+    leftIndent=16, bulletIndent=2, bulletFontName='Calibri', spaceAfter=2,
+)
 ROLE_STYLE = ParagraphStyle('Role', fontName='Calibri-Bold', fontSize=11)
-DATE_STYLE = ParagraphStyle('Date', fontName='Calibri', fontSize=10, alignment=2, textColor=colors.HexColor('#333333'))
+DATE_STYLE = ParagraphStyle('Date', fontName='Calibri-Italic', fontSize=10, alignment=2, textColor=colors.HexColor('#333333'))
 
 
 def _heading(text: str) -> list:
@@ -74,7 +78,7 @@ def _build_story(resume_input: ResumeInput, ai_output: ResumeAiOutput, usable_wi
     story = [
         Paragraph(contact.name, NAME_STYLE),
         Paragraph(contact_line, CONTACT_STYLE),
-        Spacer(1, 6),
+        Spacer(1, 12),
     ]
 
     story += _heading('SUMMARY')
@@ -85,19 +89,18 @@ def _build_story(resume_input: ResumeInput, ai_output: ResumeAiOutput, usable_wi
         story.append(_two_column_row(
             f'{entry.title} | {entry.company}', entry.duration, ROLE_STYLE, DATE_STYLE, usable_width,
         ))
+        story.append(Spacer(1, 3))
         for bullet in bullets:
-            story.append(Paragraph(f'●&nbsp;&nbsp;{bullet}', BULLET_STYLE))
-        story.append(Spacer(1, 2))
+            story.append(Paragraph(bullet, BULLET_STYLE, bulletText='●'))
+        story.append(Spacer(1, 8))
 
     story += _heading('SKILLS')
-    for category, items in ai_output.skills.items():
-        if not items:
-            continue
-        story.append(Paragraph(f'<b>{category}:</b> {", ".join(items)}', BODY_STYLE))
+    if ai_output.skills:
+        story.append(Paragraph(', '.join(ai_output.skills), BULLET_STYLE, bulletText='●'))
 
     story += _heading('CERTIFICATIONS')
     for cert in resume_input.certifications:
-        story.append(Paragraph(f'●&nbsp;&nbsp;{cert.label} (<link href="{cert.url}">link</link>)', BULLET_STYLE))
+        story.append(Paragraph(f'{cert.label} (<link href="{cert.url}">link</link>)', BULLET_STYLE, bulletText='●'))
 
     story += _heading('EDUCATION')
     for edu in resume_input.education:
