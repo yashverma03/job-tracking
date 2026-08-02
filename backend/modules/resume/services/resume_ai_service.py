@@ -2,6 +2,7 @@ import json
 import subprocess
 
 from common.exceptions.api_exceptions import ApiError
+from common.utils.env import get_env
 from modules.resume.types.resume_types import ResumeAiOutput, ResumeInput
 from modules.resume.utils.resume_constants import (
     CLAUDE_CLI_BINARY,
@@ -70,6 +71,7 @@ def _run_claude_cli(prompt: str, json_schema: dict) -> dict:
                 CLAUDE_CLI_BINARY,
                 '-p',
                 '--tools', '',
+                '--model', get_env('CLAUDE_MODEL'),
                 '--output-format', 'json',
                 '--json-schema', json.dumps(json_schema),
                 prompt,

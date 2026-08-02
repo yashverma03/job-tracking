@@ -39,6 +39,10 @@ ROLE_STYLE = ParagraphStyle('Role', fontName='Calibri-Bold', fontSize=11)
 DATE_STYLE = ParagraphStyle('Date', fontName='Calibri-Italic', fontSize=10, alignment=2, textColor=colors.HexColor('#333333'))
 
 
+def _link(url: str, label: str) -> str:
+    return f'<link href="{url}"><font color="#1a56db"><u>{label}</u></font></link>'
+
+
 def _heading(text: str) -> list:
     return [
         Paragraph(text, HEADING_STYLE),
@@ -63,9 +67,6 @@ def _two_column_row(left: str, right: str, left_style: ParagraphStyle, right_sty
 
 def _build_story(resume_input: ResumeInput, ai_output: ResumeAiOutput, usable_width: float) -> list:
     contact = resume_input.contact
-    def _link(url: str, label: str) -> str:
-        return f'<link href="{url}"><font color="#1a56db"><u>{label}</u></font></link>'
-
     contact_line = ' | '.join([
         _link(contact.portfolio_url, 'Portfolio'),
         contact.email,
@@ -100,7 +101,7 @@ def _build_story(resume_input: ResumeInput, ai_output: ResumeAiOutput, usable_wi
 
     story += _heading('CERTIFICATIONS')
     for cert in resume_input.certifications:
-        story.append(Paragraph(f'{cert.label} (<link href="{cert.url}">link</link>)', BULLET_STYLE, bulletText='●'))
+        story.append(Paragraph(_link(cert.url, cert.label), BULLET_STYLE, bulletText='●'))
 
     story += _heading('EDUCATION')
     for edu in resume_input.education:
