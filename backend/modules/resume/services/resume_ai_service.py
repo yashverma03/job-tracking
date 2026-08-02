@@ -115,14 +115,19 @@ def _run_claude_cli(prompt: str, json_schema: dict) -> dict:
             check=False,
         )
     except FileNotFoundError as exc:
+        print('[resume_ai_service] Claude CLI not found on PATH.')
         raise ApiError('Claude Code CLI not found on PATH.', status_code=500) from exc
     except subprocess.TimeoutExpired as exc:
+        print(f'[resume_ai_service] Claude CLI timed out.\nstdout:\n{exc.stdout}\nstderr:\n{exc.stderr}')
         raise ApiError('Claude Code CLI timed out.', status_code=500) from exc
+
+    print(
+        f'[resume_ai_service] Claude CLI exit_code={completed.returncode}\n'
+        f'stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}'
+    )
 
     if completed.returncode != 0:
         raise ApiError(f'Claude Code CLI failed: {completed.stderr.strip()}', status_code=500)
-
-    print(f'[resume_ai_service] Claude CLI response:\n{completed.stdout}')
 
     try:
         result = json.loads(completed.stdout)

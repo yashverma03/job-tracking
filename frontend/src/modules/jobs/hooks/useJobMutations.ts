@@ -9,7 +9,12 @@ import {
   generateResumes,
   updateJob,
 } from '../../../common/api/jobs/jobs.service'
-import type { JobCreateRequest, JobUpdateRequest } from '../interfaces/job.interfaces'
+import type {
+  GenerateResumesOutcome,
+  GenerateResumesResponse,
+  JobCreateRequest,
+  JobUpdateRequest,
+} from '../interfaces/job.interfaces'
 
 interface UpdateMutationArgs {
   id: number
@@ -22,6 +27,17 @@ function extractErrorMessage(error: unknown): string | undefined {
   return data && typeof data === 'object' && typeof data.message === 'string'
     ? data.message
     : undefined
+}
+
+function extractResumeOutcomeError(error: unknown): string | undefined {
+  if (!axios.isAxiosError(error)) return undefined
+  const data = error.response?.data as GenerateResumesOutcome | undefined
+  return data?.error ?? extractErrorMessage(error)
+}
+
+function extractResumesBatchResult(error: unknown): GenerateResumesResponse | undefined {
+  if (!axios.isAxiosError(error)) return undefined
+  return error.response?.data as GenerateResumesResponse | undefined
 }
 
 export function useJobMutations() {
@@ -59,26 +75,28 @@ export function useJobMutations() {
     mutationFn: () => generateResumes(),
     onSuccess: (result) => {
       invalidateJobs()
-      if (result.failed.length > 0) {
+      toast.success(`Generated ${result.generated.length} resume(s)`)
+    },
+    onError: (error) => {
+      const result = extractResumesBatchResult(error)
+      invalidateJobs()
+      if (result) {
         toast.error(`Generated ${result.generated.length}, failed ${result.failed.length}`)
       } else {
-        toast.success(`Generated ${result.generated.length} resume(s)`)
+        toast.error('Failed to generate resumes')
       }
     },
-    onError: () => toast.error('Failed to generate resumes'),
   })
 
   const buildResumeMutation = useMutation({
     mutationFn: (jobId: number) => generateResumeForJob(jobId),
-    onSuccess: (outcome) => {
+    onSuccess: () => {
       invalidateJobs()
-      if (outcome.error) {
-        toast.error(`Failed to build resume: ${outcome.error}`)
-      } else {
-        toast.success('Resume built')
-      }
+      toast.success('Resume built')
     },
-    onError: () => toast.error('Failed to build resume'),
+    onError: (error) => {
+      toast.error(`Failed to build resume: ${extractResumeOutcomeError(error) ?? 'unknown error'}`)
+    },
   })
 
   return {
