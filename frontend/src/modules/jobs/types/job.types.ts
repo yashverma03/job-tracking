@@ -19,4 +19,5 @@ export interface Job {
   updatedAt: string
   score: number | null
   analysis: string | null
+  isCustomResumeGenerated: boolean
 }

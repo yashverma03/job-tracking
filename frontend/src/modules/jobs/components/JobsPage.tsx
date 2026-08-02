@@ -20,7 +20,7 @@ export function JobsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   const { data, isLoading, isError } = useJobsQuery(filters)
-  const { createMutation, updateMutation, generateResumesMutation } = useJobMutations()
+  const { createMutation, updateMutation, deleteMutation, generateResumesMutation } = useJobMutations()
 
   const jobs = useMemo(() => data?.items ?? [], [data])
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1
@@ -50,6 +50,10 @@ export function JobsPage() {
   }
 
   const closeForm = () => setIsFormOpen(false)
+
+  const handleDelete = (job: Job) => {
+    deleteMutation.mutate(job.id, { onSuccess: closeForm })
+  }
 
   const handleFormSubmit = (payload: JobUpdateRequest) => {
     if (editingJob) {
@@ -101,6 +105,7 @@ export function JobsPage() {
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
             onEdit={openEditForm}
+            onDelete={handleDelete}
           />
 
           <div className={styles.pagination}>
@@ -130,7 +135,12 @@ export function JobsPage() {
       )}
 
       {isFormOpen && (
-        <JobFormModal job={editingJob} onClose={closeForm} onSubmit={handleFormSubmit} />
+        <JobFormModal
+          job={editingJob}
+          onClose={closeForm}
+          onSubmit={handleFormSubmit}
+          onDelete={handleDelete}
+        />
       )}
     </div>
   )

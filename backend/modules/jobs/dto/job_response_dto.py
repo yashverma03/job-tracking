@@ -27,4 +27,5 @@ class JobResponseDTO(serializers.ModelSerializer):
             'updated_at',
             'score',
             'analysis',
+            'is_custom_resume_generated',
         ]

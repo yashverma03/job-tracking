@@ -80,10 +80,16 @@ interface JobFormModalProps {
   job: Job | null
   onClose: () => void
   onSubmit: (payload: JobUpdateRequest) => void
+  onDelete?: (job: Job) => void
 }
 
-export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
+export function JobFormModal({ job, onClose, onSubmit, onDelete }: JobFormModalProps) {
   const isEdit = job !== null
+
+  const handleDelete = () => {
+    if (!job) return
+    onDelete?.(job)
+  }
 
   return (
     <div
@@ -232,6 +238,16 @@ export function JobFormModal({ job, onClose, onSubmit }: JobFormModalProps) {
               />
 
               <div className={styles.actions}>
+                {isEdit && (
+                  <button
+                    type="button"
+                    className={styles.deleteButton}
+                    onClick={handleDelete}
+                  >
+                    Delete
+                  </button>
+                )}
+                <div className={styles.actionsSpacer} />
                 <button type="button" className={styles.cancelButton} onClick={onClose}>
                   Cancel
                 </button>

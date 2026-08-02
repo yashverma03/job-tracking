@@ -14,12 +14,12 @@ from modules.resume.types.resume_types import ResumeAiOutput, ResumeInput
 PAGE_MARGIN = 0.45 * inch
 
 NAME_STYLE = ParagraphStyle('Name', fontName='Helvetica-Bold', fontSize=16, alignment=1, spaceAfter=3)
-CONTACT_STYLE = ParagraphStyle('Contact', fontName='Helvetica', fontSize=8.5, alignment=1, textColor=colors.HexColor('#333333'))
-HEADING_STYLE = ParagraphStyle('Heading', fontName='Helvetica-Bold', fontSize=10.5, spaceBefore=6, spaceAfter=1)
-BODY_STYLE = ParagraphStyle('Body', fontName='Helvetica', fontSize=9, leading=11)
-BULLET_STYLE = ParagraphStyle('Bullet', fontName='Helvetica', fontSize=9, leading=11, leftIndent=14, bulletIndent=2, spaceAfter=1)
-ROLE_STYLE = ParagraphStyle('Role', fontName='Helvetica-Bold', fontSize=9.5)
-DATE_STYLE = ParagraphStyle('Date', fontName='Helvetica', fontSize=9, alignment=2, textColor=colors.HexColor('#333333'))
+CONTACT_STYLE = ParagraphStyle('Contact', fontName='Helvetica', fontSize=9, alignment=1, textColor=colors.HexColor('#333333'))
+HEADING_STYLE = ParagraphStyle('Heading', fontName='Helvetica-Bold', fontSize=10.5, spaceBefore=14, spaceAfter=3)
+BODY_STYLE = ParagraphStyle('Body', fontName='Helvetica', fontSize=11, leading=13)
+BULLET_STYLE = ParagraphStyle('Bullet', fontName='Helvetica', fontSize=11, leading=13, leftIndent=14, bulletIndent=2, spaceAfter=1)
+ROLE_STYLE = ParagraphStyle('Role', fontName='Helvetica-Bold', fontSize=11)
+DATE_STYLE = ParagraphStyle('Date', fontName='Helvetica', fontSize=10, alignment=2, textColor=colors.HexColor('#333333'))
 
 
 def _heading(text: str) -> list:

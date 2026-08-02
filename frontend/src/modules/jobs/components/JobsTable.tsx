@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 
-import { CheckCheck, Pencil } from 'lucide-react';
+import { CheckCheck, Pencil, Trash2 } from 'lucide-react';
 
 import { Dropdown } from '../../../common/components/Dropdown';
 import { useClipboard } from '../../../common/hooks/useClipboard';
@@ -33,10 +33,11 @@ const COLUMNS: Column[] = [
 ];
 
 const CHECKBOX_COLUMN_WIDTH = 40;
-const ACTIONS_COLUMN_WIDTH = 64;
+const ACTIONS_COLUMN_WIDTH = 120;
 const ID_COLUMN_WIDTH = 56;
 const STATUS_COLUMN_WIDTH = 170;
 const REFERRAL_STATUS_COLUMN_WIDTH = 220;
+const RESUME_GENERATED_COLUMN_WIDTH = 130;
 const MESSAGES_COLUMN_WIDTH = 224;
 
 interface JobsTableProps {
@@ -44,6 +45,7 @@ interface JobsTableProps {
   selectedIds: Set<number>;
   onToggleSelect: (id: number) => void;
   onEdit: (job: Job) => void;
+  onDelete: (job: Job) => void;
 }
 
 export function JobsTable({
@@ -51,6 +53,7 @@ export function JobsTable({
   selectedIds,
   onToggleSelect,
   onEdit,
+  onDelete,
 }: JobsTableProps) {
   const { copy } = useClipboard();
   const { updateMutation } = useJobMutations();
@@ -132,13 +135,22 @@ export function JobsTable({
               Referral status
             </th>
             {COLUMNS.map((column) => (
-              <th
-                key={column.key}
-                className={`${styles.th} ${column.truncate ? styles.cellTruncate : styles.cellWrap}`}
-                style={{ width: column.width }}
-              >
-                {column.label}
-              </th>
+              <Fragment key={column.key}>
+                <th
+                  className={`${styles.th} ${column.truncate ? styles.cellTruncate : styles.cellWrap}`}
+                  style={{ width: column.width }}
+                >
+                  {column.label}
+                </th>
+                {column.key === 'description' && (
+                  <th
+                    className={`${styles.th} ${styles.cellTruncate}`}
+                    style={{ width: RESUME_GENERATED_COLUMN_WIDTH }}
+                  >
+                    Resume Generated
+                  </th>
+                )}
+              </Fragment>
             ))}
             <th
               className={`${styles.th} ${styles.messagesCell}`}
@@ -166,14 +178,24 @@ export function JobsTable({
                 className={styles.actionsCell}
                 style={{ width: ACTIONS_COLUMN_WIDTH }}
               >
-                <button
-                  type="button"
-                  className={styles.editButton}
-                  onClick={() => onEdit(job)}
-                  aria-label="Edit job"
-                >
-                  <Pencil size={16} />
-                </button>
+                <div className={styles.actionsRow}>
+                  <button
+                    type="button"
+                    className={styles.editButton}
+                    onClick={() => onEdit(job)}
+                    aria-label="Edit job"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.deleteButton}
+                    onClick={() => onDelete(job)}
+                    aria-label="Delete job"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </td>
               <td
                 className={styles.cellWrap}
@@ -267,24 +289,33 @@ export function JobsTable({
                 const value = job[column.key];
                 const hasValue = value !== null && value !== undefined;
                 return (
-                  <td
-                    key={column.key}
-                    className={
-                      column.truncate ? styles.cellTruncate : styles.cellWrap
-                    }
-                    style={{ width: column.width }}
-                  >
-                    {hasValue ? (
-                      <button
-                        type="button"
-                        className={styles.copyButton}
-                        onClick={() => copy(String(value))}
-                        title="Click to copy"
+                  <Fragment key={column.key}>
+                    <td
+                      className={
+                        column.truncate ? styles.cellTruncate : styles.cellWrap
+                      }
+                      style={{ width: column.width }}
+                    >
+                      {hasValue ? (
+                        <button
+                          type="button"
+                          className={styles.copyButton}
+                          onClick={() => copy(String(value))}
+                          title="Click to copy"
+                        >
+                          {value}
+                        </button>
+                      ) : null}
+                    </td>
+                    {column.key === 'description' && (
+                      <td
+                        className={styles.cellTruncate}
+                        style={{ width: RESUME_GENERATED_COLUMN_WIDTH }}
                       >
-                        {value}
-                      </button>
-                    ) : null}
-                  </td>
+                        {job.isCustomResumeGenerated ? 'Yes' : 'No'}
+                      </td>
+                    )}
+                  </Fragment>
                 );
               })}
               <td
