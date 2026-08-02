@@ -98,6 +98,8 @@ def render_resume_pdf(resume_input: ResumeInput, ai_output: ResumeAiOutput, outp
         rightMargin=PAGE_MARGIN,
         topMargin=PAGE_MARGIN,
         bottomMargin=PAGE_MARGIN,
+        title=f'{resume_input.contact.name} Resume',
+        author=resume_input.contact.name,
     )
     usable_width = A4[0] - PAGE_MARGIN * 2
 
