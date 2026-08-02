@@ -21,6 +21,15 @@
   @apply flex h-6 w-6 items-center justify-center rounded-full bg-emerald-950 text-lg leading-none text-emerald-300;
 }
 
+.toolbar {
+  @apply flex justify-end;
+}
+
+.generateResumesButton {
+  @apply rounded-lg border border-indigo-700 bg-indigo-950 px-4 py-2 text-sm font-semibold text-indigo-200 shadow-sm transition-colors;
+  @apply hover:bg-indigo-900 disabled:opacity-50 disabled:hover:bg-indigo-950;
+}
+
 .statusText {
   @apply text-sm text-slate-400;
 }

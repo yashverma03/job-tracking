@@ -20,7 +20,7 @@ export function JobsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   const { data, isLoading, isError } = useJobsQuery(filters)
-  const { createMutation, updateMutation } = useJobMutations()
+  const { createMutation, updateMutation, generateResumesMutation } = useJobMutations()
 
   const jobs = useMemo(() => data?.items ?? [], [data])
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1
@@ -73,6 +73,17 @@ export function JobsPage() {
             +
           </span>
           Add Job
+        </button>
+      </div>
+
+      <div className={styles.toolbar}>
+        <button
+          type="button"
+          className={styles.generateResumesButton}
+          disabled={generateResumesMutation.isPending}
+          onClick={() => generateResumesMutation.mutate()}
+        >
+          {generateResumesMutation.isPending ? 'Generating...' : 'Generate Custom Resumes'}
         </button>
       </div>
 

@@ -1,0 +1,47 @@
+{
+  "contact": {
+    "name": "Jane Doe",
+    "portfolio_url": "https://example.com",
+    "email": "jane.doe@example.com",
+    "phone": "1234567890",
+    "linkedin_url": "https://linkedin.com/in/janedoe",
+    "github_url": "https://github.com/janedoe",
+    "gfg_url": "https://geeksforgeeks.org/user/janedoe",
+    "leetcode_url": "https://leetcode.com/janedoe"
+  },
+  "experience": [
+    {
+      "title": "Software Engineer",
+      "company": "Example Corp",
+      "duration": "Jan 2024 - present (1 year, 7 months)",
+      "base_bullets": [
+        "Built a scalable backend service handling high-volume traffic with a distributed queue.",
+        "Designed and shipped an internal tool that reduced manual reporting effort by 40%.",
+        "Led migration of a legacy monolith component to a modular service architecture."
+      ]
+    },
+    {
+      "title": "Junior Software Engineer",
+      "company": "Example Corp",
+      "duration": "Jun 2022 - Dec 2023 (1 year, 6 months)",
+      "base_bullets": [
+        "Implemented authentication and authorization flows across web and mobile clients.",
+        "Automated CI/CD pipelines, reducing deployment time from 30 minutes to 5 minutes.",
+        "Wrote and maintained integration tests, increasing coverage from 50% to 85%."
+      ]
+    }
+  ],
+  "skills_pool": {
+    "Languages": ["Java", "Python", "JavaScript", "TypeScript"],
+    "Backend": ["Spring Boot", "Django", "Node.js"],
+    "Databases": ["PostgreSQL", "MySQL", "MongoDB"],
+    "DevOps": ["AWS", "Docker", "Kubernetes", "CI/CD"],
+    "Other": ["Redis", "Kafka", "Testing"]
+  },
+  "certifications": [
+    { "label": "AWS Certified Cloud Practitioner", "url": "https://example.com/cert" }
+  ],
+  "education": [
+    { "degree": "B.Tech", "institution": "Example University", "years": "2018-2022" }
+  ]
+}

@@ -167,3 +167,6 @@ db.sqlite3-journal
 .pytest_cache/
 .ruff_cache/
 staticfiles/
+
+# Resume generation — real personal data, keep only the example checked in
+**/modules/resume/data/resume-input.json

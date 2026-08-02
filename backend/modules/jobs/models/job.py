@@ -25,6 +25,7 @@ class Job(models.Model):
     notes = models.TextField(null=True, blank=True)
     score = models.IntegerField(null=True, blank=True)
     analysis = models.TextField(null=True, blank=True)
+    is_custom_resume_generated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)

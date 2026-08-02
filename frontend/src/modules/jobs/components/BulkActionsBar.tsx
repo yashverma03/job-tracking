@@ -12,7 +12,9 @@ export function BulkActionsBar({ selectedJobs }: BulkActionsBarProps) {
   return (
     <div className={styles.container} style={{ visibility: isVisible ? 'visible' : 'hidden' }}>
       <span className={styles.count}>{selectedJobs.length} jobs selected</span>
-      <MessageButtons jobs={isVisible ? selectedJobs : []} />
+      <div className={styles.actions}>
+        <MessageButtons jobs={isVisible ? selectedJobs : []} />
+      </div>
     </div>
   )
 }

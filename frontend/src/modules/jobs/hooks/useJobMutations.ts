@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
-import { createJob, deleteJob, updateJob } from '../../../common/api/jobs/jobs.service'
+import { createJob, deleteJob, generateResumes, updateJob } from '../../../common/api/jobs/jobs.service'
 import type { JobCreateRequest, JobUpdateRequest } from '../interfaces/job.interfaces'
 
 interface UpdateMutationArgs {
@@ -49,5 +49,18 @@ export function useJobMutations() {
     onError: () => toast.error('Failed to delete job'),
   })
 
-  return { createMutation, updateMutation, deleteMutation }
+  const generateResumesMutation = useMutation({
+    mutationFn: () => generateResumes(),
+    onSuccess: (result) => {
+      invalidateJobs()
+      if (result.failed.length > 0) {
+        toast.error(`Generated ${result.generated.length}, failed ${result.failed.length}`)
+      } else {
+        toast.success(`Generated ${result.generated.length} resume(s)`)
+      }
+    },
+    onError: () => toast.error('Failed to generate resumes'),
+  })
+
+  return { createMutation, updateMutation, deleteMutation, generateResumesMutation }
 }

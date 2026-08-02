@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'django_filters',
     'corsheaders',
     'modules.jobs',
+    'modules.resume',
 ]
 
 MIDDLEWARE = [

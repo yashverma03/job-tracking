@@ -32,6 +32,18 @@ export interface JobListQueryParams {
   limit: number
 }
 
+export interface GenerateResumesOutcome {
+  jobId: number
+  filePath?: string | null
+  error?: string | null
+}
+
+export interface GenerateResumesResponse {
+  processed: number
+  generated: GenerateResumesOutcome[]
+  failed: GenerateResumesOutcome[]
+}
+
 export interface JobFormValues {
   url: string
   secondaryUrl: string
