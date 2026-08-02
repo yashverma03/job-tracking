@@ -2,7 +2,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
-import { createJob, deleteJob, generateResumes, updateJob } from '../../../common/api/jobs/jobs.service'
+import {
+  createJob,
+  deleteJob,
+  generateResumeForJob,
+  generateResumes,
+  updateJob,
+} from '../../../common/api/jobs/jobs.service'
 import type { JobCreateRequest, JobUpdateRequest } from '../interfaces/job.interfaces'
 
 interface UpdateMutationArgs {
@@ -62,5 +68,24 @@ export function useJobMutations() {
     onError: () => toast.error('Failed to generate resumes'),
   })
 
-  return { createMutation, updateMutation, deleteMutation, generateResumesMutation }
+  const buildResumeMutation = useMutation({
+    mutationFn: (jobId: number) => generateResumeForJob(jobId),
+    onSuccess: (outcome) => {
+      invalidateJobs()
+      if (outcome.error) {
+        toast.error(`Failed to build resume: ${outcome.error}`)
+      } else {
+        toast.success('Resume built')
+      }
+    },
+    onError: () => toast.error('Failed to build resume'),
+  })
+
+  return {
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    generateResumesMutation,
+    buildResumeMutation,
+  }
 }

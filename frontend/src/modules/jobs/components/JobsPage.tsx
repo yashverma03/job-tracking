@@ -20,7 +20,8 @@ export function JobsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   const { data, isLoading, isError } = useJobsQuery(filters)
-  const { createMutation, updateMutation, deleteMutation, generateResumesMutation } = useJobMutations()
+  const { createMutation, updateMutation, deleteMutation, generateResumesMutation, buildResumeMutation } =
+    useJobMutations()
 
   const jobs = useMemo(() => data?.items ?? [], [data])
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1
@@ -53,6 +54,18 @@ export function JobsPage() {
 
   const handleDelete = (job: Job) => {
     deleteMutation.mutate(job.id, { onSuccess: closeForm })
+  }
+
+  const handleGenerateResume = (job: Job) => {
+    buildResumeMutation.mutate(job.id, {
+      onSuccess: (outcome) => {
+        if (!outcome.error) {
+          setEditingJob((prev) =>
+            prev && prev.id === job.id ? { ...prev, isCustomResumeGenerated: true } : prev,
+          )
+        }
+      },
+    })
   }
 
   const handleFormSubmit = (payload: JobUpdateRequest) => {
@@ -140,6 +153,8 @@ export function JobsPage() {
           onClose={closeForm}
           onSubmit={handleFormSubmit}
           onDelete={handleDelete}
+          onGenerateResume={handleGenerateResume}
+          isGeneratingResume={buildResumeMutation.isPending}
         />
       )}
     </div>

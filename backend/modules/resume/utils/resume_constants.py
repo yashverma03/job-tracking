@@ -1,4 +1,6 @@
-CLAUDE_CLI_BINARY = 'claude'
+import os
+
+CLAUDE_CLI_BINARY = os.path.expanduser('~/.local/bin/claude')
 CLAUDE_CLI_TIMEOUT_SECONDS = 120
 
 MAX_SUMMARY_CHARS = 220

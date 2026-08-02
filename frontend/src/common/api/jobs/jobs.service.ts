@@ -2,6 +2,7 @@ import axios from 'axios'
 
 import { API_BASE_URL } from '../../configs/api.config'
 import type {
+  GenerateResumesOutcome,
   GenerateResumesResponse,
   JobCreateRequest,
   JobListQueryParams,
@@ -32,6 +33,11 @@ export async function deleteJob(id: number): Promise<void> {
 }
 
 export async function generateResumes(): Promise<GenerateResumesResponse> {
-  const { data } = await client.post<GenerateResumesResponse>('/resumes/generate')
+  const { data } = await client.post<GenerateResumesResponse>('/resumes')
+  return data
+}
+
+export async function generateResumeForJob(jobId: number): Promise<GenerateResumesOutcome> {
+  const { data } = await client.post<GenerateResumesOutcome>(`/resumes/${jobId}`)
   return data
 }

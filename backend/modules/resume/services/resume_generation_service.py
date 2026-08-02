@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from django import db
 
+from common.exceptions.api_exceptions import ApiError
 from common.utils.env import get_env
 from modules.jobs.enums.job_status import JobStatus
 from modules.jobs.models import Job
@@ -13,8 +14,8 @@ from modules.resume.utils.resume_input_loader import load_resume_input
 
 
 def _resume_filename(resume_input: ResumeInput, job_id: int) -> str:
-    name_slug = '_'.join(resume_input.contact.name.lower().split())
-    return f'{name_slug}_resume_{job_id}.pdf'
+    name_slug = '_'.join(word.capitalize() for word in resume_input.contact.name.split())
+    return f'{name_slug}_Resume_{job_id}.pdf'
 
 
 def _eligible_jobs_queryset():
@@ -58,3 +59,14 @@ def generate_resumes_for_pending_jobs() -> dict:
         'generated': generated,
         'failed': failed,
     }
+
+
+def generate_resume_for_job(job_id: int) -> ResumeGenerationOutcome:
+    job = Job.objects.filter(deleted_at__isnull=True, id=job_id).first()
+    if job is None:
+        raise ApiError(f'Job {job_id} not found', status_code=404)
+
+    resume_input = load_resume_input()
+    output_dir = get_env('RESUME_OUTPUT_DIR')
+
+    return _process_job(job, resume_input, output_dir)

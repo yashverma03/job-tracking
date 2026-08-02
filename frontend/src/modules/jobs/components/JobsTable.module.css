@@ -93,3 +93,28 @@
 .quickActionButton {
   @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-emerald-700 bg-emerald-950 text-emerald-300 transition-colors hover:bg-emerald-800 hover:text-emerald-100;
 }
+
+.reloadButton {
+  @apply flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-emerald-400 transition-colors hover:text-emerald-300;
+}
+
+.reloadButton:disabled {
+  @apply cursor-not-allowed text-emerald-600;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.resumeGeneratedCellInner {
+  @apply flex items-center gap-3;
+}

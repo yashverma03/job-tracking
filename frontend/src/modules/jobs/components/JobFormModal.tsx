@@ -81,14 +81,28 @@ interface JobFormModalProps {
   onClose: () => void
   onSubmit: (payload: JobUpdateRequest) => void
   onDelete?: (job: Job) => void
+  onGenerateResume?: (job: Job) => void
+  isGeneratingResume?: boolean
 }
 
-export function JobFormModal({ job, onClose, onSubmit, onDelete }: JobFormModalProps) {
+export function JobFormModal({
+  job,
+  onClose,
+  onSubmit,
+  onDelete,
+  onGenerateResume,
+  isGeneratingResume,
+}: JobFormModalProps) {
   const isEdit = job !== null
 
   const handleDelete = () => {
     if (!job) return
     onDelete?.(job)
+  }
+
+  const handleGenerateResume = () => {
+    if (!job) return
+    onGenerateResume?.(job)
   }
 
   return (
@@ -237,6 +251,17 @@ export function JobFormModal({ job, onClose, onSubmit, onDelete }: JobFormModalP
                 options={REFERRAL_STATUS_DROPDOWN_OPTIONS}
               />
 
+              {isEdit && (
+                <label className={styles.label}>
+                  Resume Generated
+                  <input
+                    className={styles.input}
+                    value={job.isCustomResumeGenerated ? 'Yes' : 'No'}
+                    disabled
+                  />
+                </label>
+              )}
+
               <div className={styles.actions}>
                 {isEdit && (
                   <button
@@ -245,6 +270,16 @@ export function JobFormModal({ job, onClose, onSubmit, onDelete }: JobFormModalP
                     onClick={handleDelete}
                   >
                     Delete
+                  </button>
+                )}
+                {isEdit && (
+                  <button
+                    type="button"
+                    className={styles.generateResumeButton}
+                    onClick={handleGenerateResume}
+                    disabled={isGeneratingResume}
+                  >
+                    {isGeneratingResume ? 'Generating...' : 'Generate Resume'}
                   </button>
                 )}
                 <div className={styles.actionsSpacer} />

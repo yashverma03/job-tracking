@@ -6,6 +6,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from common.exceptions.api_exceptions import ApiError
@@ -13,13 +15,24 @@ from modules.resume.types.resume_types import ResumeAiOutput, ResumeInput
 
 PAGE_MARGIN = 0.45 * inch
 
-NAME_STYLE = ParagraphStyle('Name', fontName='Helvetica-Bold', fontSize=16, alignment=1, spaceAfter=3)
-CONTACT_STYLE = ParagraphStyle('Contact', fontName='Helvetica', fontSize=9, alignment=1, textColor=colors.HexColor('#333333'))
-HEADING_STYLE = ParagraphStyle('Heading', fontName='Helvetica-Bold', fontSize=10.5, spaceBefore=14, spaceAfter=3)
-BODY_STYLE = ParagraphStyle('Body', fontName='Helvetica', fontSize=11, leading=13)
-BULLET_STYLE = ParagraphStyle('Bullet', fontName='Helvetica', fontSize=11, leading=13, leftIndent=14, bulletIndent=2, spaceAfter=1)
-ROLE_STYLE = ParagraphStyle('Role', fontName='Helvetica-Bold', fontSize=11)
-DATE_STYLE = ParagraphStyle('Date', fontName='Helvetica', fontSize=10, alignment=2, textColor=colors.HexColor('#333333'))
+# Metric-compatible open-source substitutes for the requested proprietary fonts.
+pdfmetrics.registerFont(TTFont('Cambria', '/usr/share/fonts/truetype/crosextra/Caladea-Regular.ttf'))
+pdfmetrics.registerFont(TTFont('Cambria-Bold', '/usr/share/fonts/truetype/crosextra/Caladea-Bold.ttf'))
+pdfmetrics.registerFont(TTFont('Calibri', '/usr/share/fonts/truetype/crosextra/Carlito-Regular.ttf'))
+pdfmetrics.registerFont(TTFont('Calibri-Bold', '/usr/share/fonts/truetype/crosextra/Carlito-Bold.ttf'))
+pdfmetrics.registerFont(TTFont('TimesNewRoman', '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf'))
+pdfmetrics.registerFont(TTFont('TimesNewRoman-Bold', '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf'))
+pdfmetrics.registerFontFamily('Cambria', normal='Cambria', bold='Cambria-Bold')
+pdfmetrics.registerFontFamily('Calibri', normal='Calibri', bold='Calibri-Bold')
+pdfmetrics.registerFontFamily('TimesNewRoman', normal='TimesNewRoman', bold='TimesNewRoman-Bold')
+
+NAME_STYLE = ParagraphStyle('Name', fontName='TimesNewRoman-Bold', fontSize=16, alignment=1, spaceAfter=3)
+CONTACT_STYLE = ParagraphStyle('Contact', fontName='Calibri', fontSize=9, alignment=1, textColor=colors.HexColor('#333333'))
+HEADING_STYLE = ParagraphStyle('Heading', fontName='Cambria-Bold', fontSize=12, spaceBefore=14, spaceAfter=3)
+BODY_STYLE = ParagraphStyle('Body', fontName='Calibri', fontSize=11, leading=13)
+BULLET_STYLE = ParagraphStyle('Bullet', fontName='Calibri', fontSize=11, leading=13, leftIndent=14, bulletIndent=2, spaceAfter=1)
+ROLE_STYLE = ParagraphStyle('Role', fontName='Calibri-Bold', fontSize=11)
+DATE_STYLE = ParagraphStyle('Date', fontName='Calibri', fontSize=10, alignment=2, textColor=colors.HexColor('#333333'))
 
 
 def _heading(text: str) -> list:
@@ -46,15 +59,21 @@ def _two_column_row(left: str, right: str, left_style: ParagraphStyle, right_sty
 
 def _build_story(resume_input: ResumeInput, ai_output: ResumeAiOutput, usable_width: float) -> list:
     contact = resume_input.contact
+    def _link(url: str, label: str) -> str:
+        return f'<link href="{url}"><font color="#1a56db"><u>{label}</u></font></link>'
+
+    contact_line = ' | '.join([
+        _link(contact.portfolio_url, 'Portfolio'),
+        contact.email,
+        contact.phone,
+        _link(contact.linkedin_url, 'LinkedIn'),
+        _link(contact.github_url, 'GitHub'),
+        _link(contact.gfg_url, 'GFG'),
+        _link(contact.leetcode_url, 'LeetCode'),
+    ])
     story = [
         Paragraph(contact.name, NAME_STYLE),
-        Paragraph(
-            ' | '.join([
-                contact.portfolio_url, contact.email, contact.phone,
-                contact.linkedin_url, contact.github_url, contact.gfg_url, contact.leetcode_url,
-            ]),
-            CONTACT_STYLE,
-        ),
+        Paragraph(contact_line, CONTACT_STYLE),
         Spacer(1, 6),
     ]
 

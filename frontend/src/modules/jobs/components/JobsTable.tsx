@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 
-import { CheckCheck, Pencil, Trash2 } from 'lucide-react';
+import { CheckCheck, Pencil, RotateCw, Trash2 } from 'lucide-react';
 
 import { Dropdown } from '../../../common/components/Dropdown';
 import { useClipboard } from '../../../common/hooks/useClipboard';
@@ -56,7 +56,7 @@ export function JobsTable({
   onDelete,
 }: JobsTableProps) {
   const { copy } = useClipboard();
-  const { updateMutation } = useJobMutations();
+  const { updateMutation, buildResumeMutation } = useJobMutations();
 
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const bottomScrollRef = useRef<HTMLDivElement>(null);
@@ -312,7 +312,26 @@ export function JobsTable({
                         className={styles.cellTruncate}
                         style={{ width: RESUME_GENERATED_COLUMN_WIDTH }}
                       >
-                        {job.isCustomResumeGenerated ? 'Yes' : 'No'}
+                        <div className={styles.resumeGeneratedCellInner}>
+                          <span>{job.isCustomResumeGenerated ? 'Yes' : 'No'}</span>
+                          <button
+                            type="button"
+                            className={styles.reloadButton}
+                            onClick={() => buildResumeMutation.mutate(job.id)}
+                            disabled={buildResumeMutation.isPending && buildResumeMutation.variables === job.id}
+                            title="Rebuild resume"
+                            aria-label="Rebuild resume"
+                          >
+                            <RotateCw
+                              size={13}
+                              className={
+                                buildResumeMutation.isPending && buildResumeMutation.variables === job.id
+                                  ? styles.spinning
+                                  : undefined
+                              }
+                            />
+                          </button>
+                        </div>
                       </td>
                     )}
                   </Fragment>
