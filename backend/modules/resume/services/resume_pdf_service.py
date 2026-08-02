@@ -124,7 +124,9 @@ def render_resume_pdf(resume_input: ResumeInput, ai_output: ResumeAiOutput, outp
         title=f'{resume_input.contact.name} Resume',
         author=resume_input.contact.name,
     )
-    usable_width = A4[0] - PAGE_MARGIN * 2
+    # SimpleDocTemplate's default Frame adds 6pt of padding on each side beyond leftMargin/rightMargin;
+    # Paragraphs wrap within that inset automatically, so our manual Table widths must match it too.
+    usable_width = A4[0] - PAGE_MARGIN * 2 - 12
 
     story = _build_story(resume_input, ai_output, usable_width)
     doc.build(story)
