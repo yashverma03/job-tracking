@@ -55,6 +55,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'common.middleware.error_logging_middleware.ErrorLoggingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -168,6 +169,11 @@ LOGGING = {
         'django.db.backends': {
             'handlers': ['console'],
             'level': 'DEBUG' if DEBUG else 'WARNING',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
             'propagate': False,
         },
     },

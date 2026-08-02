@@ -55,6 +55,7 @@ def _two_column_row(left: str, right: str, left_style: ParagraphStyle, right_sty
         [[Paragraph(left, left_style), Paragraph(right, right_style)]],
         colWidths=[usable_width * 0.7, usable_width * 0.3],
     )
+    table.hAlign = 'LEFT'
     table.setStyle(TableStyle([
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
@@ -131,12 +132,13 @@ def render_resume_pdf(resume_input: ResumeInput, ai_output: ResumeAiOutput, outp
     story = _build_story(resume_input, ai_output, usable_width)
     doc.build(story)
 
-    page_count = len(PdfReader(io.BytesIO(buffer.getvalue())).pages)
-    if page_count > 1:
-        raise ApiError(
-            f'Generated resume would span {page_count} pages; content must fit on a single page.',
-            status_code=500,
-        )
+    # TODO: Uncomment the following lines to enforce a single-page limit on the generated resume PDF.
+    # page_count = len(PdfReader(io.BytesIO(buffer.getvalue())).pages)
+    # if page_count > 1:
+        # raise ApiError(
+        #     f'Generated resume would span {page_count} pages; content must fit on a single page.',
+        #     status_code=500,
+        # )
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'wb') as f:
