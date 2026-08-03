@@ -41,3 +41,13 @@ export async function generateResumeForJob(jobId: number): Promise<GenerateResum
   const { data } = await client.post<GenerateResumesOutcome>(`/resumes/${jobId}`)
   return data
 }
+
+export async function fetchCompanyNames(search?: string, limit?: number): Promise<string[]> {
+  const { data } = await client.get<string[]>('/jobs/company-names', { params: { search, limit } })
+  return data
+}
+
+export async function fetchJobTitles(search?: string, limit?: number): Promise<string[]> {
+  const { data } = await client.get<string[]>('/jobs/job-titles', { params: { search, limit } })
+  return data
+}

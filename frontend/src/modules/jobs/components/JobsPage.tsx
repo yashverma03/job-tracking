@@ -4,7 +4,7 @@ import { DEFAULT_PAGE_SIZE } from '../../../common/constants/pagination.constant
 import { JobsFilters } from './JobsFilters'
 import { JobsTable } from './JobsTable'
 import { BulkActionsBar } from './BulkActionsBar'
-import { JobFormModal } from './JobFormModal'
+import { JobFormModal, type JobCloneSource } from './JobFormModal'
 import { useJobMutations } from '../hooks/useJobMutations'
 import { useJobsQuery } from '../hooks/useJobsQuery'
 import type { JobListQueryParams, JobUpdateRequest } from '../interfaces/job.interfaces'
@@ -17,6 +17,7 @@ export function JobsPage() {
   const [filters, setFilters] = useState<JobListQueryParams>(INITIAL_FILTERS)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [editingJob, setEditingJob] = useState<Job | null>(null)
+  const [cloneSource, setCloneSource] = useState<JobCloneSource | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   const { data, isLoading, isError } = useJobsQuery(filters)
@@ -42,15 +43,31 @@ export function JobsPage() {
 
   const openAddForm = () => {
     setEditingJob(null)
+    setCloneSource(null)
     setIsFormOpen(true)
   }
 
   const openEditForm = (job: Job) => {
     setEditingJob(job)
+    setCloneSource(null)
     setIsFormOpen(true)
   }
 
-  const closeForm = () => setIsFormOpen(false)
+  const openCloneForm = (job: Job) => {
+    setEditingJob(null)
+    setCloneSource({
+      companyName: job.companyName,
+      title: job.title,
+      status: job.status,
+      referralStatus: job.referralStatus,
+    })
+    setIsFormOpen(true)
+  }
+
+  const closeForm = () => {
+    setIsFormOpen(false)
+    setCloneSource(null)
+  }
 
   const handleDelete = (job: Job) => {
     deleteMutation.mutate(job.id, { onSuccess: closeForm })
@@ -119,6 +136,7 @@ export function JobsPage() {
             onToggleSelect={toggleSelect}
             onEdit={openEditForm}
             onDelete={handleDelete}
+            onClone={openCloneForm}
           />
 
           <div className={styles.pagination}>
@@ -150,6 +168,7 @@ export function JobsPage() {
       {isFormOpen && (
         <JobFormModal
           job={editingJob}
+          cloneFrom={cloneSource}
           onClose={closeForm}
           onSubmit={handleFormSubmit}
           onDelete={handleDelete}

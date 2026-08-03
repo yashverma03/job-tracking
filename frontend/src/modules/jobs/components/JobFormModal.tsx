@@ -1,11 +1,13 @@
-import type { FocusEvent, KeyboardEvent } from 'react'
+import { useEffect, useRef, type FocusEvent, type KeyboardEvent } from 'react'
 
 import dayjs from 'dayjs'
 import { Formik, Form, Field, type FieldProps } from 'formik'
 import { X } from 'lucide-react'
 import * as Yup from 'yup'
 
+import { ComboBox } from '../../../common/components/ComboBox'
 import { Dropdown } from '../../../common/components/Dropdown'
+import { useDebouncedValue } from '../../../common/hooks/useDebouncedValue'
 import {
   DEFAULT_JOB_REFERRAL_STATUS,
   DEFAULT_JOB_STATUS,
@@ -14,8 +16,9 @@ import {
   REFERRAL_STATUS_DROPDOWN_OPTIONS,
   STATUS_DROPDOWN_OPTIONS,
 } from '../constants/job.constants'
+import { useCompanyNamesQuery, useJobTitlesQuery } from '../hooks/useJobSuggestionsQuery'
 import type { JobFormValues, JobUpdateRequest } from '../interfaces/job.interfaces'
-import type { Job } from '../types/job.types'
+import type { Job, JobStatus } from '../types/job.types'
 import { cleanJobUrl } from '../utils/urlCleaner'
 import styles from './JobFormModal.module.css'
 
@@ -36,22 +39,48 @@ const jobFormSchema = Yup.object({
   analysis: Yup.string(),
 })
 
-function jobToFormValues(job: Job | null): JobFormValues {
+export interface JobCloneSource {
+  companyName: string | null
+  title: string | null
+  status: JobStatus
+  referralStatus: Job['referralStatus']
+}
+
+function jobToFormValues(job: Job | null, cloneFrom?: JobCloneSource | null): JobFormValues {
+  if (job) {
+    return {
+      url: job.url ?? '',
+      secondaryUrl: job.secondaryUrl ?? '',
+      companyName: job.companyName ?? '',
+      title: job.title ?? '',
+      officialId: job.officialId ?? '',
+      description: job.description ?? '',
+      location: job.location ?? '',
+      notes: job.notes ?? '',
+      status: job.status,
+      referralStatus: job.referralStatus,
+      score: job.score != null ? String(job.score) : '',
+      analysis: job.analysis ?? '',
+    }
+  }
+
   return {
-    url: job?.url ?? '',
-    secondaryUrl: job?.secondaryUrl ?? '',
-    companyName: job?.companyName ?? '',
-    title: job?.title ?? '',
-    officialId: job?.officialId ?? '',
-    description: job?.description ?? '',
-    location: job?.location ?? '',
-    notes: job?.notes ?? '',
-    status: job?.status ?? DEFAULT_JOB_STATUS,
-    referralStatus: job?.referralStatus ?? DEFAULT_JOB_REFERRAL_STATUS,
-    score: job?.score != null ? String(job.score) : '',
-    analysis: job?.analysis ?? '',
+    url: '',
+    secondaryUrl: '',
+    companyName: cloneFrom?.companyName ?? '',
+    title: cloneFrom?.title ?? '',
+    officialId: '',
+    description: '',
+    location: '',
+    notes: '',
+    status: cloneFrom?.status ?? DEFAULT_JOB_STATUS,
+    referralStatus: cloneFrom?.referralStatus ?? DEFAULT_JOB_REFERRAL_STATUS,
+    score: '',
+    analysis: '',
   }
 }
+
+const REFERRAL_REQUIRED_STATUS = 'Referral required' as const
 
 function toJobPayload(values: JobFormValues, isEdit: boolean): JobUpdateRequest {
   const payload: JobUpdateRequest = {
@@ -76,8 +105,64 @@ function toJobPayload(values: JobFormValues, isEdit: boolean): JobUpdateRequest 
   return payload
 }
 
+interface AutoReferralDefaultProps {
+  companyName: string
+  title: string
+  officialId: string
+  referralStatus: JobFormValues['referralStatus']
+  setFieldValue: (field: string, value: string) => void
+}
+
+function AutoReferralDefault({
+  companyName,
+  title,
+  officialId,
+  referralStatus,
+  setFieldValue,
+}: AutoReferralDefaultProps) {
+  const hasAutoApplied = useRef(false)
+
+  useEffect(() => {
+    if (hasAutoApplied.current) return
+    const hasIdentifyingInfo = Boolean(companyName.trim() || title.trim() || officialId.trim())
+    if (!hasIdentifyingInfo) return
+
+    hasAutoApplied.current = true
+    if (referralStatus === DEFAULT_JOB_REFERRAL_STATUS) {
+      setFieldValue('referralStatus', REFERRAL_REQUIRED_STATUS)
+    }
+  }, [companyName, title, officialId, referralStatus, setFieldValue])
+
+  return null
+}
+
+interface CompanyNameFieldProps {
+  value: string
+  onChange: (value: string) => void
+}
+
+function CompanyNameField({ value, onChange }: CompanyNameFieldProps) {
+  const debouncedValue = useDebouncedValue(value, 300)
+  const { data: companyNames = [] } = useCompanyNamesQuery(debouncedValue)
+
+  return <ComboBox label="Company name" value={value} onChange={onChange} options={companyNames} />
+}
+
+interface JobTitleFieldProps {
+  value: string
+  onChange: (value: string) => void
+}
+
+function JobTitleField({ value, onChange }: JobTitleFieldProps) {
+  const debouncedValue = useDebouncedValue(value, 300)
+  const { data: jobTitles = [] } = useJobTitlesQuery(debouncedValue)
+
+  return <ComboBox label="Title" value={value} onChange={onChange} options={jobTitles} />
+}
+
 interface JobFormModalProps {
   job: Job | null
+  cloneFrom?: JobCloneSource | null
   onClose: () => void
   onSubmit: (payload: JobUpdateRequest) => void
   onDelete?: (job: Job) => void
@@ -87,6 +172,7 @@ interface JobFormModalProps {
 
 export function JobFormModal({
   job,
+  cloneFrom,
   onClose,
   onSubmit,
   onDelete,
@@ -121,7 +207,7 @@ export function JobFormModal({
         </div>
 
         <Formik
-          initialValues={jobToFormValues(job)}
+          initialValues={jobToFormValues(job, cloneFrom)}
           validationSchema={jobFormSchema}
           onSubmit={(values) => onSubmit(toJobPayload(values, isEdit))}
         >
@@ -135,6 +221,16 @@ export function JobFormModal({
                 }
               }}
             >
+              {!isEdit && !cloneFrom && (
+                <AutoReferralDefault
+                  companyName={values.companyName}
+                  title={values.title}
+                  officialId={values.officialId}
+                  referralStatus={values.referralStatus}
+                  setFieldValue={setFieldValue}
+                />
+              )}
+
               {isEdit && (
                 <>
                   <label className={styles.label}>
@@ -171,15 +267,12 @@ export function JobFormModal({
                 {touched.url && errors.url && <span className={styles.errorText}>{errors.url}</span>}
               </label>
 
-              <label className={styles.label}>
-                Company name
-                <Field name="companyName" className={styles.input} />
-              </label>
+              <CompanyNameField
+                value={values.companyName}
+                onChange={(value) => setFieldValue('companyName', value)}
+              />
 
-              <label className={styles.label}>
-                Title
-                <Field name="title" className={styles.input} />
-              </label>
+              <JobTitleField value={values.title} onChange={(value) => setFieldValue('title', value)} />
 
               <label className={styles.label}>
                 Job ID

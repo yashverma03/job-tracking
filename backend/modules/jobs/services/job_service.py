@@ -1,14 +1,17 @@
-from django.db.models import Q
+from django.db.models import Case, Count, IntegerField, Q, Value, When
+from django.db.models.functions import Lower, Trim
 from django.utils import timezone
 
 from common.exceptions.api_exceptions import ApiError
 from common.types.pagination import PaginatedResult
+from modules.jobs.enums.job_referral_status import JobReferralStatus
+from modules.jobs.enums.job_status import JobStatus
 from modules.jobs.models import Job
 from modules.jobs.services import job_unique_key_service
 from modules.jobs.types.job_types import JobFilterParams
 from modules.jobs.utils.url_cleaner import clean_job_url
 
-SEARCH_FIELDS = ['url', 'title', 'company_name', 'official_id', 'description']
+SEARCH_FIELDS = ['url', 'secondary_url', 'title', 'company_name', 'official_id', 'description']
 
 
 def _ensure_url_not_duplicate(url: str | None, secondary_url: str | None) -> None:
@@ -41,8 +44,24 @@ def _apply_filters(queryset, filters: JobFilterParams):
     return queryset
 
 
+def _with_default_sort_tier(queryset):
+    return queryset.annotate(
+        sort_tier=Case(
+            When(
+                Q(status=JobStatus.TO_APPLY) & ~Q(referral_status=JobReferralStatus.REQUIRED),
+                then=Value(0),
+            ),
+            When(referral_status=JobReferralStatus.REQUIRED, then=Value(1)),
+            default=Value(2),
+            output_field=IntegerField(),
+        )
+    )
+
+
 def list_jobs(filters: JobFilterParams) -> PaginatedResult[Job]:
-    queryset = _apply_filters(_active_jobs_queryset(), filters).order_by('-id')
+    queryset = _with_default_sort_tier(_apply_filters(_active_jobs_queryset(), filters)).order_by(
+        'sort_tier', '-id'
+    )
 
     total = queryset.count()
     page = max(filters.page, 1)
@@ -50,6 +69,31 @@ def list_jobs(filters: JobFilterParams) -> PaginatedResult[Job]:
     items = list(queryset[offset:offset + filters.limit])
 
     return PaginatedResult(items=items, total=total, page=page, page_size=filters.limit)
+
+
+def list_company_names(search: str | None = None, limit: int | None = None) -> list[str]:
+    queryset = _active_jobs_queryset().exclude(company_name__isnull=True).exclude(company_name='')
+    if search:
+        queryset = queryset.filter(company_name__icontains=search)
+    rows = queryset.values('company_name').annotate(count=Count('id')).order_by('-count', 'company_name')
+    if limit is not None:
+        rows = rows[:limit]
+    return [row['company_name'] for row in rows]
+
+
+def list_job_titles(search: str | None = None, limit: int | None = None) -> list[str]:
+    queryset = _active_jobs_queryset().exclude(title__isnull=True).exclude(title='')
+    if search:
+        queryset = queryset.filter(title__icontains=search)
+    rows = (
+        queryset.annotate(normalized_title=Lower(Trim('title')))
+        .values('normalized_title')
+        .annotate(count=Count('id'))
+        .order_by('-count', 'normalized_title')
+    )
+    if limit is not None:
+        rows = rows[:limit]
+    return [row['normalized_title'].title() for row in rows]
 
 
 def get_job(job_id: int) -> Job:
@@ -67,6 +111,7 @@ def create_job(data: dict) -> Job:
     _ensure_url_not_duplicate(data.get('url'), data.get('secondary_url'))
     job = Job.objects.create(**data)
     job_unique_key_service.upsert_unique_keys(job.url, job.secondary_url)
+    job_unique_key_service.upsert_company_official_key(job.company_name, job.official_id)
     return job
 
 
@@ -80,6 +125,7 @@ def update_job(job_id: int, data: dict) -> Job:
         setattr(job, field, value)
     job.save()
     job_unique_key_service.upsert_unique_keys(job.url, job.secondary_url)
+    job_unique_key_service.upsert_company_official_key(job.company_name, job.official_id)
     return job
 
 

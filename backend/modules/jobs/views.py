@@ -4,7 +4,14 @@ from djangorestframework_camel_case.util import underscoreize
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from modules.jobs.dto import JobCreateDTO, JobListQueryDTO, JobResponseDTO, JobUpdateDTO, MarkUrlSeenDTO
+from modules.jobs.dto import (
+    JobCreateDTO,
+    JobListQueryDTO,
+    JobResponseDTO,
+    JobSuggestionsQueryDTO,
+    JobUpdateDTO,
+    MarkUrlSeenDTO,
+)
 from modules.jobs.services import job_service, job_unique_key_service
 
 
@@ -49,3 +56,19 @@ class MarkUrlSeenView(APIView):
         dto.is_valid(raise_exception=True)
         key = job_unique_key_service.mark_url_seen(cast(dict, dto.validated_data)['url'])
         return Response({'key': key}, status=201)
+
+
+class CompanyNamesView(APIView):
+    def get(self, request):
+        query_dto = JobSuggestionsQueryDTO(data=request.query_params)
+        query_dto.is_valid(raise_exception=True)
+        data = cast(dict, query_dto.validated_data)
+        return Response(job_service.list_company_names(data.get('search'), data.get('limit')))
+
+
+class JobTitlesView(APIView):
+    def get(self, request):
+        query_dto = JobSuggestionsQueryDTO(data=request.query_params)
+        query_dto.is_valid(raise_exception=True)
+        data = cast(dict, query_dto.validated_data)
+        return Response(job_service.list_job_titles(data.get('search'), data.get('limit')))

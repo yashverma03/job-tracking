@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 
-import { CheckCheck, Pencil, RotateCw, Trash2 } from 'lucide-react';
+import { CheckCheck, CopyPlus, Pencil, RotateCw, Trash2 } from 'lucide-react';
 
 import { Dropdown } from '../../../common/components/Dropdown';
 import { useClipboard } from '../../../common/hooks/useClipboard';
@@ -33,7 +33,7 @@ const COLUMNS: Column[] = [
 ];
 
 const CHECKBOX_COLUMN_WIDTH = 40;
-const ACTIONS_COLUMN_WIDTH = 120;
+const ACTIONS_COLUMN_WIDTH = 160;
 const ID_COLUMN_WIDTH = 56;
 const STATUS_COLUMN_WIDTH = 170;
 const REFERRAL_STATUS_COLUMN_WIDTH = 220;
@@ -46,6 +46,7 @@ interface JobsTableProps {
   onToggleSelect: (id: number) => void;
   onEdit: (job: Job) => void;
   onDelete: (job: Job) => void;
+  onClone: (job: Job) => void;
 }
 
 export function JobsTable({
@@ -54,6 +55,7 @@ export function JobsTable({
   onToggleSelect,
   onEdit,
   onDelete,
+  onClone,
 }: JobsTableProps) {
   const { copy } = useClipboard();
   const { updateMutation, buildResumeMutation } = useJobMutations();
@@ -186,6 +188,15 @@ export function JobsTable({
                     aria-label="Edit job"
                   >
                     <Pencil size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.cloneButton}
+                    onClick={() => onClone(job)}
+                    aria-label="Clone job"
+                    title="Clone job"
+                  >
+                    <CopyPlus size={16} />
                   </button>
                   <button
                     type="button"
