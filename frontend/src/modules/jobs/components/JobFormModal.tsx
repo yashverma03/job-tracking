@@ -1,4 +1,4 @@
-import { useEffect, useRef, type FocusEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, type FocusEvent } from 'react'
 
 import dayjs from 'dayjs'
 import { Formik, Form, Field, type FieldProps } from 'formik'
@@ -160,6 +160,22 @@ function JobTitleField({ value, onChange }: JobTitleFieldProps) {
   return <ComboBox label="Title" value={value} onChange={onChange} options={jobTitles} />
 }
 
+function SubmitOnCtrlEnter({ submitForm }: { submitForm: () => void }) {
+  useEffect(() => {
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        event.preventDefault()
+        submitForm()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [submitForm])
+
+  return null
+}
+
 interface JobFormModalProps {
   job: Job | null
   cloneFrom?: JobCloneSource | null
@@ -212,15 +228,9 @@ export function JobFormModal({
           onSubmit={(values) => onSubmit(toJobPayload(values, isEdit))}
         >
           {({ errors, touched, values, setFieldValue, submitForm }) => (
-            <Form
-              className={styles.form}
-              onKeyDown={(event: KeyboardEvent<HTMLFormElement>) => {
-                if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-                  event.preventDefault()
-                  submitForm()
-                }
-              }}
-            >
+            <Form className={styles.form}>
+              <SubmitOnCtrlEnter submitForm={submitForm} />
+
               {!isEdit && !cloneFrom && (
                 <AutoReferralDefault
                   companyName={values.companyName}
