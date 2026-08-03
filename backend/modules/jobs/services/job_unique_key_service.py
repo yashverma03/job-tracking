@@ -40,5 +40,7 @@ def normalize_company_official_key(company_name: str, official_id: str) -> str:
 def upsert_company_official_key(company_name: str | None, official_id: str | None) -> None:
     if not company_name or not official_id:
         return
+    if not company_name.strip() or not official_id.strip():
+        return
     key = normalize_company_official_key(company_name, official_id)
     JobUniqueKey.objects.get_or_create(key=key)
