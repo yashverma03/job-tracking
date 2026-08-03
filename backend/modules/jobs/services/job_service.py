@@ -129,6 +129,11 @@ def update_job(job_id: int, data: dict) -> Job:
     return job
 
 
+def mark_url_seen(url: str) -> str:
+    cleaned_url = clean_job_url(url)
+    return job_unique_key_service.mark_url_seen(cleaned_url)
+
+
 def soft_delete_job(job_id: int) -> None:
     job = get_job(job_id)
     job.deleted_at = timezone.now()

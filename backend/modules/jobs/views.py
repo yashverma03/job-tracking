@@ -12,7 +12,7 @@ from modules.jobs.dto import (
     JobUpdateDTO,
     MarkUrlSeenDTO,
 )
-from modules.jobs.services import job_service, job_unique_key_service
+from modules.jobs.services import job_service
 
 
 class JobListCreateView(APIView):
@@ -54,7 +54,7 @@ class MarkUrlSeenView(APIView):
     def post(self, request):
         dto = MarkUrlSeenDTO(data=request.data)
         dto.is_valid(raise_exception=True)
-        key = job_unique_key_service.mark_url_seen(cast(dict, dto.validated_data)['url'])
+        key = job_service.mark_url_seen(cast(dict, dto.validated_data)['url'])
         return Response({'key': key}, status=201)
 
 
