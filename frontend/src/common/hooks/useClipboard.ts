@@ -1,11 +1,9 @@
-import { useCallback } from 'react'
-import toast from 'react-hot-toast'
+import { useCallback } from 'react';
 
 export function useClipboard() {
   const copy = useCallback(async (text: string) => {
-    await navigator.clipboard.writeText(text)
-    toast.success('Copied to clipboard')
-  }, [])
+    await navigator.clipboard.writeText(text);
+  }, []);
 
-  return { copy }
+  return { copy };
 }
