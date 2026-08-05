@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from modules.jobs.dto import (
+    JobCompanyByUrlQueryDTO,
     JobCreateDTO,
     JobListQueryDTO,
     JobResponseDTO,
@@ -72,3 +73,11 @@ class JobTitlesView(APIView):
         query_dto.is_valid(raise_exception=True)
         data = cast(dict, query_dto.validated_data)
         return Response(job_service.list_job_titles(data.get('search'), data.get('limit')))
+
+
+class CompanyByUrlView(APIView):
+    def get(self, request):
+        query_dto = JobCompanyByUrlQueryDTO(data=request.query_params)
+        query_dto.is_valid(raise_exception=True)
+        data = cast(dict, query_dto.validated_data)
+        return Response({'companyName': job_service.get_company_name_by_url(data['url'])})

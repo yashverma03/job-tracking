@@ -1,13 +1,14 @@
-import { useEffect, useRef, type FocusEvent } from 'react'
+import { useEffect, useRef, type FocusEvent } from 'react';
 
-import dayjs from 'dayjs'
-import { Formik, Form, Field, type FieldProps } from 'formik'
-import { X } from 'lucide-react'
-import * as Yup from 'yup'
+import dayjs from 'dayjs';
+import { Formik, Form, Field, type FieldProps } from 'formik';
+import { X } from 'lucide-react';
+import * as Yup from 'yup';
 
-import { ComboBox } from '../../../common/components/ComboBox'
-import { Dropdown } from '../../../common/components/Dropdown'
-import { useDebouncedValue } from '../../../common/hooks/useDebouncedValue'
+import { fetchCompanyNameByUrl } from '../../../common/api/jobs/jobs.service';
+import { ComboBox } from '../../../common/components/ComboBox';
+import { Dropdown } from '../../../common/components/Dropdown';
+import { useDebouncedValue } from '../../../common/hooks/useDebouncedValue';
 import {
   DEFAULT_JOB_REFERRAL_STATUS,
   DEFAULT_JOB_STATUS,
@@ -15,14 +16,20 @@ import {
   JOB_STATUS_OPTIONS,
   REFERRAL_STATUS_DROPDOWN_OPTIONS,
   STATUS_DROPDOWN_OPTIONS,
-} from '../constants/job.constants'
-import { useCompanyNamesQuery, useJobTitlesQuery } from '../hooks/useJobSuggestionsQuery'
-import type { JobFormValues, JobUpdateRequest } from '../interfaces/job.interfaces'
-import type { Job, JobStatus } from '../types/job.types'
-import { cleanJobUrl } from '../utils/urlCleaner'
-import styles from './JobFormModal.module.css'
+} from '../constants/job.constants';
+import {
+  useCompanyNamesQuery,
+  useJobTitlesQuery,
+} from '../hooks/useJobSuggestionsQuery';
+import type {
+  JobFormValues,
+  JobUpdateRequest,
+} from '../interfaces/job.interfaces';
+import type { Job, JobStatus } from '../types/job.types';
+import { cleanJobUrl } from '../utils/urlCleaner';
+import styles from './JobFormModal.module.css';
 
-const CREATED_AT_FORMAT = 'DD MMM YYYY'
+const CREATED_AT_FORMAT = 'DD MMM YYYY';
 
 const jobFormSchema = Yup.object({
   url: Yup.string().trim(),
@@ -35,18 +42,23 @@ const jobFormSchema = Yup.object({
   notes: Yup.string(),
   status: Yup.string().oneOf(JOB_STATUS_OPTIONS).required(),
   referralStatus: Yup.string().oneOf(JOB_REFERRAL_STATUS_OPTIONS).required(),
-  score: Yup.string().trim().matches(/^-?\d*$/, 'Score must be a whole number'),
+  score: Yup.string()
+    .trim()
+    .matches(/^-?\d*$/, 'Score must be a whole number'),
   analysis: Yup.string(),
-})
+});
 
 export interface JobCloneSource {
-  companyName: string | null
-  title: string | null
-  status: JobStatus
-  referralStatus: Job['referralStatus']
+  companyName: string | null;
+  title: string | null;
+  status: JobStatus;
+  referralStatus: Job['referralStatus'];
 }
 
-function jobToFormValues(job: Job | null, cloneFrom?: JobCloneSource | null): JobFormValues {
+function jobToFormValues(
+  job: Job | null,
+  cloneFrom?: JobCloneSource | null,
+): JobFormValues {
   if (job) {
     return {
       url: job.url ?? '',
@@ -61,7 +73,7 @@ function jobToFormValues(job: Job | null, cloneFrom?: JobCloneSource | null): Jo
       referralStatus: job.referralStatus,
       score: job.score != null ? String(job.score) : '',
       analysis: job.analysis ?? '',
-    }
+    };
   }
 
   return {
@@ -77,12 +89,15 @@ function jobToFormValues(job: Job | null, cloneFrom?: JobCloneSource | null): Jo
     referralStatus: cloneFrom?.referralStatus ?? DEFAULT_JOB_REFERRAL_STATUS,
     score: '',
     analysis: '',
-  }
+  };
 }
 
-const REFERRAL_REQUIRED_STATUS = 'Referral required' as const
+const REFERRAL_REQUIRED_STATUS = 'Referral required' as const;
 
-function toJobPayload(values: JobFormValues, isEdit: boolean): JobUpdateRequest {
+function toJobPayload(
+  values: JobFormValues,
+  isEdit: boolean,
+): JobUpdateRequest {
   const payload: JobUpdateRequest = {
     url: cleanJobUrl(values.url),
     secondaryUrl: cleanJobUrl(values.secondaryUrl),
@@ -94,23 +109,23 @@ function toJobPayload(values: JobFormValues, isEdit: boolean): JobUpdateRequest 
     notes: values.notes,
     status: values.status,
     referralStatus: values.referralStatus,
-  }
+  };
 
   if (isEdit) {
-    const trimmedScore = values.score.trim()
-    payload.score = trimmedScore === '' ? null : Number(trimmedScore)
-    payload.analysis = values.analysis
+    const trimmedScore = values.score.trim();
+    payload.score = trimmedScore === '' ? null : Number(trimmedScore);
+    payload.analysis = values.analysis;
   }
 
-  return payload
+  return payload;
 }
 
 interface AutoReferralDefaultProps {
-  companyName: string
-  title: string
-  officialId: string
-  referralStatus: JobFormValues['referralStatus']
-  setFieldValue: (field: string, value: string) => void
+  companyName: string;
+  title: string;
+  officialId: string;
+  referralStatus: JobFormValues['referralStatus'];
+  setFieldValue: (field: string, value: string) => void;
 }
 
 function AutoReferralDefault({
@@ -120,70 +135,86 @@ function AutoReferralDefault({
   referralStatus,
   setFieldValue,
 }: AutoReferralDefaultProps) {
-  const hasAutoApplied = useRef(false)
+  const hasAutoApplied = useRef(false);
 
   useEffect(() => {
-    if (hasAutoApplied.current) return
-    const hasIdentifyingInfo = Boolean(companyName.trim() || title.trim() || officialId.trim())
-    if (!hasIdentifyingInfo) return
+    if (hasAutoApplied.current) return;
+    const hasIdentifyingInfo = Boolean(
+      companyName.trim() || title.trim() || officialId.trim(),
+    );
+    if (!hasIdentifyingInfo) return;
 
-    hasAutoApplied.current = true
+    hasAutoApplied.current = true;
     if (referralStatus === DEFAULT_JOB_REFERRAL_STATUS) {
-      setFieldValue('referralStatus', REFERRAL_REQUIRED_STATUS)
+      setFieldValue('referralStatus', REFERRAL_REQUIRED_STATUS);
     }
-  }, [companyName, title, officialId, referralStatus, setFieldValue])
+  }, [companyName, title, officialId, referralStatus, setFieldValue]);
 
-  return null
+  return null;
 }
 
 interface CompanyNameFieldProps {
-  value: string
-  onChange: (value: string) => void
+  value: string;
+  onChange: (value: string) => void;
 }
 
 function CompanyNameField({ value, onChange }: CompanyNameFieldProps) {
-  const debouncedValue = useDebouncedValue(value, 300)
-  const { data: companyNames = [] } = useCompanyNamesQuery(debouncedValue)
+  const debouncedValue = useDebouncedValue(value, 300);
+  const { data: companyNames = [] } = useCompanyNamesQuery(debouncedValue);
 
-  return <ComboBox label="Company name" value={value} onChange={onChange} options={companyNames} />
+  return (
+    <ComboBox
+      label="Company name"
+      value={value}
+      onChange={onChange}
+      options={companyNames}
+    />
+  );
 }
 
 interface JobTitleFieldProps {
-  value: string
-  onChange: (value: string) => void
+  value: string;
+  onChange: (value: string) => void;
 }
 
 function JobTitleField({ value, onChange }: JobTitleFieldProps) {
-  const debouncedValue = useDebouncedValue(value, 300)
-  const { data: jobTitles = [] } = useJobTitlesQuery(debouncedValue)
+  const debouncedValue = useDebouncedValue(value, 300);
+  const { data: jobTitles = [] } = useJobTitlesQuery(debouncedValue);
 
-  return <ComboBox label="Title" value={value} onChange={onChange} options={jobTitles} />
+  return (
+    <ComboBox
+      label="Title"
+      value={value}
+      onChange={onChange}
+      options={jobTitles}
+    />
+  );
 }
 
 function SubmitOnCtrlEnter({ submitForm }: { submitForm: () => void }) {
   useEffect(() => {
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-        event.preventDefault()
-        submitForm()
+        event.preventDefault();
+        submitForm();
       }
-    }
+    };
 
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [submitForm])
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [submitForm]);
 
-  return null
+  return null;
 }
 
 interface JobFormModalProps {
-  job: Job | null
-  cloneFrom?: JobCloneSource | null
-  onClose: () => void
-  onSubmit: (payload: JobUpdateRequest) => void
-  onDelete?: (job: Job) => void
-  onGenerateResume?: (job: Job) => void
-  isGeneratingResume?: boolean
+  job: Job | null;
+  cloneFrom?: JobCloneSource | null;
+  onClose: () => void;
+  onSubmit: (payload: JobUpdateRequest) => void;
+  onDelete?: (job: Job) => void;
+  onGenerateResume?: (job: Job) => void;
+  isGeneratingResume?: boolean;
 }
 
 export function JobFormModal({
@@ -195,29 +226,34 @@ export function JobFormModal({
   onGenerateResume,
   isGeneratingResume,
 }: JobFormModalProps) {
-  const isEdit = job !== null
+  const isEdit = job !== null;
 
   const handleDelete = () => {
-    if (!job) return
-    onDelete?.(job)
-  }
+    if (!job) return;
+    onDelete?.(job);
+  };
 
   const handleGenerateResume = () => {
-    if (!job) return
-    onGenerateResume?.(job)
-  }
+    if (!job) return;
+    onGenerateResume?.(job);
+  };
 
   return (
     <div
       className={styles.overlay}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose()
+        if (event.target === event.currentTarget) onClose();
       }}
     >
       <div className={styles.modal}>
         <div className={styles.headerRow}>
           <h2 className={styles.heading}>{isEdit ? 'Edit Job' : 'Add Job'}</h2>
-          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close">
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="Close"
+          >
             <X size={18} />
           </button>
         </div>
@@ -267,14 +303,25 @@ export function JobFormModal({
                       {...field}
                       className={styles.input}
                       autoFocus
-                      onBlur={(event: FocusEvent<HTMLInputElement>) => {
-                        field.onBlur(event)
-                        form.setFieldValue('url', cleanJobUrl(event.target.value))
+                      onBlur={async (event: FocusEvent<HTMLInputElement>) => {
+                        field.onBlur(event);
+                        const cleanedUrl = cleanJobUrl(event.target.value);
+                        form.setFieldValue('url', cleanedUrl);
+
+                        if (!cleanedUrl || form.values.companyName.trim())
+                          return;
+                        const companyName =
+                          await fetchCompanyNameByUrl(cleanedUrl);
+                        if (companyName && !form.values.companyName.trim()) {
+                          form.setFieldValue('companyName', companyName);
+                        }
                       }}
                     />
                   )}
                 </Field>
-                {touched.url && errors.url && <span className={styles.errorText}>{errors.url}</span>}
+                {touched.url && errors.url && (
+                  <span className={styles.errorText}>{errors.url}</span>
+                )}
               </label>
 
               <CompanyNameField
@@ -282,7 +329,10 @@ export function JobFormModal({
                 onChange={(value) => setFieldValue('companyName', value)}
               />
 
-              <JobTitleField value={values.title} onChange={(value) => setFieldValue('title', value)} />
+              <JobTitleField
+                value={values.title}
+                onChange={(value) => setFieldValue('title', value)}
+              />
 
               <label className={styles.label}>
                 Job ID
@@ -297,20 +347,30 @@ export function JobFormModal({
                       {...field}
                       className={styles.input}
                       onBlur={(event: FocusEvent<HTMLInputElement>) => {
-                        field.onBlur(event)
-                        form.setFieldValue('secondaryUrl', cleanJobUrl(event.target.value))
+                        field.onBlur(event);
+                        form.setFieldValue(
+                          'secondaryUrl',
+                          cleanJobUrl(event.target.value),
+                        );
                       }}
                     />
                   )}
                 </Field>
                 {touched.secondaryUrl && errors.secondaryUrl && (
-                  <span className={styles.errorText}>{errors.secondaryUrl}</span>
+                  <span className={styles.errorText}>
+                    {errors.secondaryUrl}
+                  </span>
                 )}
               </label>
 
               <label className={styles.label}>
                 Job description
-                <Field as="textarea" name="description" className={styles.input} rows={4} />
+                <Field
+                  as="textarea"
+                  name="description"
+                  className={styles.input}
+                  rows={4}
+                />
               </label>
 
               {isEdit && (
@@ -322,7 +382,12 @@ export function JobFormModal({
 
                   <label className={styles.label}>
                     Notes
-                    <Field as="textarea" name="notes" className={styles.input} rows={3} />
+                    <Field
+                      as="textarea"
+                      name="notes"
+                      className={styles.input}
+                      rows={3}
+                    />
                   </label>
 
                   <label className={styles.label}>
@@ -335,7 +400,12 @@ export function JobFormModal({
 
                   <label className={styles.label}>
                     Analysis
-                    <Field as="textarea" name="analysis" className={styles.input} rows={4} />
+                    <Field
+                      as="textarea"
+                      name="analysis"
+                      className={styles.input}
+                      rows={4}
+                    />
                   </label>
                 </>
               )}
@@ -386,7 +456,11 @@ export function JobFormModal({
                   </button>
                 )}
                 <div className={styles.actionsSpacer} />
-                <button type="button" className={styles.cancelButton} onClick={onClose}>
+                <button
+                  type="button"
+                  className={styles.cancelButton}
+                  onClick={onClose}
+                >
                   Cancel
                 </button>
                 <button type="submit" className={styles.submitButton}>
@@ -398,5 +472,5 @@ export function JobFormModal({
         </Formik>
       </div>
     </div>
-  )
+  );
 }

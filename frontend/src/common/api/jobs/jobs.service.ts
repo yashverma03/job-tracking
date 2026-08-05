@@ -51,3 +51,10 @@ export async function fetchJobTitles(search?: string, limit?: number): Promise<s
   const { data } = await client.get<string[]>('/jobs/job-titles', { params: { search, limit } })
   return data
 }
+
+export async function fetchCompanyNameByUrl(url: string): Promise<string | null> {
+  const { data } = await client.get<{ companyName: string | null }>('/jobs/company-by-url', {
+    params: { url },
+  })
+  return data.companyName
+}

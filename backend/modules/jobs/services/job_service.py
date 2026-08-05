@@ -1,3 +1,5 @@
+from collections import Counter
+
 from django.db.models import Case, Count, IntegerField, Q, Value, When
 from django.db.models.functions import Lower, Trim
 from django.utils import timezone
@@ -9,6 +11,7 @@ from modules.jobs.enums.job_status import JobStatus
 from modules.jobs.models import Job
 from modules.jobs.services import job_unique_key_service
 from modules.jobs.types.job_types import JobFilterParams
+from modules.jobs.utils.domain import extract_domain, is_job_board_domain
 from modules.jobs.utils.url_cleaner import clean_job_url
 
 SEARCH_FIELDS = ['url', 'secondary_url', 'title', 'company_name', 'official_id', 'description']
@@ -95,6 +98,28 @@ def list_job_titles(search: str | None = None, limit: int | None = None) -> list
     if limit is not None:
         rows = rows[:limit]
     return [row['normalized_title'].title() for row in rows]
+
+
+def get_company_name_by_url(url: str) -> str | None:
+    domain = extract_domain(url)
+    if not domain or is_job_board_domain(domain):
+        return None
+
+    candidates = (
+        _active_jobs_queryset()
+        .exclude(url__isnull=True)
+        .exclude(url='')
+        .exclude(company_name__isnull=True)
+        .exclude(company_name='')
+        .values_list('url', 'company_name')
+    )
+
+    company_name_counts = Counter(
+        company_name for candidate_url, company_name in candidates if extract_domain(candidate_url) == domain
+    )
+    if not company_name_counts:
+        return None
+    return max(company_name_counts.items(), key=lambda item: (item[1], item[0]))[0]
 
 
 def get_job(job_id: int) -> Job:
