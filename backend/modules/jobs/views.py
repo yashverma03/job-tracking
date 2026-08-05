@@ -4,6 +4,7 @@ from djangorestframework_camel_case.util import underscoreize
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.utils.dto import validate
 from modules.jobs.dto import (
     JobCompanyByUrlQueryDTO,
     JobCreateDTO,
@@ -19,7 +20,7 @@ from modules.jobs.services import job_service
 class JobListCreateView(APIView):
     def get(self, request):
         query_dto = cast(JobListQueryDTO, JobListQueryDTO(data=underscoreize(request.query_params)))
-        query_dto.is_valid(raise_exception=True)
+        validate(query_dto)
         filters = query_dto.to_filter_params()
 
         result = job_service.list_jobs(filters)
@@ -32,18 +33,16 @@ class JobListCreateView(APIView):
         })
 
     def post(self, request):
-        create_dto = JobCreateDTO(data=request.data)
-        create_dto.is_valid(raise_exception=True)
-        job = job_service.create_job(cast(dict, create_dto.validated_data))
+        data = validate(JobCreateDTO(data=request.data))
+        job = job_service.create_job(data)
         return Response(JobResponseDTO(job).data, status=201)
 
 
 class JobDetailView(APIView):
     def patch(self, request, job_id):
         job = job_service.get_job(job_id)
-        update_dto = JobUpdateDTO(job, data=request.data, partial=True)
-        update_dto.is_valid(raise_exception=True)
-        updated_job = job_service.update_job(job_id, cast(dict, update_dto.validated_data))
+        data = validate(JobUpdateDTO(job, data=request.data, partial=True))
+        updated_job = job_service.update_job(job_id, data)
         return Response(JobResponseDTO(updated_job).data)
 
     def delete(self, request, job_id):
@@ -53,31 +52,24 @@ class JobDetailView(APIView):
 
 class MarkUrlSeenView(APIView):
     def post(self, request):
-        dto = MarkUrlSeenDTO(data=request.data)
-        dto.is_valid(raise_exception=True)
-        key = job_service.mark_url_seen(cast(dict, dto.validated_data)['url'])
+        data = validate(MarkUrlSeenDTO(data=request.data))
+        key = job_service.mark_url_seen(data['url'])
         return Response({'key': key}, status=201)
 
 
 class CompanyNamesView(APIView):
     def get(self, request):
-        query_dto = JobSuggestionsQueryDTO(data=request.query_params)
-        query_dto.is_valid(raise_exception=True)
-        data = cast(dict, query_dto.validated_data)
+        data = validate(JobSuggestionsQueryDTO(data=request.query_params))
         return Response(job_service.list_company_names(data.get('search'), data.get('limit')))
 
 
 class JobTitlesView(APIView):
     def get(self, request):
-        query_dto = JobSuggestionsQueryDTO(data=request.query_params)
-        query_dto.is_valid(raise_exception=True)
-        data = cast(dict, query_dto.validated_data)
+        data = validate(JobSuggestionsQueryDTO(data=request.query_params))
         return Response(job_service.list_job_titles(data.get('search'), data.get('limit')))
 
 
 class CompanyByUrlView(APIView):
     def get(self, request):
-        query_dto = JobCompanyByUrlQueryDTO(data=request.query_params)
-        query_dto.is_valid(raise_exception=True)
-        data = cast(dict, query_dto.validated_data)
+        data = validate(JobCompanyByUrlQueryDTO(data=request.query_params))
         return Response({'companyName': job_service.get_company_name_by_url(data['url'])})
