@@ -26,6 +26,15 @@ def _ensure_url_not_duplicate(url: str | None, secondary_url: str | None) -> Non
         )
 
 
+def _ensure_company_official_not_duplicate(company_name: str | None, official_id: str | None) -> None:
+    if job_unique_key_service.is_company_official_duplicate(company_name, official_id):
+        raise ApiError(
+            'A job with this company and official ID already exists.',
+            status_code=400,
+            details={'field': 'official_id'},
+        )
+
+
 def _active_jobs_queryset():
     return Job.objects.filter(deleted_at__isnull=True)
 
@@ -143,6 +152,7 @@ def create_job(data: dict) -> Job:
     if data.get('secondary_url'):
         data['secondary_url'] = clean_job_url(data['secondary_url'])
     _ensure_url_not_duplicate(data.get('url'), data.get('secondary_url'))
+    _ensure_company_official_not_duplicate(data.get('company_name'), data.get('official_id'))
     job = Job.objects.create(**data)
     job_unique_key_service.upsert_unique_keys(job.url, job.secondary_url)
     job_unique_key_service.upsert_company_official_key(job.company_name, job.official_id)
@@ -155,6 +165,17 @@ def update_job(job_id: int, data: dict) -> Job:
     if data.get('secondary_url'):
         data['secondary_url'] = clean_job_url(data['secondary_url'])
     job = get_job(job_id)
+
+    new_url = data.get('url', job.url)
+    new_secondary_url = data.get('secondary_url', job.secondary_url)
+    if new_url != job.url or new_secondary_url != job.secondary_url:
+        _ensure_url_not_duplicate(new_url, new_secondary_url)
+
+    new_company_name = data.get('company_name', job.company_name)
+    new_official_id = data.get('official_id', job.official_id)
+    if new_company_name != job.company_name or new_official_id != job.official_id:
+        _ensure_company_official_not_duplicate(new_company_name, new_official_id)
+
     for field, value in data.items():
         setattr(job, field, value)
     job.save()

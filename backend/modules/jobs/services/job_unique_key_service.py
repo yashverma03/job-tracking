@@ -26,6 +26,15 @@ def normalize_company_official_key(company_name: str, official_id: str) -> str:
     return f'company:{company_name.strip().lower()}:id:{official_id.strip()}'
 
 
+def is_company_official_duplicate(company_name: str | None, official_id: str | None) -> bool:
+    if not company_name or not official_id:
+        return False
+    if not company_name.strip() or not official_id.strip():
+        return False
+    key = normalize_company_official_key(company_name, official_id)
+    return JobUniqueKey.objects.filter(key=key).exists()
+
+
 def upsert_company_official_key(company_name: str | None, official_id: str | None) -> None:
     if not company_name or not official_id:
         return
