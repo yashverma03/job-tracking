@@ -1,15 +1,19 @@
 @reference "../../../index.css";
 
 .container {
-  @apply flex flex-wrap items-end gap-4 rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-sm;
+  @apply flex flex-wrap items-end gap-8 rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-sm;
 }
 
 .field {
-  @apply flex flex-col gap-1 text-sm;
+  @apply flex flex-1 flex-col gap-1 text-sm;
 }
 
 .searchField {
-  @apply flex min-w-[220px] flex-1 flex-col gap-1 text-sm;
+  @apply flex w-100 flex-none flex-col gap-1 text-sm;
+}
+
+.searchInputWrapper {
+  @apply relative flex items-center;
 }
 
 .label {
@@ -17,6 +21,15 @@
 }
 
 .input {
-  @apply rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 shadow-sm transition-colors;
+  @apply w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 shadow-sm transition-colors;
   @apply hover:border-slate-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none;
+}
+
+.searchField .input {
+  @apply pr-7;
+}
+
+.clearButton {
+  @apply absolute right-1.5 flex h-5 w-5 items-center justify-center rounded-full text-base leading-none text-slate-400 transition-colors;
+  @apply hover:bg-slate-700 hover:text-slate-100;
 }

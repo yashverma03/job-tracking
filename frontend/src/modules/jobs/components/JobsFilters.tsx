@@ -57,12 +57,24 @@ export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
 
       <label className={styles.searchField}>
         <span className={styles.label}>Search</span>
-        <input
-          type="text"
-          className={styles.input}
-          value={filters.search ?? ''}
-          onChange={handleTextChange('search')}
-        />
+        <div className={styles.searchInputWrapper}>
+          <input
+            type="text"
+            className={styles.input}
+            value={filters.search ?? ''}
+            onChange={handleTextChange('search')}
+          />
+          {filters.search && (
+            <button
+              type="button"
+              className={styles.clearButton}
+              aria-label="Clear search"
+              onClick={() => updateFilter({ search: undefined })}
+            >
+              ×
+            </button>
+          )}
+        </div>
       </label>
 
       <label className={styles.field}>
