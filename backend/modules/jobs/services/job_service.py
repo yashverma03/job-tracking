@@ -89,6 +89,7 @@ def list_job_titles(search: str | None = None, limit: int | None = None) -> list
         queryset.annotate(normalized_title=Lower(Trim('title')))
         .values('normalized_title')
         .annotate(count=Count('id'))
+        .filter(count__gte=10)
         .order_by('-count', 'normalized_title')
     )
     if limit is not None:
