@@ -32,6 +32,11 @@ export interface JobListQueryParams {
   limit: number
 }
 
+export interface JobStatsResponse {
+  toApplyCount: number
+  referralRequiredCount: number
+}
+
 export interface GenerateResumesOutcome {
   jobId: number
   filePath?: string | null

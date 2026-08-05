@@ -122,6 +122,14 @@ def get_company_name_by_url(url: str) -> str | None:
     return max(company_name_counts.items(), key=lambda item: (item[1], item[0]))[0]
 
 
+def get_job_stats() -> dict:
+    queryset = _active_jobs_queryset()
+    return {
+        'to_apply_count': queryset.filter(status=JobStatus.TO_APPLY).count(),
+        'referral_required_count': queryset.filter(referral_status=JobReferralStatus.REQUIRED).count(),
+    }
+
+
 def get_job(job_id: int) -> Job:
     job = _active_jobs_queryset().filter(id=job_id).first()
     if job is None:

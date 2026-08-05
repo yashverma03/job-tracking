@@ -73,3 +73,8 @@ class CompanyByUrlView(APIView):
     def get(self, request):
         data = validate(JobCompanyByUrlQueryDTO(data=request.query_params))
         return Response({'companyName': job_service.get_company_name_by_url(data['url'])})
+
+
+class JobStatsView(APIView):
+    def get(self, request):
+        return Response(job_service.get_job_stats())

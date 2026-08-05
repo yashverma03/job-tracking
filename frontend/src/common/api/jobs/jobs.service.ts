@@ -8,6 +8,7 @@ import type {
   JobListQueryParams,
   JobListResponse,
   JobResponse,
+  JobStatsResponse,
   JobUpdateRequest,
 } from '../../../modules/jobs/interfaces/job.interfaces'
 
@@ -49,6 +50,11 @@ export async function fetchCompanyNames(search?: string, limit?: number): Promis
 
 export async function fetchJobTitles(search?: string, limit?: number): Promise<string[]> {
   const { data } = await client.get<string[]>('/jobs/job-titles', { params: { search, limit } })
+  return data
+}
+
+export async function fetchJobStats(): Promise<JobStatsResponse> {
+  const { data } = await client.get<JobStatsResponse>('/jobs/stats')
   return data
 }
 

@@ -7,6 +7,7 @@ import { BulkActionsBar } from './BulkActionsBar'
 import { JobFormModal, type JobCloneSource } from './JobFormModal'
 import { useJobMutations } from '../hooks/useJobMutations'
 import { useJobsQuery } from '../hooks/useJobsQuery'
+import { useJobStatsQuery } from '../hooks/useJobStatsQuery'
 import type { JobListQueryParams, JobUpdateRequest } from '../interfaces/job.interfaces'
 import type { Job } from '../types/job.types'
 import styles from './JobsPage.module.css'
@@ -21,6 +22,7 @@ export function JobsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   const { data, isLoading, isError } = useJobsQuery(filters)
+  const { data: stats } = useJobStatsQuery()
   const { createMutation, updateMutation, deleteMutation, generateResumesMutation, buildResumeMutation } =
     useJobMutations()
 
@@ -123,7 +125,17 @@ export function JobsPage() {
 
       <JobsFilters filters={filters} onChange={setFilters} />
 
-      <BulkActionsBar selectedJobs={selectedJobs} />
+      <div className={styles.statsBarSlot}>
+        {selectedJobs.length < 2 && (
+          <div className={styles.stats}>
+            <span className={styles.statPill}>To Apply: {stats?.toApplyCount ?? '—'}</span>
+            <span className={styles.statPill}>
+              Referral required: {stats?.referralRequiredCount ?? '—'}
+            </span>
+          </div>
+        )}
+        <BulkActionsBar selectedJobs={selectedJobs} />
+      </div>
 
       {isLoading && <p className={styles.statusText}>Loading jobs...</p>}
       {isError && <p className={styles.errorText}>Failed to load jobs.</p>}
