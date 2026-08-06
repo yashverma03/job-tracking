@@ -1,20 +1,30 @@
+from datetime import timedelta
+
+from django.utils import timezone
+
 from modules.jobs.models import JobUniqueKey
+
+DUPLICATE_LOOKBACK_DAYS = 182  # ~6 months
 
 
 def _keys(url: str | None, secondary_url: str | None) -> set[str]:
     return {value for value in (url, secondary_url) if value}
 
 
+def _lookback_cutoff():
+    return timezone.now() - timedelta(days=DUPLICATE_LOOKBACK_DAYS)
+
+
 def is_duplicate(url: str | None, secondary_url: str | None) -> bool:
     keys = _keys(url, secondary_url)
     if not keys:
         return False
-    return JobUniqueKey.objects.filter(key__in=keys).exists()
+    return JobUniqueKey.objects.filter(key__in=keys, updated_at__gte=_lookback_cutoff()).exists()
 
 
 def upsert_unique_keys(url: str | None, secondary_url: str | None) -> None:
     for key in _keys(url, secondary_url):
-        JobUniqueKey.objects.get_or_create(key=key)
+        JobUniqueKey.objects.update_or_create(key=key, defaults={'updated_at': timezone.now()})
 
 
 def mark_url_seen(url: str) -> str:
@@ -32,7 +42,7 @@ def is_company_official_duplicate(company_name: str | None, official_id: str | N
     if not company_name.strip() or not official_id.strip():
         return False
     key = normalize_company_official_key(company_name, official_id)
-    return JobUniqueKey.objects.filter(key=key).exists()
+    return JobUniqueKey.objects.filter(key=key, updated_at__gte=_lookback_cutoff()).exists()
 
 
 def upsert_company_official_key(company_name: str | None, official_id: str | None) -> None:
@@ -41,4 +51,4 @@ def upsert_company_official_key(company_name: str | None, official_id: str | Non
     if not company_name.strip() or not official_id.strip():
         return
     key = normalize_company_official_key(company_name, official_id)
-    JobUniqueKey.objects.get_or_create(key=key)
+    JobUniqueKey.objects.update_or_create(key=key, defaults={'updated_at': timezone.now()})
