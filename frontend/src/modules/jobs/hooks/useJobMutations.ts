@@ -59,7 +59,7 @@ export function useJobMutations() {
       invalidateJobs()
       toast.success('Job updated')
     },
-    onError: () => toast.error('Failed to update job'),
+    onError: (error) => toast.error(extractErrorMessage(error) ?? 'Failed to update job'),
   })
 
   const deleteMutation = useMutation({
@@ -68,7 +68,7 @@ export function useJobMutations() {
       invalidateJobs()
       toast.success('Job deleted')
     },
-    onError: () => toast.error('Failed to delete job'),
+    onError: (error) => toast.error(extractErrorMessage(error) ?? 'Failed to delete job'),
   })
 
   const generateResumesMutation = useMutation({
