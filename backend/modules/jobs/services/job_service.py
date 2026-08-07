@@ -72,7 +72,7 @@ def _with_default_sort_tier(queryset):
 
 def list_jobs(filters: JobFilterParams) -> PaginatedResult[Job]:
     queryset = _with_default_sort_tier(_apply_filters(_active_jobs_queryset(), filters)).order_by(
-        'sort_tier', '-id'
+        'sort_tier', 'company_name', '-id'
     )
 
     total = queryset.count()
