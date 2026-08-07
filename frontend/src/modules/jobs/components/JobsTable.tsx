@@ -216,7 +216,7 @@ export function JobsTable({
                   type="button"
                   className={styles.copyButton}
                   onClick={() => copy(String(job.id))}
-                  title="Click to copy"
+                  title={String(job.id)}
                 >
                   {job.id}
                 </button>
@@ -288,7 +288,13 @@ export function JobsTable({
                         <button
                           type="button"
                           className={styles.urlButton}
-                          onClick={() => copy(linkValue)}
+                          onClick={(event) => {
+                            if (event.ctrlKey || event.metaKey) {
+                              window.open(linkValue, '_blank', 'noopener,noreferrer');
+                              return;
+                            }
+                            copy(linkValue);
+                          }}
                           title={linkValue}
                         >
                           {linkValue}
@@ -312,7 +318,7 @@ export function JobsTable({
                           type="button"
                           className={styles.copyButton}
                           onClick={() => copy(String(value))}
-                          title="Click to copy"
+                          title={String(value)}
                         >
                           {value}
                         </button>
