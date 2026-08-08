@@ -1,14 +1,10 @@
 import json
 import os
 
+from pydantic import ValidationError
+
 from common.exceptions.api_exceptions import ApiError
-from modules.resume.types.resume_types import (
-    ResumeCertification,
-    ResumeContact,
-    ResumeEducation,
-    ResumeExperienceEntry,
-    ResumeInput,
-)
+from modules.resume.types.resume_types import ResumeInput
 
 RESUME_INPUT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'resume-input.json')
 
@@ -27,13 +23,9 @@ def load_resume_input() -> ResumeInput:
             raise ApiError(f'resume-input.json is not valid JSON: {exc}', status_code=500) from exc
 
     try:
-        return ResumeInput(
-            contact=ResumeContact(**raw['contact']),
-            base_summary=raw['base_summary'],
-            experience=[ResumeExperienceEntry(**entry) for entry in raw['experience']],
-            skills=raw['skills'],
-            certifications=[ResumeCertification(**cert) for cert in raw['certifications']],
-            education=[ResumeEducation(**edu) for edu in raw['education']],
+        return ResumeInput.model_validate(raw)
+    except ValidationError as exc:
+        error_list = '\n'.join(
+            f'- {".".join(str(part) for part in error["loc"])}: {error["msg"]}' for error in exc.errors()
         )
-    except (KeyError, TypeError) as exc:
-        raise ApiError(f'resume-input.json is missing a required field: {exc}', status_code=500) from exc
+        raise ApiError(f'resume-input.json failed schema validation:\n{error_list}', status_code=500) from exc

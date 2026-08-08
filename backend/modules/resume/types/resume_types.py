@@ -1,8 +1,11 @@
 from dataclasses import dataclass
 
+from pydantic import BaseModel, ConfigDict
 
-@dataclass
-class ResumeContact:
+
+class ResumeContact(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
     name: str
     portfolio_url: str
     email: str
@@ -13,29 +16,33 @@ class ResumeContact:
     leetcode_url: str
 
 
-@dataclass
-class ResumeExperienceEntry:
+class ResumeExperienceEntry(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
     title: str
     company: str
     duration: str
     base_bullets: list[str]
 
 
-@dataclass
-class ResumeCertification:
+class ResumeCertification(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
     label: str
     url: str
 
 
-@dataclass
-class ResumeEducation:
+class ResumeEducation(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
     degree: str
     institution: str
     years: str
 
 
-@dataclass
-class ResumeInput:
+class ResumeInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
     contact: ResumeContact
     base_summary: str
     experience: list[ResumeExperienceEntry]
