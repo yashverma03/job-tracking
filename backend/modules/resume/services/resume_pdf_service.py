@@ -1,5 +1,7 @@
 import io
 import os
+import re
+from xml.sax.saxutils import escape
 
 from pypdf import PdfReader
 from reportlab.lib import colors
@@ -41,6 +43,12 @@ DATE_STYLE = ParagraphStyle('Date', fontName='Calibri-Italic', fontSize=10, alig
 
 def _link(url: str, label: str) -> str:
     return f'<link href="{url}"><font color="#1a56db"><u>{label}</u></font></link>'
+
+
+def _render_bullet(text: str) -> str:
+    # AI-authored bullets mark metrics with **double asterisks**; escape any raw XML-special characters first
+    # (Paragraph markup is HTML-like) so the metric markers are the only thing translated into <b> tags.
+    return re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', escape(text))
 
 
 def _heading(text: str) -> list:
@@ -94,7 +102,7 @@ def _build_story(resume_input: ResumeInput, ai_output: ResumeAiOutput, usable_wi
         ))
         story.append(Spacer(1, 3))
         for bullet in bullets:
-            story.append(Paragraph(bullet, BULLET_STYLE, bulletText='●'))
+            story.append(Paragraph(_render_bullet(bullet), BULLET_STYLE, bulletText='●'))
         if i < len(experience_entries) - 1:
             story.append(Spacer(1, 14))
 

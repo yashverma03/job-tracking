@@ -85,6 +85,12 @@ being comprehensive: it's always better to cut a mediocre bullet than to keep it
 - Line length: for every constraint below that is expressed in "lines," 1 line = 100 characters, including \
 spaces. This is a rendering-width limit, not a sentence-count limit — a single long sentence that runs past 100 \
 characters wraps onto a second rendered line and counts as 2 lines, even if it's grammatically one sentence.
+- Bold markup: in experience bullets, wrap the specific metric substrings (numbers, percentages, dollar amounts, \
+counts — e.g. "63%", "$1B+", "30M+", "4 hours to 30 minutes") in double asterisks, e.g. "reducing manual review by \
+**63%**". Only wrap the metric itself, never surrounding words, and only use this in experience bullets. This \
+markup is stripped out and rendered as bold text by the PDF generator, not shown literally — so the "**" \
+characters themselves do NOT count toward the character/line limits above; count only the visible text inside and \
+around them.
 
 Return structured output with:
 - "summary": exactly 2 lines and no more, where 1 line = 100 characters including spaces — so the summary text \
@@ -105,9 +111,14 @@ any of these levels, use judgment based on how senior it reads.
 run up to 2 rendered lines (~200 characters) if it genuinely needs the space to convey a strong, specific, \
 keyword-relevant point — do not pad or artificially split bullets just to hit a line count. Prioritize a few \
 high-impact, keyword-rich bullets over many thin ones.
-- "skills": a flat, comma-separated-ready array of at most 15 skills, ordered by relevance, with no grouping or \
-categorization. Be selective, not exhaustive — do not just return most of the candidate's skills list. Steps to \
-build it:
+  - Order the bullets within each entry from most impressive/impactful to least impressive — front-load the \
+strongest, most quantified, most job-relevant achievement as the first bullet, and place comparatively weaker or \
+more routine bullets toward the end. A reader skimming only the first bullet of each entry should see the single \
+most compelling point for that role.
+- "skills": a flat, comma-separated-ready array of at most 15 skills, front-loaded with the most important/relevant \
+skills first and progressively less important ones toward the end (the first few entries are what a recruiter \
+skimming the list will actually read), with no grouping or categorization. Be selective, not exhaustive — do not \
+just return most of the candidate's skills list. Steps to build it:
   1. From the candidate's skills list above, select only the skills that are actually relevant to this job \
 description. Drop everything else, even if it's a fine general skill — irrelevant skills waste space.
   2. Identify important skills/technologies/tools named in the job description (including anything wrapped in \
