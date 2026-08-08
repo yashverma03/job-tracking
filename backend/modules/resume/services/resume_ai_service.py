@@ -70,9 +70,18 @@ General rules:
 terms already implied by the candidate's real experience, but never fabricate work experience achievements, \
 metrics, tools, or facts that aren't grounded in the candidate's base data above.
 - Do not duplicate the same point, keyword, or phrase across the summary, work experience, and skills.
-- This resume must fit on one page. The length constraints below (summary line count, total bullet count, skill \
-count) exist specifically to enforce that. Treat them as hard limits, not targets to aim near — going over is a \
-failure even if the content is good.
+- Vary the language across bullets so the resume doesn't read as repetitive or templated. Do not start multiple \
+bullets with the same or near-synonymous verb (e.g. "Implemented" repeated across entries) — track the opening \
+verb of every bullet you write across the entire resume and make sure no verb (or close synonym like \
+"Built"/"Developed"/"Created" used interchangeably) is reused more than once. Draw from a wide range of strong, \
+specific action verbs (e.g. Architected, Engineered, Optimized, Automated, Migrated, Streamlined, Spearheaded, \
+Reduced, Scaled, Diagnosed, Redesigned) and pick the one that most precisely matches what was actually done, not \
+just whichever comes to mind first. Each bullet should also differ in structure/rhythm from the others, not just \
+in its opening word, so the section doesn't feel like the same sentence repeated with different nouns.
+- This resume must fit on one page and should read as tight and focused, not dense. The length constraints below \
+(summary line count, per-entry bullet count, skill count) exist specifically to enforce that. Treat them as hard \
+limits, not targets to aim near — going over is a failure even if the content is good. Favor being selective over \
+being comprehensive: it's always better to cut a mediocre bullet than to keep it just to fill space.
 - Line length: for every constraint below that is expressed in "lines," 1 line = 100 characters, including \
 spaces. This is a rendering-width limit, not a sentence-count limit — a single long sentence that runs past 100 \
 characters wraps onto a second rendered line and counts as 2 lines, even if it's grammatically one sentence.
@@ -83,16 +92,19 @@ must be at most 200 characters total. Summarize the candidate in terms that dire
 description is looking for. Before finalizing, count the actual character length and cut/tighten until it is at \
 or under 200 characters.
 - "experience_bullets": one array of bullets per experience entry above, in the same order and same count of \
-entries as the input ({num_jobs} entries). Across all entries combined, use a total of exactly 21 bullet lines — \
-not 21 as an upper bound, exactly 21 — where each individual bullet must be written to fit within 1 rendered line \
-(at most ~100 characters including spaces); if a bullet's content genuinely needs more space, it counts as \
-multiple lines toward the total, so prefer tightening the wording to fit 1 line instead. Every entry must have at \
-least 1 bullet, and the most recent (first) entry should get proportionally more bullets than older entries. You \
-must be selective: from each job's base bullets, choose only the subset most relevant to this specific job \
-description and drop the rest — do not carry over every base bullet just because it exists. Rewrite/reprioritize \
-the chosen bullets to maximize keyword match with the job description, but never fabricate facts not present in \
-the base bullets. Before finalizing, count the total bullet lines (accounting for any bullet that wraps past 100 \
-characters as more than 1 line) across all entries and adjust until the total is exactly 21.
+entries as the input ({num_jobs} entries). The candidate's base bullets for each job are a menu of everything \
+they *could* say, not a checklist you must cover — you must be aggressively selective and drop most of them, \
+keeping only the few that are most relevant to this specific job description. Never carry over a base bullet just \
+because it exists, and never shorten/compress bullets just to fit more of them in — a resume with too many bullets \
+reads as bulky and unfocused, which is worse than one with fewer, stronger bullets.
+  - Pick the number of bullets per entry based on the seniority implied by that entry's title, not on how many \
+base bullets happen to exist for it: an internship-level title gets 1-2 bullets, a junior-level title gets 4-5 \
+bullets, and a regular/senior (non-junior, non-intern) title gets 4-5 bullets. If a title doesn't clearly match \
+any of these levels, use judgment based on how senior it reads.
+  - Each bullet should typically fit within 1 rendered line (~100 characters including spaces), but a bullet may \
+run up to 2 rendered lines (~200 characters) if it genuinely needs the space to convey a strong, specific, \
+keyword-relevant point — do not pad or artificially split bullets just to hit a line count. Prioritize a few \
+high-impact, keyword-rich bullets over many thin ones.
 - "skills": a flat, comma-separated-ready array of at most 15 skills, ordered by relevance, with no grouping or \
 categorization. Be selective, not exhaustive — do not just return most of the candidate's skills list. Steps to \
 build it:
