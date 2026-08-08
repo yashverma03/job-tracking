@@ -37,6 +37,7 @@ class ResumeEducation:
 @dataclass
 class ResumeInput:
     contact: ResumeContact
+    base_summary: str
     experience: list[ResumeExperienceEntry]
     skills: list[str]
     certifications: list[ResumeCertification]

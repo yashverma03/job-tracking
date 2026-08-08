@@ -46,6 +46,10 @@ the job description emphasizes may be wrapped in "**"; treat anything wrapped th
 to match against):
 {job_description}
 
+Candidate's base summary (rewrite/tighten this to match the job above — do not invent facts not grounded in it or \
+in the base work experience below):
+{resume_input.base_summary}
+
 Candidate's base work experience (do not invent new roles, companies, or dates — only rewrite/select bullets to \
 emphasize what's most relevant to the job above):
 {experience_section}

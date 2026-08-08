@@ -27,7 +27,7 @@ pdfmetrics.registerFontFamily('Cambria', normal='Cambria', bold='Cambria-Bold')
 pdfmetrics.registerFontFamily('Calibri', normal='Calibri', bold='Calibri-Bold', italic='Calibri-Italic')
 pdfmetrics.registerFontFamily('TimesNewRoman', normal='TimesNewRoman', bold='TimesNewRoman-Bold')
 
-NAME_STYLE = ParagraphStyle('Name', fontName='TimesNewRoman-Bold', fontSize=16, alignment=1, spaceAfter=6)
+NAME_STYLE = ParagraphStyle('Name', fontName='TimesNewRoman-Bold', fontSize=16, alignment=1, spaceAfter=14)
 CONTACT_STYLE = ParagraphStyle('Contact', fontName='Calibri', fontSize=9, alignment=1, textColor=colors.HexColor('#333333'))
 HEADING_STYLE = ParagraphStyle('Heading', fontName='Cambria-Bold', fontSize=12, spaceBefore=16, spaceAfter=6)
 BODY_STYLE = ParagraphStyle('Body', fontName='Calibri', fontSize=11, leading=13)
