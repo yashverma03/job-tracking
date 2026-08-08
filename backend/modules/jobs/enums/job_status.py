@@ -9,3 +9,4 @@ class JobStatus(models.TextChoices):
     NOT_CONSIDERING = 'Not considering', 'Not considering'
     OTHER = 'Other', 'Other'
     PENDING = 'Pending', 'Pending'
+    DUPLICATE = 'Duplicate', 'Duplicate'

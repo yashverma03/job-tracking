@@ -6,6 +6,7 @@ export const JOB_STATUS_OPTIONS = [
   'Not considering',
   'Other',
   'Pending',
+  'Duplicate',
 ] as const
 
 export const JOB_REFERRAL_STATUS_OPTIONS = [

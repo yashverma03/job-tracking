@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 
+import dayjs from 'dayjs';
 import { CheckCheck, CopyPlus, Pencil, RotateCw, Trash2 } from 'lucide-react';
 
 import { Dropdown } from '../../../common/components/Dropdown';
@@ -35,6 +36,8 @@ const COLUMNS: Column[] = [
 const CHECKBOX_COLUMN_WIDTH = 40;
 const ACTIONS_COLUMN_WIDTH = 160;
 const ID_COLUMN_WIDTH = 56;
+const DATE_COLUMN_WIDTH = 120;
+const DATE_FORMAT = 'DD MMM YYYY';
 const STATUS_COLUMN_WIDTH = 170;
 const REFERRAL_STATUS_COLUMN_WIDTH = 220;
 const RESUME_GENERATED_COLUMN_WIDTH = 130;
@@ -123,6 +126,12 @@ export function JobsTable({
               style={{ width: ID_COLUMN_WIDTH }}
             >
               ID
+            </th>
+            <th
+              className={`${styles.th} ${styles.cellWrap}`}
+              style={{ width: DATE_COLUMN_WIDTH }}
+            >
+              Date
             </th>
             <th
               className={`${styles.th} ${styles.cellTruncate}`}
@@ -220,6 +229,12 @@ export function JobsTable({
                 >
                   {job.id}
                 </button>
+              </td>
+              <td
+                className={styles.cellWrap}
+                style={{ width: DATE_COLUMN_WIDTH }}
+              >
+                {dayjs(job.createdAt).format(DATE_FORMAT)}
               </td>
               <td
                 className={styles.cellTruncate}
