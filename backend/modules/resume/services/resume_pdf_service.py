@@ -134,13 +134,12 @@ def render_resume_pdf(resume_input: ResumeInput, ai_output: ResumeAiOutput, outp
     story = _build_story(resume_input, ai_output, usable_width)
     doc.build(story)
 
-    # TODO: Uncomment the following lines to enforce a single-page limit on the generated resume PDF.
-    # page_count = len(PdfReader(io.BytesIO(buffer.getvalue())).pages)
-    # if page_count > 1:
-        # raise ApiError(
-        #     f'Generated resume would span {page_count} pages; content must fit on a single page.',
-        #     status_code=500,
-        # )
+    page_count = len(PdfReader(io.BytesIO(buffer.getvalue())).pages)
+    if page_count > 1:
+        raise ApiError(
+            f'Generated resume would span {page_count} pages; content must fit on a single page.',
+            status_code=500,
+        )
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'wb') as f:
