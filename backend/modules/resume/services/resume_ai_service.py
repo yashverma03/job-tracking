@@ -1,10 +1,17 @@
 import json
 import subprocess
+from datetime import datetime
 
 from common.exceptions.api_exceptions import ApiError
 from common.utils.env import get_env
 from modules.resume.types.resume_types import ResumeAiOutput, ResumeInput
-from modules.resume.utils.resume_constants import CLAUDE_CLI_BINARY, CLAUDE_CLI_TIMEOUT_SECONDS
+from modules.resume.utils.resume_constants import CLAUDE_CLI_BINARY, CLAUDE_CLI_TIMEOUT_SECONDS, CLAUDE_LOG_PATH
+
+
+def _log_claude_call(message: str) -> None:
+    timestamp = datetime.now().isoformat(sep=' ', timespec='seconds')
+    with open(CLAUDE_LOG_PATH, 'a', encoding='utf-8') as f:
+        f.write(f'[{timestamp}] {message}\n')
 
 
 def _build_json_schema(resume_input: ResumeInput) -> dict:
@@ -102,17 +109,21 @@ ones."""
 
 
 def _run_claude_cli(prompt: str, json_schema: dict) -> dict:
+    command = [
+        CLAUDE_CLI_BINARY,
+        '-p',
+        '--tools', '',
+        '--model', get_env('CLAUDE_MODEL'),
+        '--output-format', 'json',
+        '--json-schema', json.dumps(json_schema),
+        prompt,
+    ]
+    _log_claude_call(f'REQUEST command={command}')
+
+    start = datetime.now()
     try:
         completed = subprocess.run(
-            [
-                CLAUDE_CLI_BINARY,
-                '-p',
-                '--tools', '',
-                '--model', get_env('CLAUDE_MODEL'),
-                '--output-format', 'json',
-                '--json-schema', json.dumps(json_schema),
-                prompt,
-            ],
+            command,
             capture_output=True,
             text=True,
             timeout=CLAUDE_CLI_TIMEOUT_SECONDS,
@@ -120,14 +131,24 @@ def _run_claude_cli(prompt: str, json_schema: dict) -> dict:
         )
     except FileNotFoundError as exc:
         print('[resume_ai_service] Claude CLI not found on PATH.')
+        _log_claude_call('ERROR Claude CLI not found on PATH.')
         raise ApiError('Claude Code CLI not found on PATH.', status_code=500) from exc
     except subprocess.TimeoutExpired as exc:
         print(f'[resume_ai_service] Claude CLI timed out.\nstdout:\n{exc.stdout}\nstderr:\n{exc.stderr}')
+        _log_claude_call(
+            f'TIMEOUT after {(datetime.now() - start).total_seconds():.1f}s '
+            f'stdout={exc.stdout} stderr={exc.stderr}'
+        )
         raise ApiError('Claude Code CLI timed out.', status_code=500) from exc
 
+    elapsed = (datetime.now() - start).total_seconds()
     print(
         f'[resume_ai_service] Claude CLI exit_code={completed.returncode}\n'
         f'stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}'
+    )
+    _log_claude_call(
+        f'RESPONSE exit_code={completed.returncode} elapsed={elapsed:.1f}s '
+        f'stdout={completed.stdout} stderr={completed.stderr}'
     )
 
     if completed.returncode != 0:
