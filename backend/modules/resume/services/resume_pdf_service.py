@@ -29,7 +29,7 @@ pdfmetrics.registerFontFamily('TimesNewRoman', normal='TimesNewRoman', bold='Tim
 
 NAME_STYLE = ParagraphStyle('Name', fontName='TimesNewRoman-Bold', fontSize=16, alignment=1, spaceAfter=14)
 CONTACT_STYLE = ParagraphStyle('Contact', fontName='Calibri', fontSize=9, alignment=1, textColor=colors.HexColor('#333333'))
-HEADING_STYLE = ParagraphStyle('Heading', fontName='Cambria-Bold', fontSize=12, spaceBefore=16, spaceAfter=6)
+HEADING_STYLE = ParagraphStyle('Heading', fontName='Cambria-Bold', fontSize=12, spaceBefore=22, spaceAfter=6)
 BODY_STYLE = ParagraphStyle('Body', fontName='Calibri', fontSize=11, leading=13)
 BULLET_STYLE = ParagraphStyle(
     'Bullet', fontName='Calibri', fontSize=11, leading=13,
@@ -87,14 +87,16 @@ def _build_story(resume_input: ResumeInput, ai_output: ResumeAiOutput, usable_wi
     story.append(Paragraph(ai_output.summary, BODY_STYLE))
 
     story += _heading('EXPERIENCE')
-    for entry, bullets in zip(resume_input.experience, ai_output.experience_bullets):
+    experience_entries = list(zip(resume_input.experience, ai_output.experience_bullets))
+    for i, (entry, bullets) in enumerate(experience_entries):
         story.append(_two_column_row(
             f'{entry.title} | {entry.company}', entry.duration, ROLE_STYLE, DATE_STYLE, usable_width,
         ))
         story.append(Spacer(1, 3))
         for bullet in bullets:
             story.append(Paragraph(bullet, BULLET_STYLE, bulletText='●'))
-        story.append(Spacer(1, 8))
+        if i < len(experience_entries) - 1:
+            story.append(Spacer(1, 14))
 
     story += _heading('SKILLS')
     if ai_output.skills:
