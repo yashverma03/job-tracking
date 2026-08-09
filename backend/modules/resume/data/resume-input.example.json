@@ -1,7 +1,9 @@
 {
   "contact": {
     "name": "Jane Doe",
+    "title": "Software Engineer at Example Corp",
     "portfolio_url": "https://example.com",
+    "resume_url": "https://example.com/resume",
     "email": "jane.doe@example.com",
     "phone": "1234567890",
     "linkedin_url": "https://linkedin.com/in/janedoe",
@@ -10,6 +12,7 @@
     "leetcode_url": "https://leetcode.com/janedoe"
   },
   "base_summary": "Software engineer with experience building scalable backend services, internal tools, and distributed systems.",
+  "skills_summary": "I have strong hands-on experience building production-grade backend services using Java, Spring Boot, Python, Django, JavaScript/TypeScript, and Node.js, along with designing and optimizing databases such as PostgreSQL, MySQL, and MongoDB. I also work extensively with AWS, Docker, and Kubernetes to deploy and manage scalable services.",
   "experience": [
     {
       "title": "Software Engineer",

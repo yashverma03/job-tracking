@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     server: {
       port,
+      fs: {
+        allow: ['..'],
+      },
     },
     preview: {
       port,

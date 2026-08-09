@@ -1,14 +1,14 @@
 import type { Job } from '../types/job.types';
-import {
-  PROFILE_EMAIL,
-  PROFILE_EXPERIENCE_SUMMARY,
-  PROFILE_NAME,
-  PROFILE_PHONE,
-  PROFILE_PORTFOLIO_URL,
-  PROFILE_RESUME_URL,
-  PROFILE_SKILLS_SUMMARY,
-  PROFILE_TITLE,
-} from '../constants/profile.constants';
+import profileData from '../../../../../backend/modules/resume/data/resume-input.json';
+
+const PROFILE_NAME = profileData.contact.name;
+const PROFILE_TITLE = profileData.contact.title;
+const PROFILE_EMAIL = profileData.contact.email;
+const PROFILE_PHONE = profileData.contact.phone;
+const PROFILE_PORTFOLIO_URL = profileData.contact.portfolio_url;
+const PROFILE_RESUME_URL = profileData.contact.resume_url;
+const PROFILE_EXPERIENCE_SUMMARY = profileData.base_summary;
+const PROFILE_SKILLS_SUMMARY = profileData.skills_summary;
 
 function assertJobsHaveRequiredFields(jobs: Job[]): void {
   jobs.forEach((job) => {

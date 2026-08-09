@@ -7,7 +7,9 @@ class ResumeContact(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
     name: str
+    title: str
     portfolio_url: str
+    resume_url: str
     email: str
     phone: str
     linkedin_url: str
@@ -45,6 +47,7 @@ class ResumeInput(BaseModel):
 
     contact: ResumeContact
     base_summary: str
+    skills_summary: str
     experience: list[ResumeExperienceEntry]
     skills: list[str]
     certifications: list[ResumeCertification]
