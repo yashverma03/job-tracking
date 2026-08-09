@@ -95,8 +95,10 @@ around them.
 Return structured output with:
 - "summary": exactly 2 lines and no more, where 1 line = 100 characters including spaces — so the summary text \
 must be at most 200 characters total. Summarize the candidate in terms that directly match what the job \
-description is looking for. Before finalizing, count the actual character length and cut/tighten until it is at \
-or under 200 characters.
+description is looking for. The summary must always explicitly state the candidate has 2.5 years of work \
+experience (e.g. "... with 2.5 years of experience in ...") — this fact must appear every time, regardless of job \
+title or seniority implied by the job description. Before finalizing, count the actual character length and \
+cut/tighten until it is at or under 200 characters.
 - "experience_bullets": one array of bullets per experience entry above, in the same order and same count of \
 entries as the input ({num_jobs} entries). The candidate's base bullets for each job are a menu of everything \
 they *could* say, not a checklist you must cover — you must be aggressively selective and drop most of them, \
