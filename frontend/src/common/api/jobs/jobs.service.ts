@@ -1,6 +1,6 @@
-import axios from 'axios'
+import axios from 'axios';
 
-import { API_BASE_URL } from '../../configs/api.config'
+import { API_BASE_URL } from '../../configs/api.config';
 import type {
   GenerateResumesOutcome,
   GenerateResumesResponse,
@@ -10,57 +10,83 @@ import type {
   JobResponse,
   JobStatsResponse,
   JobUpdateRequest,
-} from '../../../modules/jobs/interfaces/job.interfaces'
+} from '../../../modules/jobs/interfaces/job.interfaces';
 
-const client = axios.create({ baseURL: API_BASE_URL })
+const client = axios.create({ baseURL: API_BASE_URL });
 
-export async function fetchJobs(params: JobListQueryParams): Promise<JobListResponse> {
-  const { data } = await client.get<JobListResponse>('/jobs', { params })
-  return data
+export async function fetchJobs(
+  params: JobListQueryParams,
+): Promise<JobListResponse> {
+  const { data } = await client.get<JobListResponse>('/jobs', { params });
+  return data;
 }
 
-export async function createJob(payload: JobCreateRequest): Promise<JobResponse> {
-  const { data } = await client.post<JobResponse>('/jobs', payload)
-  return data
+export async function createJob(
+  payload: JobCreateRequest,
+): Promise<JobResponse> {
+  const { data } = await client.post<JobResponse>('/jobs', payload);
+  return data;
 }
 
-export async function updateJob(id: number, payload: JobUpdateRequest): Promise<JobResponse> {
-  const { data } = await client.patch<JobResponse>(`/jobs/${id}`, payload)
-  return data
+export async function updateJob(
+  id: number,
+  payload: JobUpdateRequest,
+): Promise<JobResponse> {
+  const { data } = await client.patch<JobResponse>(`/jobs/${id}`, payload);
+  return data;
 }
 
 export async function deleteJob(id: number): Promise<void> {
-  await client.delete(`/jobs/${id}`)
+  await client.delete(`/jobs/${id}`);
 }
 
 export async function generateResumes(): Promise<GenerateResumesResponse> {
-  const { data } = await client.post<GenerateResumesResponse>('/resumes')
-  return data
+  const { data } = await client.post<GenerateResumesResponse>('/resumes');
+  return data;
 }
 
-export async function generateResumeForJob(jobId: number): Promise<GenerateResumesOutcome> {
-  const { data } = await client.post<GenerateResumesOutcome>(`/resumes/${jobId}`)
-  return data
+export async function generateResumeForJob(
+  jobId: number,
+): Promise<GenerateResumesOutcome> {
+  const { data } = await client.post<GenerateResumesOutcome>(
+    `/resumes/${jobId}`,
+  );
+  return data;
 }
 
-export async function fetchCompanyNames(search?: string, limit?: number): Promise<string[]> {
-  const { data } = await client.get<string[]>('/jobs/company-names', { params: { search, limit } })
-  return data
+export async function fetchCompanyNames(
+  search?: string,
+  limit?: number,
+): Promise<string[]> {
+  const { data } = await client.get<string[]>('/jobs/company-names', {
+    params: { search, limit },
+  });
+  return data;
 }
 
-export async function fetchJobTitles(search?: string, limit?: number): Promise<string[]> {
-  const { data } = await client.get<string[]>('/jobs/job-titles', { params: { search, limit } })
-  return data
+export async function fetchJobTitles(
+  search?: string,
+  limit?: number,
+): Promise<string[]> {
+  const { data } = await client.get<string[]>('/jobs/job-titles', {
+    params: { search, limit },
+  });
+  return data;
 }
 
 export async function fetchJobStats(): Promise<JobStatsResponse> {
-  const { data } = await client.get<JobStatsResponse>('/jobs/stats')
-  return data
+  const { data } = await client.get<JobStatsResponse>('/jobs/stats');
+  return data;
 }
 
-export async function fetchCompanyNameByUrl(url: string): Promise<string | null> {
-  const { data } = await client.get<{ companyName: string | null }>('/jobs/company-by-url', {
-    params: { url },
-  })
-  return data.companyName
+export async function fetchCompanyNameByUrl(
+  url: string,
+): Promise<string | null> {
+  const { data } = await client.get<{ companyName: string | null }>(
+    '/jobs/company-by-url',
+    {
+      params: { url },
+    },
+  );
+  return data.companyName;
 }

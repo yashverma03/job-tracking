@@ -1,21 +1,21 @@
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent } from 'react';
 
-import styles from './Dropdown.module.css'
+import styles from './Dropdown.module.css';
 
 export interface DropdownOption {
-  value: string
-  label: string
+  value: string;
+  label: string;
 }
 
 interface DropdownProps {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  options: DropdownOption[]
-  allowEmpty?: boolean
-  emptyLabel?: string
-  hideLabel?: boolean
-  highlighted?: boolean
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: DropdownOption[];
+  allowEmpty?: boolean;
+  emptyLabel?: string;
+  hideLabel?: boolean;
+  highlighted?: boolean;
 }
 
 export function Dropdown({
@@ -29,8 +29,8 @@ export function Dropdown({
   highlighted = false,
 }: DropdownProps) {
   const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    onChange(event.target.value)
-  }
+    onChange(event.target.value);
+  };
 
   return (
     <label className={styles.container}>
@@ -53,5 +53,5 @@ export function Dropdown({
         </span>
       </div>
     </label>
-  )
+  );
 }

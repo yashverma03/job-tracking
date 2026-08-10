@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @layer base {
   :root {
@@ -12,7 +12,7 @@
   button:not(:disabled),
   select,
   option,
-  [role="button"] {
+  [role='button'] {
     @apply cursor-pointer;
   }
 

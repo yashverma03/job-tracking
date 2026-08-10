@@ -1,113 +1,135 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react';
 
-import { DEFAULT_PAGE_SIZE } from '../../../common/constants/pagination.constants'
-import { JobsFilters } from './JobsFilters'
-import { JobsTable } from './JobsTable'
-import { BulkActionsBar } from './BulkActionsBar'
-import { JobFormModal, type JobCloneSource } from './JobFormModal'
-import { AddMultipleJobsModal } from './AddMultipleJobsModal'
-import { useJobMutations } from '../hooks/useJobMutations'
-import { useJobsQuery } from '../hooks/useJobsQuery'
-import { useJobStatsQuery } from '../hooks/useJobStatsQuery'
-import type { JobListQueryParams, JobUpdateRequest } from '../interfaces/job.interfaces'
-import type { Job } from '../types/job.types'
-import styles from './JobsPage.module.css'
+import { DEFAULT_PAGE_SIZE } from '../../../common/constants/pagination.constants';
+import { JobsFilters } from './JobsFilters';
+import { JobsTable } from './JobsTable';
+import { BulkActionsBar } from './BulkActionsBar';
+import { JobFormModal, type JobCloneSource } from './JobFormModal';
+import { AddMultipleJobsModal } from './AddMultipleJobsModal';
+import { useJobMutations } from '../hooks/useJobMutations';
+import { useJobsQuery } from '../hooks/useJobsQuery';
+import { useJobStatsQuery } from '../hooks/useJobStatsQuery';
+import type {
+  JobListQueryParams,
+  JobUpdateRequest,
+} from '../interfaces/job.interfaces';
+import type { Job } from '../types/job.types';
+import styles from './JobsPage.module.css';
 
-const INITIAL_FILTERS: JobListQueryParams = { page: 1, limit: DEFAULT_PAGE_SIZE }
+const INITIAL_FILTERS: JobListQueryParams = {
+  page: 1,
+  limit: DEFAULT_PAGE_SIZE,
+};
 
 export function JobsPage() {
-  const [filters, setFilters] = useState<JobListQueryParams>(INITIAL_FILTERS)
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
-  const [editingJob, setEditingJob] = useState<Job | null>(null)
-  const [cloneSource, setCloneSource] = useState<JobCloneSource | null>(null)
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [isAddMultipleOpen, setIsAddMultipleOpen] = useState(false)
+  const [filters, setFilters] = useState<JobListQueryParams>(INITIAL_FILTERS);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [cloneSource, setCloneSource] = useState<JobCloneSource | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isAddMultipleOpen, setIsAddMultipleOpen] = useState(false);
 
-  const { data, isLoading, isError } = useJobsQuery(filters)
-  const { data: stats } = useJobStatsQuery()
-  const { createMutation, updateMutation, deleteMutation, generateResumesMutation, buildResumeMutation } =
-    useJobMutations()
+  const { data, isLoading, isError } = useJobsQuery(filters);
+  const { data: stats } = useJobStatsQuery();
+  const {
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    generateResumesMutation,
+    buildResumeMutation,
+  } = useJobMutations();
 
-  const jobs = useMemo(() => data?.items ?? [], [data])
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1
+  const jobs = useMemo(() => data?.items ?? [], [data]);
+  const totalPages = data
+    ? Math.max(1, Math.ceil(data.total / data.pageSize))
+    : 1;
 
   const selectedJobs = useMemo(
     () => jobs.filter((job) => selectedIds.has(job.id)),
     [jobs, selectedIds],
-  )
+  );
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const openAddForm = () => {
-    setEditingJob(null)
-    setCloneSource(null)
-    setIsFormOpen(true)
-  }
+    setEditingJob(null);
+    setCloneSource(null);
+    setIsFormOpen(true);
+  };
 
   const openEditForm = (job: Job) => {
-    setEditingJob(job)
-    setCloneSource(null)
-    setIsFormOpen(true)
-  }
+    setEditingJob(job);
+    setCloneSource(null);
+    setIsFormOpen(true);
+  };
 
   const openCloneForm = (job: Job) => {
-    setEditingJob(null)
+    setEditingJob(null);
     setCloneSource({
       companyName: job.companyName,
       title: job.title,
       status: job.status,
       referralStatus: job.referralStatus,
-    })
-    setIsFormOpen(true)
-  }
+    });
+    setIsFormOpen(true);
+  };
 
   const closeForm = () => {
-    setIsFormOpen(false)
-    setCloneSource(null)
-  }
+    setIsFormOpen(false);
+    setCloneSource(null);
+  };
 
   const handleDelete = (job: Job) => {
-    deleteMutation.mutate(job.id, { onSuccess: closeForm })
-  }
+    deleteMutation.mutate(job.id, { onSuccess: closeForm });
+  };
 
   const handleGenerateResume = (job: Job) => {
     buildResumeMutation.mutate(job.id, {
       onSuccess: (outcome) => {
         if (!outcome.error) {
           setEditingJob((prev) =>
-            prev && prev.id === job.id ? { ...prev, isCustomResumeGenerated: true } : prev,
-          )
+            prev && prev.id === job.id
+              ? { ...prev, isCustomResumeGenerated: true }
+              : prev,
+          );
         }
       },
-    })
-  }
+    });
+  };
 
   const handleFormSubmit = (payload: JobUpdateRequest) => {
     if (editingJob) {
-      updateMutation.mutate({ id: editingJob.id, payload }, { onSuccess: closeForm })
+      updateMutation.mutate(
+        { id: editingJob.id, payload },
+        { onSuccess: closeForm },
+      );
     } else {
-      createMutation.mutate(payload, { onSuccess: closeForm })
+      createMutation.mutate(payload, { onSuccess: closeForm });
     }
-  }
+  };
 
   const goToPage = (page: number) => {
-    setFilters((prev) => ({ ...prev, page }))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+    setFilters((prev) => ({ ...prev, page }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>Job Tracker</h1>
         <div className={styles.headerButtons}>
-          <button type="button" className={styles.addButton} onClick={openAddForm}>
+          <button
+            type="button"
+            className={styles.addButton}
+            onClick={openAddForm}
+          >
             <span className={styles.addButtonIcon} aria-hidden="true">
               +
             </span>
@@ -130,7 +152,9 @@ export function JobsPage() {
           disabled={generateResumesMutation.isPending}
           onClick={() => generateResumesMutation.mutate()}
         >
-          {generateResumesMutation.isPending ? 'Generating...' : 'Generate Custom Resumes'}
+          {generateResumesMutation.isPending
+            ? 'Generating...'
+            : 'Generate Custom Resumes'}
         </button>
       </div>
 
@@ -139,7 +163,9 @@ export function JobsPage() {
       <div className={styles.statsBarSlot}>
         {selectedJobs.length < 2 && (
           <div className={styles.stats}>
-            <span className={styles.statPill}>To Apply: {stats?.toApplyCount ?? '—'}</span>
+            <span className={styles.statPill}>
+              To Apply: {stats?.toApplyCount ?? '—'}
+            </span>
             <span className={styles.statPill}>
               Referral required: {stats?.referralRequiredCount ?? '—'}
             </span>
@@ -204,5 +230,5 @@ export function JobsPage() {
         <AddMultipleJobsModal onClose={() => setIsAddMultipleOpen(false)} />
       )}
     </div>
-  )
+  );
 }

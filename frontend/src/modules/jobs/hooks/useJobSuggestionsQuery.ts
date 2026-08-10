@@ -1,8 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query';
 
-import { fetchCompanyNames, fetchJobTitles } from '../../../common/api/jobs/jobs.service'
+import {
+  fetchCompanyNames,
+  fetchJobTitles,
+} from '../../../common/api/jobs/jobs.service';
 
-export const SUGGESTIONS_LIMIT = 10
+export const SUGGESTIONS_LIMIT = 10;
 
 export function useCompanyNamesQuery(search: string) {
   return useQuery({
@@ -10,7 +13,7 @@ export function useCompanyNamesQuery(search: string) {
     queryFn: () => fetchCompanyNames(search, SUGGESTIONS_LIMIT),
     staleTime: 60_000,
     placeholderData: (previousData) => previousData,
-  })
+  });
 }
 
 export function useJobTitlesQuery(search: string) {
@@ -19,5 +22,5 @@ export function useJobTitlesQuery(search: string) {
     queryFn: () => fetchJobTitles(search, SUGGESTIONS_LIMIT),
     staleTime: 60_000,
     placeholderData: (previousData) => previousData,
-  })
+  });
 }

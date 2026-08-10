@@ -1,7 +1,7 @@
-import { JobsPage } from './modules/jobs/components/JobsPage'
+import { JobsPage } from './modules/jobs/components/JobsPage';
 
 function App() {
-  return <JobsPage />
+  return <JobsPage />;
 }
 
-export default App
+export default App;

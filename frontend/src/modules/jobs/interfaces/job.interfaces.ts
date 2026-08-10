@@ -1,65 +1,65 @@
-import type { PaginatedResponse } from '../../../common/types/api.types'
-import type { Job, JobReferralStatus, JobStatus } from '../types/job.types'
+import type { PaginatedResponse } from '../../../common/types/api.types';
+import type { Job, JobReferralStatus, JobStatus } from '../types/job.types';
 
-export type JobResponse = Job
+export type JobResponse = Job;
 
-export type JobListResponse = PaginatedResponse<JobResponse>
+export type JobListResponse = PaginatedResponse<JobResponse>;
 
 export interface JobCreateRequest {
-  url?: string
-  secondaryUrl?: string
-  companyName?: string
-  title?: string
-  officialId?: string
-  description?: string
-  location?: string
-  notes?: string
-  status?: JobStatus
-  referralStatus?: JobReferralStatus
-  score?: number | null
-  analysis?: string | null
+  url?: string;
+  secondaryUrl?: string;
+  companyName?: string;
+  title?: string;
+  officialId?: string;
+  description?: string;
+  location?: string;
+  notes?: string;
+  status?: JobStatus;
+  referralStatus?: JobReferralStatus;
+  score?: number | null;
+  analysis?: string | null;
 }
 
-export type JobUpdateRequest = Partial<JobCreateRequest>
+export type JobUpdateRequest = Partial<JobCreateRequest>;
 
 export interface JobListQueryParams {
-  status?: JobStatus
-  referralStatus?: JobReferralStatus
-  dateFrom?: string
-  dateTo?: string
-  search?: string
-  page: number
-  limit: number
+  status?: JobStatus;
+  referralStatus?: JobReferralStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+  page: number;
+  limit: number;
 }
 
 export interface JobStatsResponse {
-  toApplyCount: number
-  referralRequiredCount: number
+  toApplyCount: number;
+  referralRequiredCount: number;
 }
 
 export interface GenerateResumesOutcome {
-  jobId: number
-  filePath?: string | null
-  error?: string | null
+  jobId: number;
+  filePath?: string | null;
+  error?: string | null;
 }
 
 export interface GenerateResumesResponse {
-  processed: number
-  generated: GenerateResumesOutcome[]
-  failed: GenerateResumesOutcome[]
+  processed: number;
+  generated: GenerateResumesOutcome[];
+  failed: GenerateResumesOutcome[];
 }
 
 export interface JobFormValues {
-  url: string
-  secondaryUrl: string
-  companyName: string
-  title: string
-  officialId: string
-  description: string
-  location: string
-  notes: string
-  status: JobStatus
-  referralStatus: JobReferralStatus
-  score: string
-  analysis: string
+  url: string;
+  secondaryUrl: string;
+  companyName: string;
+  title: string;
+  officialId: string;
+  description: string;
+  location: string;
+  notes: string;
+  status: JobStatus;
+  referralStatus: JobReferralStatus;
+  score: string;
+  analysis: string;
 }

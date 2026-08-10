@@ -75,12 +75,17 @@ export function JobsTable({
 
     setTableWidth(tableEl.scrollWidth);
 
-    const resizeObserver = new ResizeObserver(() => setTableWidth(tableEl.scrollWidth));
+    const resizeObserver = new ResizeObserver(() =>
+      setTableWidth(tableEl.scrollWidth),
+    );
     resizeObserver.observe(tableEl);
     return () => resizeObserver.disconnect();
   }, [jobs]);
 
-  const syncScroll = (source: HTMLDivElement, target: HTMLDivElement | null) => {
+  const syncScroll = (
+    source: HTMLDivElement,
+    target: HTMLDivElement | null,
+  ) => {
     if (isSyncingScroll.current || !target) return;
     isSyncingScroll.current = true;
     target.scrollLeft = source.scrollLeft;
@@ -106,284 +111,302 @@ export function JobsTable({
       <div
         className={styles.tableWrapper}
         ref={tableScrollRef}
-        onScroll={(event) => syncScroll(event.currentTarget, bottomScrollRef.current)}
+        onScroll={(event) =>
+          syncScroll(event.currentTarget, bottomScrollRef.current)
+        }
       >
         <table className={styles.table} ref={tableRef}>
-        <thead className={styles.thead}>
-          <tr>
-            <th
-              className={`${styles.th} ${styles.checkboxCell}`}
-              style={{ width: CHECKBOX_COLUMN_WIDTH }}
-            />
-            <th
-              className={`${styles.th} ${styles.actionsCell}`}
-              style={{ width: ACTIONS_COLUMN_WIDTH }}
-            >
-              Actions
-            </th>
-            <th
-              className={`${styles.th} ${styles.cellWrap}`}
-              style={{ width: ID_COLUMN_WIDTH }}
-            >
-              ID
-            </th>
-            <th
-              className={`${styles.th} ${styles.cellWrap}`}
-              style={{ width: DATE_COLUMN_WIDTH }}
-            >
-              Date
-            </th>
-            <th
-              className={`${styles.th} ${styles.cellTruncate}`}
-              style={{ width: STATUS_COLUMN_WIDTH }}
-            >
-              Job Status
-            </th>
-            <th
-              className={`${styles.th} ${styles.cellTruncate}`}
-              style={{ width: REFERRAL_STATUS_COLUMN_WIDTH }}
-            >
-              Referral status
-            </th>
-            {COLUMNS.map((column) => (
-              <Fragment key={column.key}>
-                <th
-                  className={`${styles.th} ${column.truncate ? styles.cellTruncate : styles.cellWrap}`}
-                  style={{ width: column.width }}
-                >
-                  {column.label}
-                </th>
-                {column.key === 'description' && (
-                  <th
-                    className={`${styles.th} ${styles.cellTruncate}`}
-                    style={{ width: RESUME_GENERATED_COLUMN_WIDTH }}
-                  >
-                    Resume Generated
-                  </th>
-                )}
-              </Fragment>
-            ))}
-            <th
-              className={`${styles.th} ${styles.messagesCell}`}
-              style={{ width: MESSAGES_COLUMN_WIDTH }}
-            >
-              Messages
-            </th>
-          </tr>
-        </thead>
-        <tbody className={styles.tbody}>
-          {jobs.map((job) => (
-            <tr key={job.id} className={styles.row}>
-              <td
-                className={styles.checkboxCell}
+          <thead className={styles.thead}>
+            <tr>
+              <th
+                className={`${styles.th} ${styles.checkboxCell}`}
                 style={{ width: CHECKBOX_COLUMN_WIDTH }}
-              >
-                <input
-                  type="checkbox"
-                  className={styles.checkbox}
-                  checked={selectedIds.has(job.id)}
-                  onChange={() => onToggleSelect(job.id)}
-                />
-              </td>
-              <td
-                className={styles.actionsCell}
+              />
+              <th
+                className={`${styles.th} ${styles.actionsCell}`}
                 style={{ width: ACTIONS_COLUMN_WIDTH }}
               >
-                <div className={styles.actionsRow}>
-                  <button
-                    type="button"
-                    className={styles.editButton}
-                    onClick={() => onEdit(job)}
-                    aria-label="Edit job"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.cloneButton}
-                    onClick={() => onClone(job)}
-                    aria-label="Clone job"
-                    title="Clone job"
-                  >
-                    <CopyPlus size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.deleteButton}
-                    onClick={() => onDelete(job)}
-                    aria-label="Delete job"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </td>
-              <td
-                className={styles.cellWrap}
+                Actions
+              </th>
+              <th
+                className={`${styles.th} ${styles.cellWrap}`}
                 style={{ width: ID_COLUMN_WIDTH }}
               >
-                <button
-                  type="button"
-                  className={styles.copyButton}
-                  onClick={() => copy(String(job.id))}
-                  title={String(job.id)}
-                >
-                  {job.id}
-                </button>
-              </td>
-              <td
-                className={styles.cellWrap}
+                ID
+              </th>
+              <th
+                className={`${styles.th} ${styles.cellWrap}`}
                 style={{ width: DATE_COLUMN_WIDTH }}
               >
-                {dayjs(job.createdAt).format(DATE_FORMAT)}
-              </td>
-              <td
-                className={styles.cellTruncate}
+                Date
+              </th>
+              <th
+                className={`${styles.th} ${styles.cellTruncate}`}
                 style={{ width: STATUS_COLUMN_WIDTH }}
               >
-                <div className={styles.statusCellInner}>
-                  <Dropdown
-                    label="Status"
-                    hideLabel
-                    value={job.status}
-                    onChange={(value) => handleStatusChange(job, value)}
-                    options={STATUS_DROPDOWN_OPTIONS}
-                    highlighted={job.status === 'To Apply'}
-                  />
-                  {job.status === 'To Apply' ? (
-                    <button
-                      type="button"
-                      className={styles.quickActionButton}
-                      onClick={() => handleStatusChange(job, 'Applied')}
-                      title="Mark as Applied"
-                      aria-label="Mark as Applied"
-                    >
-                      <CheckCheck size={14} />
-                    </button>
-                  ) : null}
-                </div>
-              </td>
-              <td
-                className={styles.cellTruncate}
+                Job Status
+              </th>
+              <th
+                className={`${styles.th} ${styles.cellTruncate}`}
                 style={{ width: REFERRAL_STATUS_COLUMN_WIDTH }}
               >
-                <div className={styles.statusCellInner}>
-                  <Dropdown
-                    label="Referral status"
-                    hideLabel
-                    value={job.referralStatus}
-                    onChange={(value) => handleReferralStatusChange(job, value)}
-                    options={REFERRAL_STATUS_DROPDOWN_OPTIONS}
-                    highlighted={job.referralStatus === 'Referral required'}
-                  />
-                  {job.referralStatus === 'Referral required' ? (
-                    <button
-                      type="button"
-                      className={styles.quickActionButton}
-                      onClick={() =>
-                        handleReferralStatusChange(job, 'Referral asked')
-                      }
-                      title="Mark as Referral asked"
-                      aria-label="Mark as Referral asked"
+                Referral status
+              </th>
+              {COLUMNS.map((column) => (
+                <Fragment key={column.key}>
+                  <th
+                    className={`${styles.th} ${column.truncate ? styles.cellTruncate : styles.cellWrap}`}
+                    style={{ width: column.width }}
+                  >
+                    {column.label}
+                  </th>
+                  {column.key === 'description' && (
+                    <th
+                      className={`${styles.th} ${styles.cellTruncate}`}
+                      style={{ width: RESUME_GENERATED_COLUMN_WIDTH }}
                     >
-                      <CheckCheck size={14} />
-                    </button>
-                  ) : null}
-                </div>
-              </td>
-              {COLUMNS.map((column) => {
-                if (column.key === 'url' || column.key === 'secondaryUrl') {
-                  const linkValue = job[column.key] as string | null;
-                  return (
-                    <td
-                      key={column.key}
-                      className={styles.cellTruncate}
-                      style={{ width: column.width }}
-                    >
-                      {linkValue ? (
-                        <button
-                          type="button"
-                          className={styles.urlButton}
-                          onClick={(event) => {
-                            if (event.ctrlKey || event.metaKey) {
-                              window.open(linkValue, '_blank', 'noopener,noreferrer');
-                              return;
-                            }
-                            copy(linkValue);
-                          }}
-                          title={linkValue}
-                        >
-                          {linkValue}
-                        </button>
-                      ) : null}
-                    </td>
-                  );
-                }
-                const value = job[column.key];
-                const hasValue = value !== null && value !== undefined;
-                return (
-                  <Fragment key={column.key}>
-                    <td
-                      className={
-                        column.truncate ? styles.cellTruncate : styles.cellWrap
-                      }
-                      style={{ width: column.width }}
-                    >
-                      {hasValue ? (
-                        <button
-                          type="button"
-                          className={styles.copyButton}
-                          onClick={() => copy(String(value))}
-                          title={String(value)}
-                        >
-                          {value}
-                        </button>
-                      ) : null}
-                    </td>
-                    {column.key === 'description' && (
-                      <td
-                        className={styles.cellTruncate}
-                        style={{ width: RESUME_GENERATED_COLUMN_WIDTH }}
-                      >
-                        <div className={styles.resumeGeneratedCellInner}>
-                          <span>{job.isCustomResumeGenerated ? 'Yes' : 'No'}</span>
-                          <button
-                            type="button"
-                            className={styles.reloadButton}
-                            onClick={() => buildResumeMutation.mutate(job.id)}
-                            disabled={buildResumeMutation.isPending && buildResumeMutation.variables === job.id}
-                            title="Rebuild resume"
-                            aria-label="Rebuild resume"
-                          >
-                            <RotateCw
-                              size={13}
-                              className={
-                                buildResumeMutation.isPending && buildResumeMutation.variables === job.id
-                                  ? styles.spinning
-                                  : undefined
-                              }
-                            />
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </Fragment>
-                );
-              })}
-              <td
-                className={styles.messagesCell}
+                      Resume Generated
+                    </th>
+                  )}
+                </Fragment>
+              ))}
+              <th
+                className={`${styles.th} ${styles.messagesCell}`}
                 style={{ width: MESSAGES_COLUMN_WIDTH }}
               >
-                <MessageButtons jobs={[job]} />
-              </td>
+                Messages
+              </th>
             </tr>
-          ))}
-        </tbody>
+          </thead>
+          <tbody className={styles.tbody}>
+            {jobs.map((job) => (
+              <tr key={job.id} className={styles.row}>
+                <td
+                  className={styles.checkboxCell}
+                  style={{ width: CHECKBOX_COLUMN_WIDTH }}
+                >
+                  <input
+                    type="checkbox"
+                    className={styles.checkbox}
+                    checked={selectedIds.has(job.id)}
+                    onChange={() => onToggleSelect(job.id)}
+                  />
+                </td>
+                <td
+                  className={styles.actionsCell}
+                  style={{ width: ACTIONS_COLUMN_WIDTH }}
+                >
+                  <div className={styles.actionsRow}>
+                    <button
+                      type="button"
+                      className={styles.editButton}
+                      onClick={() => onEdit(job)}
+                      aria-label="Edit job"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.cloneButton}
+                      onClick={() => onClone(job)}
+                      aria-label="Clone job"
+                      title="Clone job"
+                    >
+                      <CopyPlus size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.deleteButton}
+                      onClick={() => onDelete(job)}
+                      aria-label="Delete job"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </td>
+                <td
+                  className={styles.cellWrap}
+                  style={{ width: ID_COLUMN_WIDTH }}
+                >
+                  <button
+                    type="button"
+                    className={styles.copyButton}
+                    onClick={() => copy(String(job.id))}
+                    title={String(job.id)}
+                  >
+                    {job.id}
+                  </button>
+                </td>
+                <td
+                  className={styles.cellWrap}
+                  style={{ width: DATE_COLUMN_WIDTH }}
+                >
+                  {dayjs(job.createdAt).format(DATE_FORMAT)}
+                </td>
+                <td
+                  className={styles.cellTruncate}
+                  style={{ width: STATUS_COLUMN_WIDTH }}
+                >
+                  <div className={styles.statusCellInner}>
+                    <Dropdown
+                      label="Status"
+                      hideLabel
+                      value={job.status}
+                      onChange={(value) => handleStatusChange(job, value)}
+                      options={STATUS_DROPDOWN_OPTIONS}
+                      highlighted={job.status === 'To Apply'}
+                    />
+                    {job.status === 'To Apply' ? (
+                      <button
+                        type="button"
+                        className={styles.quickActionButton}
+                        onClick={() => handleStatusChange(job, 'Applied')}
+                        title="Mark as Applied"
+                        aria-label="Mark as Applied"
+                      >
+                        <CheckCheck size={14} />
+                      </button>
+                    ) : null}
+                  </div>
+                </td>
+                <td
+                  className={styles.cellTruncate}
+                  style={{ width: REFERRAL_STATUS_COLUMN_WIDTH }}
+                >
+                  <div className={styles.statusCellInner}>
+                    <Dropdown
+                      label="Referral status"
+                      hideLabel
+                      value={job.referralStatus}
+                      onChange={(value) =>
+                        handleReferralStatusChange(job, value)
+                      }
+                      options={REFERRAL_STATUS_DROPDOWN_OPTIONS}
+                      highlighted={job.referralStatus === 'Referral required'}
+                    />
+                    {job.referralStatus === 'Referral required' ? (
+                      <button
+                        type="button"
+                        className={styles.quickActionButton}
+                        onClick={() =>
+                          handleReferralStatusChange(job, 'Referral asked')
+                        }
+                        title="Mark as Referral asked"
+                        aria-label="Mark as Referral asked"
+                      >
+                        <CheckCheck size={14} />
+                      </button>
+                    ) : null}
+                  </div>
+                </td>
+                {COLUMNS.map((column) => {
+                  if (column.key === 'url' || column.key === 'secondaryUrl') {
+                    const linkValue = job[column.key] as string | null;
+                    return (
+                      <td
+                        key={column.key}
+                        className={styles.cellTruncate}
+                        style={{ width: column.width }}
+                      >
+                        {linkValue ? (
+                          <button
+                            type="button"
+                            className={styles.urlButton}
+                            onClick={(event) => {
+                              if (event.ctrlKey || event.metaKey) {
+                                window.open(
+                                  linkValue,
+                                  '_blank',
+                                  'noopener,noreferrer',
+                                );
+                                return;
+                              }
+                              copy(linkValue);
+                            }}
+                            title={linkValue}
+                          >
+                            {linkValue}
+                          </button>
+                        ) : null}
+                      </td>
+                    );
+                  }
+                  const value = job[column.key];
+                  const hasValue = value !== null && value !== undefined;
+                  return (
+                    <Fragment key={column.key}>
+                      <td
+                        className={
+                          column.truncate
+                            ? styles.cellTruncate
+                            : styles.cellWrap
+                        }
+                        style={{ width: column.width }}
+                      >
+                        {hasValue ? (
+                          <button
+                            type="button"
+                            className={styles.copyButton}
+                            onClick={() => copy(String(value))}
+                            title={String(value)}
+                          >
+                            {value}
+                          </button>
+                        ) : null}
+                      </td>
+                      {column.key === 'description' && (
+                        <td
+                          className={styles.cellTruncate}
+                          style={{ width: RESUME_GENERATED_COLUMN_WIDTH }}
+                        >
+                          <div className={styles.resumeGeneratedCellInner}>
+                            <span>
+                              {job.isCustomResumeGenerated ? 'Yes' : 'No'}
+                            </span>
+                            <button
+                              type="button"
+                              className={styles.reloadButton}
+                              onClick={() => buildResumeMutation.mutate(job.id)}
+                              disabled={
+                                buildResumeMutation.isPending &&
+                                buildResumeMutation.variables === job.id
+                              }
+                              title="Rebuild resume"
+                              aria-label="Rebuild resume"
+                            >
+                              <RotateCw
+                                size={13}
+                                className={
+                                  buildResumeMutation.isPending &&
+                                  buildResumeMutation.variables === job.id
+                                    ? styles.spinning
+                                    : undefined
+                                }
+                              />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </Fragment>
+                  );
+                })}
+                <td
+                  className={styles.messagesCell}
+                  style={{ width: MESSAGES_COLUMN_WIDTH }}
+                >
+                  <MessageButtons jobs={[job]} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       </div>
       <div
         className={styles.stickyScrollbar}
         ref={bottomScrollRef}
-        onScroll={(event) => syncScroll(event.currentTarget, tableScrollRef.current)}
+        onScroll={(event) =>
+          syncScroll(event.currentTarget, tableScrollRef.current)
+        }
       >
         <div className={styles.scrollSpacer} style={{ width: tableWidth }} />
       </div>
