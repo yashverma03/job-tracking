@@ -278,7 +278,7 @@ export function JobFormModal({
               )}
 
               {isEdit && (
-                <>
+                <div className={styles.row}>
                   <label className={styles.label}>
                     ID
                     <input className={styles.input} value={job.id} disabled />
@@ -292,7 +292,7 @@ export function JobFormModal({
                       disabled
                     />
                   </label>
-                </>
+                </div>
               )}
 
               <label className={styles.label}>
@@ -324,44 +324,48 @@ export function JobFormModal({
                 )}
               </label>
 
-              <CompanyNameField
-                value={values.companyName}
-                onChange={(value) => setFieldValue('companyName', value)}
-              />
+              <div className={styles.row}>
+                <CompanyNameField
+                  value={values.companyName}
+                  onChange={(value) => setFieldValue('companyName', value)}
+                />
 
-              <JobTitleField
-                value={values.title}
-                onChange={(value) => setFieldValue('title', value)}
-              />
+                <JobTitleField
+                  value={values.title}
+                  onChange={(value) => setFieldValue('title', value)}
+                />
+              </div>
 
-              <label className={styles.label}>
-                Job ID
-                <Field name="officialId" className={styles.input} />
-              </label>
+              <div className={styles.row}>
+                <label className={styles.label}>
+                  Job ID
+                  <Field name="officialId" className={styles.input} />
+                </label>
 
-              <label className={styles.label}>
-                Secondary URL
-                <Field name="secondaryUrl">
-                  {({ field, form }: FieldProps<string>) => (
-                    <input
-                      {...field}
-                      className={styles.input}
-                      onBlur={(event: FocusEvent<HTMLInputElement>) => {
-                        field.onBlur(event);
-                        form.setFieldValue(
-                          'secondaryUrl',
-                          cleanJobUrl(event.target.value),
-                        );
-                      }}
-                    />
+                <label className={styles.label}>
+                  Secondary URL
+                  <Field name="secondaryUrl">
+                    {({ field, form }: FieldProps<string>) => (
+                      <input
+                        {...field}
+                        className={styles.input}
+                        onBlur={(event: FocusEvent<HTMLInputElement>) => {
+                          field.onBlur(event);
+                          form.setFieldValue(
+                            'secondaryUrl',
+                            cleanJobUrl(event.target.value),
+                          );
+                        }}
+                      />
+                    )}
+                  </Field>
+                  {touched.secondaryUrl && errors.secondaryUrl && (
+                    <span className={styles.errorText}>
+                      {errors.secondaryUrl}
+                    </span>
                   )}
-                </Field>
-                {touched.secondaryUrl && errors.secondaryUrl && (
-                  <span className={styles.errorText}>
-                    {errors.secondaryUrl}
-                  </span>
-                )}
-              </label>
+                </label>
+              </div>
 
               <label className={styles.label}>
                 Job description
@@ -369,16 +373,28 @@ export function JobFormModal({
                   as="textarea"
                   name="description"
                   className={styles.input}
-                  rows={4}
+                  rows={2}
                 />
               </label>
 
               {isEdit && (
                 <>
-                  <label className={styles.label}>
-                    Location
-                    <Field name="location" className={styles.input} />
-                  </label>
+                  <div className={styles.row}>
+                    <label className={styles.label}>
+                      Location
+                      <Field name="location" className={styles.input} />
+                    </label>
+
+                    <label className={styles.label}>
+                      Score
+                      <Field name="score" className={styles.input} />
+                      {touched.score && errors.score && (
+                        <span className={styles.errorText}>
+                          {errors.score}
+                        </span>
+                      )}
+                    </label>
+                  </div>
 
                   <label className={styles.label}>
                     Notes
@@ -386,54 +402,48 @@ export function JobFormModal({
                       as="textarea"
                       name="notes"
                       className={styles.input}
-                      rows={3}
+                      rows={1}
                     />
                   </label>
 
-                  <label className={styles.label}>
-                    Score
-                    <Field name="score" className={styles.input} />
-                    {touched.score && errors.score && (
-                      <span className={styles.errorText}>{errors.score}</span>
-                    )}
-                  </label>
+                  <div className={styles.row}>
+                    <label className={styles.label}>
+                      Analysis
+                      <Field
+                        as="textarea"
+                        name="analysis"
+                        className={styles.input}
+                        rows={1}
+                      />
+                    </label>
 
-                  <label className={styles.label}>
-                    Analysis
-                    <Field
-                      as="textarea"
-                      name="analysis"
-                      className={styles.input}
-                      rows={4}
-                    />
-                  </label>
+                    <label className={styles.label}>
+                      Resume Generated
+                      <input
+                        className={styles.input}
+                        value={job.isCustomResumeGenerated ? 'Yes' : 'No'}
+                        disabled
+                      />
+                    </label>
+                  </div>
                 </>
               )}
 
-              <Dropdown
-                label="Job status"
-                value={values.status}
-                onChange={(value) => setFieldValue('status', value)}
-                options={STATUS_DROPDOWN_OPTIONS}
-              />
+              <div className={styles.row}>
+                <Dropdown
+                  label="Job status"
+                  value={values.status}
+                  onChange={(value) => setFieldValue('status', value)}
+                  options={STATUS_DROPDOWN_OPTIONS}
+                />
 
-              <Dropdown
-                label="Referral status"
-                value={values.referralStatus}
-                onChange={(value) => setFieldValue('referralStatus', value)}
-                options={REFERRAL_STATUS_DROPDOWN_OPTIONS}
-              />
-
-              {isEdit && (
-                <label className={styles.label}>
-                  Resume Generated
-                  <input
-                    className={styles.input}
-                    value={job.isCustomResumeGenerated ? 'Yes' : 'No'}
-                    disabled
-                  />
-                </label>
-              )}
+                <Dropdown
+                  label="Referral status"
+                  value={values.referralStatus}
+                  onChange={(value) => setFieldValue('referralStatus', value)}
+                  options={REFERRAL_STATUS_DROPDOWN_OPTIONS}
+                />
+              </div>
 
               <div className={styles.actions}>
                 {isEdit && (
