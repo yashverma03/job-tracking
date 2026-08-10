@@ -5,6 +5,7 @@ import { JobsFilters } from './JobsFilters'
 import { JobsTable } from './JobsTable'
 import { BulkActionsBar } from './BulkActionsBar'
 import { JobFormModal, type JobCloneSource } from './JobFormModal'
+import { AddMultipleJobsModal } from './AddMultipleJobsModal'
 import { useJobMutations } from '../hooks/useJobMutations'
 import { useJobsQuery } from '../hooks/useJobsQuery'
 import { useJobStatsQuery } from '../hooks/useJobStatsQuery'
@@ -20,6 +21,7 @@ export function JobsPage() {
   const [editingJob, setEditingJob] = useState<Job | null>(null)
   const [cloneSource, setCloneSource] = useState<JobCloneSource | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isAddMultipleOpen, setIsAddMultipleOpen] = useState(false)
 
   const { data, isLoading, isError } = useJobsQuery(filters)
   const { data: stats } = useJobStatsQuery()
@@ -104,12 +106,21 @@ export function JobsPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>Job Tracker</h1>
-        <button type="button" className={styles.addButton} onClick={openAddForm}>
-          <span className={styles.addButtonIcon} aria-hidden="true">
-            +
-          </span>
-          Add Job
-        </button>
+        <div className={styles.headerButtons}>
+          <button type="button" className={styles.addButton} onClick={openAddForm}>
+            <span className={styles.addButtonIcon} aria-hidden="true">
+              +
+            </span>
+            Add Job
+          </button>
+          <button
+            type="button"
+            className={styles.addMultipleButton}
+            onClick={() => setIsAddMultipleOpen(true)}
+          >
+            Add Multiple Jobs
+          </button>
+        </div>
       </div>
 
       <div className={styles.toolbar}>
@@ -187,6 +198,10 @@ export function JobsPage() {
           onGenerateResume={handleGenerateResume}
           isGeneratingResume={buildResumeMutation.isPending}
         />
+      )}
+
+      {isAddMultipleOpen && (
+        <AddMultipleJobsModal onClose={() => setIsAddMultipleOpen(false)} />
       )}
     </div>
   )

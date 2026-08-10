@@ -9,6 +9,7 @@ import {
   generateResumes,
   updateJob,
 } from '../../../common/api/jobs/jobs.service'
+import { extractErrorMessage } from '../../../common/utils/error.utils'
 import type {
   GenerateResumesOutcome,
   GenerateResumesResponse,
@@ -19,14 +20,6 @@ import type {
 interface UpdateMutationArgs {
   id: number
   payload: JobUpdateRequest
-}
-
-function extractErrorMessage(error: unknown): string | undefined {
-  if (!axios.isAxiosError(error)) return undefined
-  const data = error.response?.data
-  return data && typeof data === 'object' && typeof data.message === 'string'
-    ? data.message
-    : undefined
 }
 
 function extractResumeOutcomeError(error: unknown): string | undefined {

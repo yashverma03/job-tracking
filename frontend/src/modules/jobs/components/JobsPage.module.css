@@ -21,6 +21,15 @@
   @apply flex h-6 w-6 items-center justify-center rounded-full bg-emerald-950 text-lg leading-none text-emerald-300;
 }
 
+.headerButtons {
+  @apply flex flex-wrap items-center justify-center gap-3;
+}
+
+.addMultipleButton {
+  @apply flex items-center gap-2 rounded-xl border border-emerald-300/60 bg-transparent px-8 py-4 text-base font-bold text-white shadow-lg transition-all;
+  @apply hover:-translate-y-0.5 hover:bg-white/10 hover:shadow-xl active:translate-y-0;
+}
+
 .statsBarSlot {
   @apply relative;
 }

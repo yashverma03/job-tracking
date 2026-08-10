@@ -39,7 +39,8 @@
 }
 
 .dateInput {
-  @apply absolute inset-0 h-full w-full cursor-pointer border-none bg-transparent text-transparent;
+  @apply absolute inset-0 h-full w-full cursor-pointer border-none bg-transparent pr-2 text-transparent;
+  @apply [&::-webkit-calendar-picker-indicator]:mr-[2px];
 }
 
 .dateInput::-webkit-datetime-edit,
