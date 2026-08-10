@@ -1,3 +1,4 @@
+import dayjs from 'dayjs'
 import type { ChangeEvent } from 'react'
 
 import { Dropdown } from '../../../common/components/Dropdown'
@@ -8,6 +9,11 @@ import styles from './JobsFilters.module.css'
 interface JobsFiltersProps {
   filters: JobListQueryParams
   onChange: (filters: JobListQueryParams) => void
+}
+
+const formatDisplayDate = (value?: string) => {
+  if (!value) return ''
+  return dayjs(value).format('DD MMM YYYY')
 }
 
 const STATUS_OPTIONS = JOB_STATUS_OPTIONS.map((option) => ({ value: option, label: option }))
@@ -79,22 +85,28 @@ export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
 
       <label className={styles.field}>
         <span className={styles.label}>From</span>
-        <input
-          type="date"
-          className={styles.input}
-          value={filters.dateFrom ?? ''}
-          onChange={handleTextChange('dateFrom')}
-        />
+        <div className={`${styles.input} ${styles.dateWrapper}`}>
+          <input
+            type="date"
+            className={styles.dateInput}
+            value={filters.dateFrom ?? ''}
+            onChange={handleTextChange('dateFrom')}
+          />
+          <span className={styles.dateDisplay}>{formatDisplayDate(filters.dateFrom)}</span>
+        </div>
       </label>
 
       <label className={styles.field}>
         <span className={styles.label}>To</span>
-        <input
-          type="date"
-          className={styles.input}
-          value={filters.dateTo ?? ''}
-          onChange={handleTextChange('dateTo')}
-        />
+        <div className={`${styles.input} ${styles.dateWrapper}`}>
+          <input
+            type="date"
+            className={styles.dateInput}
+            value={filters.dateTo ?? ''}
+            onChange={handleTextChange('dateTo')}
+          />
+          <span className={styles.dateDisplay}>{formatDisplayDate(filters.dateTo)}</span>
+        </div>
       </label>
     </div>
   )

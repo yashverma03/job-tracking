@@ -33,3 +33,24 @@
   @apply absolute right-1.5 flex h-5 w-5 items-center justify-center rounded-full text-base leading-none text-slate-400 transition-colors;
   @apply hover:bg-slate-700 hover:text-slate-100;
 }
+
+.dateWrapper {
+  @apply relative min-h-[2.375rem];
+}
+
+.dateInput {
+  @apply absolute inset-0 h-full w-full cursor-pointer border-none bg-transparent text-transparent;
+}
+
+.dateInput::-webkit-datetime-edit,
+.dateInput::-webkit-datetime-edit-fields-wrapper,
+.dateInput::-webkit-datetime-edit-text,
+.dateInput::-webkit-datetime-edit-month-field,
+.dateInput::-webkit-datetime-edit-day-field,
+.dateInput::-webkit-datetime-edit-year-field {
+  color: transparent;
+}
+
+.dateDisplay {
+  @apply pointer-events-none flex h-full w-full items-center text-sm text-slate-100;
+}
