@@ -27,6 +27,12 @@ def _eligible_jobs_queryset():
 
 
 def _process_job(job: Job, resume_input: ResumeInput, output_dir: str) -> ResumeGenerationOutcome:
+    if not job.description or not job.description.strip():
+        return ResumeGenerationOutcome(
+            job_id=job.pk,
+            error='Job description is required to generate a resume.',
+        )
+
     try:
         ai_output = generate_resume_content(job.title or '', job.description or '', resume_input)
         file_path = os.path.join(output_dir, _resume_filename(resume_input, job.pk))
