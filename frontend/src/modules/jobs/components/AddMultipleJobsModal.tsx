@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState, type UIEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -23,6 +23,15 @@ export function AddMultipleJobsModal({ onClose }: AddMultipleJobsModalProps) {
   const [text, setText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [summary, setSummary] = useState<SubmitSummary | null>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
+
+  const lineCount = text.length === 0 ? 1 : text.split('\n').length;
+
+  const handleTextareaScroll = (event: UIEvent<HTMLTextAreaElement>) => {
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = event.currentTarget.scrollTop;
+    }
+  };
 
   const handleSave = async () => {
     const urls = Array.from(
@@ -90,12 +99,21 @@ export function AddMultipleJobsModal({ onClose }: AddMultipleJobsModalProps) {
           </button>
         </div>
 
-        <textarea
-          className={styles.textarea}
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          autoFocus
-        />
+        <div className={styles.textareaWrapper}>
+          <div ref={lineNumbersRef} className={styles.lineNumbers}>
+            {Array.from({ length: lineCount }, (_, index) => (
+              <div key={index}>{index + 1}</div>
+            ))}
+          </div>
+          <textarea
+            className={styles.textarea}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            onScroll={handleTextareaScroll}
+            spellCheck={false}
+            autoFocus
+          />
+        </div>
 
         {summary && (
           <div className={styles.summary}>

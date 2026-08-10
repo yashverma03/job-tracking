@@ -5,7 +5,7 @@
 }
 
 .modal {
-  @apply flex max-h-[85vh] w-full max-w-lg flex-col overflow-y-auto rounded-2xl bg-slate-900 p-5 shadow-2xl;
+  @apply flex max-h-[85vh] w-full max-w-3xl flex-col overflow-y-auto rounded-2xl bg-slate-900 p-5 shadow-2xl;
 }
 
 .headerRow {
@@ -24,9 +24,17 @@
   @apply mb-2 text-sm text-slate-400;
 }
 
+.textareaWrapper {
+  @apply flex min-h-[240px] flex-1 overflow-hidden rounded-lg border border-slate-700 bg-slate-800 shadow-sm transition-colors;
+  @apply hover:border-slate-600 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/30;
+}
+
+.lineNumbers {
+  @apply flex-none overflow-hidden border-r border-slate-700 bg-slate-800/60 px-2 py-2 text-right font-mono text-sm text-slate-500 select-none;
+}
+
 .textarea {
-  @apply min-h-[240px] w-full flex-1 resize-y rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 font-mono text-sm text-slate-100 shadow-sm transition-colors;
-  @apply hover:border-slate-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none;
+  @apply min-h-full w-full flex-1 resize-none overflow-auto rounded-none border-none bg-transparent px-3 py-2 font-mono text-sm whitespace-pre text-slate-100 outline-none;
 }
 
 .summary {
