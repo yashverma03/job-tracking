@@ -135,13 +135,6 @@ export function JobsPage() {
             </span>
             Add Job
           </button>
-          <button
-            type="button"
-            className={styles.addMultipleButton}
-            onClick={() => setIsAddMultipleOpen(true)}
-          >
-            Add Multiple Jobs
-          </button>
         </div>
       </div>
 

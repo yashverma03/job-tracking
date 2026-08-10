@@ -1,4 +1,4 @@
-import { useRef, useState, type UIEvent } from 'react';
+import { useRef, useState, type KeyboardEvent, type UIEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -30,6 +30,13 @@ export function AddMultipleJobsModal({ onClose }: AddMultipleJobsModalProps) {
   const handleTextareaScroll = (event: UIEvent<HTMLTextAreaElement>) => {
     if (lineNumbersRef.current) {
       lineNumbersRef.current.scrollTop = event.currentTarget.scrollTop;
+    }
+  };
+
+  const handleTextareaKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      if (!isSubmitting && text.trim() !== '') handleSave();
     }
   };
 
@@ -110,6 +117,7 @@ export function AddMultipleJobsModal({ onClose }: AddMultipleJobsModalProps) {
             value={text}
             onChange={(event) => setText(event.target.value)}
             onScroll={handleTextareaScroll}
+            onKeyDown={handleTextareaKeyDown}
             spellCheck={false}
             autoFocus
           />
