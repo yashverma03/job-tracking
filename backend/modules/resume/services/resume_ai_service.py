@@ -1,16 +1,18 @@
-import json
-import shutil
-import subprocess
-import tempfile
 from datetime import datetime
+
+import anthropic
 
 from common.exceptions.api_exceptions import ApiError
 from common.utils.env import get_env
 from modules.resume.types.resume_types import ResumeAiOutput, ResumeInput
-from modules.resume.utils.resume_constants import CLAUDE_CLI_BINARY, CLAUDE_CLI_TIMEOUT_SECONDS, CLAUDE_LOG_PATH
+from modules.resume.utils.resume_constants import ANTHROPIC_REQUEST_TIMEOUT_SECONDS, CLAUDE_LOG_PATH
+
+_client = anthropic.Anthropic(api_key=get_env('ANTHROPIC_API_KEY'), timeout=ANTHROPIC_REQUEST_TIMEOUT_SECONDS)
+
+_SUBMIT_TOOL_NAME = 'submit_resume_content'
 
 
-def _log_claude_call(message: str) -> None:
+def _log_ai_call(message: str) -> None:
     timestamp = datetime.now().isoformat(sep=' ', timespec='seconds')
     with open(CLAUDE_LOG_PATH, 'a', encoding='utf-8') as f:
         f.write(f'[{timestamp}] {message}\n')
@@ -126,7 +128,9 @@ JD says a specific framework/library the candidate's bullets show equivalent han
 number of these (typically 1-4), phrased using the job description's own terminology. Do not add a skill that has \
 no grounding at all in the candidate's base data.
   3. The combined list from steps 1-2 must not exceed 15 entries; if it would, keep only the highest-relevance \
-ones."""
+ones.
+
+Call the "{_SUBMIT_TOOL_NAME}" tool exactly once with the final result. Do not respond with plain text."""
 
 
 def _build_user_prompt(job_title: str, job_description: str) -> str:
@@ -138,77 +142,51 @@ to match against):
 {job_description}"""
 
 
-def _run_claude_cli(system_prompt: str, user_prompt: str, json_schema: dict) -> dict:
-    command = [
-        CLAUDE_CLI_BINARY,
-        '-p',
-        '--setting-sources', '',
-        '--tools', '',
-        '--system-prompt', system_prompt,
-        '--model', get_env('CLAUDE_MODEL'),
-        '--output-format', 'stream-json',
-        '--verbose',
-        '--json-schema', json.dumps(json_schema),
-        user_prompt,
-    ]
-    _log_claude_call(f'REQUEST command={command}')
-
-    # Run from a scratch directory with no CLAUDE.md to discover, so the CLI doesn't pull in
-    # this repo's project context. Unlike --bare, this keeps OAuth/subscription auth intact.
-    scratch_dir = tempfile.mkdtemp(prefix='resume-ai-cli-')
+def _call_anthropic_api(system_prompt: str, user_prompt: str, json_schema: dict) -> dict:
+    model = get_env('CLAUDE_MODEL')
+    _log_ai_call(f'REQUEST model={model} user_prompt_chars={len(user_prompt)}')
 
     start = datetime.now()
     try:
-        process = subprocess.Popen(
-            command,
-            cwd=scratch_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
+        response = _client.messages.create(
+            model=model,
+            max_tokens=4096,
+            system=[
+                {
+                    'type': 'text',
+                    'text': system_prompt,
+                    'cache_control': {'type': 'ephemeral'},
+                },
+            ],
+            messages=[{'role': 'user', 'content': user_prompt}],
+            tools=[
+                {
+                    'name': _SUBMIT_TOOL_NAME,
+                    'description': 'Submit the tailored resume content.',
+                    'input_schema': json_schema,
+                },
+            ],
+            tool_choice={'type': 'tool', 'name': _SUBMIT_TOOL_NAME},
         )
-    except Exception:
-        shutil.rmtree(scratch_dir, ignore_errors=True)
-        raise
-    assert process.stdout is not None
-
-    result = None
-    try:
-        for line in iter(process.stdout.readline, ''):
-            line = line.strip()
-            if not line:
-                continue
-
-            elapsed = (datetime.now() - start).total_seconds()
-            _log_claude_call(f'EVENT elapsed={elapsed:.1f}s {line}')
-
-            try:
-                event = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if event.get('type') == 'result':
-                result = event
-
-            if elapsed > CLAUDE_CLI_TIMEOUT_SECONDS:
-                process.kill()
-                _log_claude_call(f'TIMEOUT after {elapsed:.1f}s')
-                raise ApiError('Claude Code CLI timed out.', status_code=500)
-    finally:
-        process.stdout.close()
-        return_code = process.wait(timeout=10)
-        shutil.rmtree(scratch_dir, ignore_errors=True)
+    except anthropic.APIError as exc:
+        elapsed = (datetime.now() - start).total_seconds()
+        _log_ai_call(f'ERROR elapsed={elapsed:.1f}s {exc}')
+        raise ApiError(f'Anthropic API call failed: {exc}', status_code=500) from exc
 
     elapsed = (datetime.now() - start).total_seconds()
-    print(f'[resume_ai_service] Claude CLI exit_code={return_code} elapsed={elapsed:.1f}s')
-    _log_claude_call(f'RESPONSE exit_code={return_code} elapsed={elapsed:.1f}s')
+    usage = response.usage
+    _log_ai_call(
+        f'RESPONSE elapsed={elapsed:.1f}s stop_reason={response.stop_reason} '
+        f'input_tokens={usage.input_tokens} output_tokens={usage.output_tokens} '
+        f'cache_creation_input_tokens={usage.cache_creation_input_tokens} '
+        f'cache_read_input_tokens={usage.cache_read_input_tokens}',
+    )
 
-    if return_code != 0 or result is None:
-        raise ApiError('Claude Code CLI failed or produced no result.', status_code=500)
+    tool_use_block = next((block for block in response.content if block.type == 'tool_use'), None)
+    if tool_use_block is None:
+        raise ApiError(f'Anthropic API did not return a tool_use block: {response.stop_reason}', status_code=500)
 
-    if result.get('is_error') or 'structured_output' not in result:
-        raise ApiError(f'Claude Code CLI returned an error result: {result.get("result")}', status_code=500)
-
-    return result['structured_output']
+    return tool_use_block.input
 
 
 def _parse_output(output: dict, resume_input: ResumeInput) -> ResumeAiOutput:
@@ -229,5 +207,5 @@ def generate_resume_content(job_title: str, job_description: str, resume_input: 
     system_prompt = _build_system_prompt(resume_input)
     user_prompt = _build_user_prompt(job_title, job_description)
     json_schema = _build_json_schema(resume_input)
-    output = _run_claude_cli(system_prompt, user_prompt, json_schema)
+    output = _call_anthropic_api(system_prompt, user_prompt, json_schema)
     return _parse_output(output, resume_input)
