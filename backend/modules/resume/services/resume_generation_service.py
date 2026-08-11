@@ -64,7 +64,7 @@ def _run_batch(jobs: list[Job], resume_input: ResumeInput, output_dir: str) -> N
         log_resume_batch_result(total=len(jobs), generated=generated, failed=failed)
         NotificationManager.show(
             'Resume generation complete',
-            f'Total: {len(jobs)}, Success: {len(generated)}, Failed: {len(failed)}',
+            f'Total: {len(jobs)}\nSuccess: {len(generated)}\nFailed: {len(failed)}',
         )
     finally:
         db.connections.close_all()
