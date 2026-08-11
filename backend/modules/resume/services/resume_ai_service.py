@@ -34,7 +34,7 @@ def _build_json_schema(resume_input: ResumeInput) -> dict:
     }
 
 
-def _build_prompt(job_title: str, job_description: str, resume_input: ResumeInput) -> str:
+def _build_system_prompt(resume_input: ResumeInput) -> str:
     experience_section = '\n'.join(
         f'{i}. {entry.title} at {entry.company} ({entry.duration}):\n'
         + '\n'.join(f'   - {bullet}' for bullet in entry.base_bullets)
@@ -44,21 +44,15 @@ def _build_prompt(job_title: str, job_description: str, resume_input: ResumeInpu
     num_jobs = len(resume_input.experience)
 
     return f"""You are tailoring a candidate's resume content for a specific job application. The output must be \
-highly ATS (Applicant Tracking System) compliant.
+highly ATS (Applicant Tracking System) compliant. The job title and job description will be provided in the next \
+message.
 
-Job title: {job_title}
-Job description (this may be messy — it can contain raw HTML tags, boilerplate, or irrelevant text; extract only \
-the relevant responsibilities, requirements, and keywords from it, ignoring markup and noise. Keywords or phrases \
-the job description emphasizes may be wrapped in "**"; treat anything wrapped that way as a high-priority keyword \
-to match against):
-{job_description}
-
-Candidate's base summary (rewrite/tighten this to match the job above — do not invent facts not grounded in it or \
-in the base work experience below):
+Candidate's base summary (rewrite/tighten this to match the job described in the next message — do not invent \
+facts not grounded in it or in the base work experience below):
 {resume_input.base_summary}
 
 Candidate's base work experience (do not invent new roles, companies, or dates — only rewrite/select bullets to \
-emphasize what's most relevant to the job above):
+emphasize what's most relevant to the job described in the next message):
 {experience_section}
 
 Candidate's full skills list:
@@ -133,16 +127,27 @@ no grounding at all in the candidate's base data.
 ones."""
 
 
-def _run_claude_cli(prompt: str, json_schema: dict) -> dict:
+def _build_user_prompt(job_title: str, job_description: str) -> str:
+    return f"""Job title: {job_title}
+Job description (this may be messy — it can contain raw HTML tags, boilerplate, or irrelevant text; extract only \
+the relevant responsibilities, requirements, and keywords from it, ignoring markup and noise. Keywords or phrases \
+the job description emphasizes may be wrapped in "**"; treat anything wrapped that way as a high-priority keyword \
+to match against):
+{job_description}"""
+
+
+def _run_claude_cli(system_prompt: str, user_prompt: str, json_schema: dict) -> dict:
     command = [
         CLAUDE_CLI_BINARY,
         '-p',
+        '--bare',
         '--tools', '',
+        '--system-prompt', system_prompt,
         '--model', get_env('CLAUDE_MODEL'),
         '--output-format', 'stream-json',
         '--verbose',
         '--json-schema', json.dumps(json_schema),
-        prompt,
+        user_prompt,
     ]
     _log_claude_call(f'REQUEST command={command}')
 
@@ -209,7 +214,8 @@ def _parse_output(output: dict, resume_input: ResumeInput) -> ResumeAiOutput:
 
 
 def generate_resume_content(job_title: str, job_description: str, resume_input: ResumeInput) -> ResumeAiOutput:
-    prompt = _build_prompt(job_title, job_description, resume_input)
+    system_prompt = _build_system_prompt(resume_input)
+    user_prompt = _build_user_prompt(job_title, job_description)
     json_schema = _build_json_schema(resume_input)
-    output = _run_claude_cli(prompt, json_schema)
+    output = _run_claude_cli(system_prompt, user_prompt, json_schema)
     return _parse_output(output, resume_input)

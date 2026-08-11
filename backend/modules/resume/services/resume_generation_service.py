@@ -1,7 +1,4 @@
 import os
-from concurrent.futures import ThreadPoolExecutor
-
-from django import db
 
 from common.exceptions.api_exceptions import ApiError
 from common.utils.env import get_env
@@ -44,8 +41,6 @@ def _process_job(job: Job, resume_input: ResumeInput, output_dir: str) -> Resume
         return ResumeGenerationOutcome(job_id=job.pk, file_path=file_path)
     except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the batch
         return ResumeGenerationOutcome(job_id=job.pk, error=str(exc))
-    finally:
-        db.connections.close_all()
 
 
 def generate_resumes_for_pending_jobs() -> dict:
@@ -54,8 +49,7 @@ def generate_resumes_for_pending_jobs() -> dict:
 
     jobs = list(_eligible_jobs_queryset())
 
-    with ThreadPoolExecutor(max_workers=max(len(jobs), 1)) as executor:
-        outcomes = list(executor.map(lambda job: _process_job(job, resume_input, output_dir), jobs))
+    outcomes = [_process_job(job, resume_input, output_dir) for job in jobs]
 
     generated = [outcome for outcome in outcomes if outcome.file_path is not None]
     failed = [outcome for outcome in outcomes if outcome.file_path is None]
