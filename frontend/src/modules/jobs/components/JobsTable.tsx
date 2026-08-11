@@ -1,7 +1,14 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 
 import dayjs from 'dayjs';
-import { CheckCheck, CopyPlus, Pencil, RotateCw, Trash2 } from 'lucide-react';
+import {
+  CheckCheck,
+  CopyPlus,
+  FileText,
+  Pencil,
+  RotateCw,
+  Trash2,
+} from 'lucide-react';
 
 import { Dropdown } from '../../../common/components/Dropdown';
 import { useClipboard } from '../../../common/hooks/useClipboard';
@@ -32,6 +39,13 @@ const COLUMNS: Column[] = [
   { key: 'score', label: 'Score', width: 80 },
   { key: 'analysis', label: 'Analysis', truncate: true, width: 140 },
 ];
+
+const RESUME_OUTPUT_DIR = '/home/yash/yash-files/Documents/Job/Resume/Custom';
+const RESUME_FILE_PREFIX = 'Yash_Verma_Resume';
+
+function buildResumeFileUrl(jobId: number): string {
+  return `file://${RESUME_OUTPUT_DIR}/${RESUME_FILE_PREFIX}_${jobId}.pdf`;
+}
 
 const CHECKBOX_COLUMN_WIDTH = 40;
 const ACTIONS_COLUMN_WIDTH = 160;
@@ -222,6 +236,23 @@ export function JobsTable({
                     >
                       <Trash2 size={16} />
                     </button>
+                    {job.isCustomResumeGenerated ? (
+                      <button
+                        type="button"
+                        className={styles.viewResumeButton}
+                        onClick={() =>
+                          window.open(
+                            buildResumeFileUrl(job.id),
+                            '_blank',
+                            'noopener,noreferrer',
+                          )
+                        }
+                        aria-label="View generated resume"
+                        title="View generated resume"
+                      >
+                        <FileText size={16} />
+                      </button>
+                    ) : null}
                   </div>
                 </td>
                 <td

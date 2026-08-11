@@ -90,6 +90,10 @@
   @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-red-800 bg-red-950 text-red-400 transition-colors hover:bg-red-900 hover:text-red-300;
 }
 
+.viewResumeButton {
+  @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-300 transition-colors hover:bg-slate-700;
+}
+
 .statusCellInner {
   @apply flex items-center gap-1.5;
 }
