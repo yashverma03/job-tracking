@@ -43,10 +43,10 @@ export interface GenerateResumesOutcome {
   error?: string | null;
 }
 
-export interface GenerateResumesResponse {
-  processed: number;
-  generated: GenerateResumesOutcome[];
-  failed: GenerateResumesOutcome[];
+export interface GenerateResumesQueuedResponse {
+  queued: boolean;
+  processing: number;
+  message: string;
 }
 
 export interface JobFormValues {

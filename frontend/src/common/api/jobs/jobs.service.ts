@@ -3,7 +3,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../../configs/api.config';
 import type {
   GenerateResumesOutcome,
-  GenerateResumesResponse,
+  GenerateResumesQueuedResponse,
   JobCreateRequest,
   JobListQueryParams,
   JobListResponse,
@@ -40,8 +40,8 @@ export async function deleteJob(id: number): Promise<void> {
   await client.delete(`/jobs/${id}`);
 }
 
-export async function generateResumes(): Promise<GenerateResumesResponse> {
-  const { data } = await client.post<GenerateResumesResponse>('/resumes');
+export async function generateResumes(): Promise<GenerateResumesQueuedResponse> {
+  const { data } = await client.post<GenerateResumesQueuedResponse>('/resumes');
   return data;
 }
 

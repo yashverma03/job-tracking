@@ -146,7 +146,7 @@ export function JobsPage() {
           onClick={() => generateResumesMutation.mutate()}
         >
           {generateResumesMutation.isPending
-            ? 'Generating...'
+            ? 'Queuing...'
             : 'Generate Custom Resumes'}
         </button>
       </div>

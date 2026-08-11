@@ -12,7 +12,6 @@ import {
 import { extractErrorMessage } from '../../../common/utils/error.utils';
 import type {
   GenerateResumesOutcome,
-  GenerateResumesResponse,
   JobCreateRequest,
   JobUpdateRequest,
 } from '../interfaces/job.interfaces';
@@ -26,13 +25,6 @@ function extractResumeOutcomeError(error: unknown): string | undefined {
   if (!axios.isAxiosError(error)) return undefined;
   const data = error.response?.data as GenerateResumesOutcome | undefined;
   return data?.error ?? extractErrorMessage(error);
-}
-
-function extractResumesBatchResult(
-  error: unknown,
-): GenerateResumesResponse | undefined {
-  if (!axios.isAxiosError(error)) return undefined;
-  return error.response?.data as GenerateResumesResponse | undefined;
 }
 
 export function useJobMutations() {
@@ -73,19 +65,14 @@ export function useJobMutations() {
   const generateResumesMutation = useMutation({
     mutationFn: () => generateResumes(),
     onSuccess: (result) => {
-      invalidateJobs();
-      toast.success(`Generated ${result.generated.length} resume(s)`);
+      if (result.queued) {
+        toast.success(result.message);
+      } else {
+        toast(result.message);
+      }
     },
     onError: (error) => {
-      const result = extractResumesBatchResult(error);
-      invalidateJobs();
-      if (result) {
-        toast.error(
-          `Generated ${result.generated.length}, failed ${result.failed.length}`,
-        );
-      } else {
-        toast.error('Failed to generate resumes');
-      }
+      toast.error(extractErrorMessage(error) ?? 'Failed to queue resume generation');
     },
   });
 
