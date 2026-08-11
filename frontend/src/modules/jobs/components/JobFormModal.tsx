@@ -30,6 +30,7 @@ import { cleanJobUrl } from '../utils/urlCleaner';
 import styles from './JobFormModal.module.css';
 
 const CREATED_AT_FORMAT = 'DD MMM YYYY';
+const DEFAULT_JOB_TITLE = 'Software Engineer';
 
 const jobFormSchema = Yup.object({
   url: Yup.string().trim(),
@@ -156,9 +157,10 @@ function AutoReferralDefault({
 interface CompanyNameFieldProps {
   value: string;
   onChange: (value: string) => void;
+  onSelect?: (value: string) => void;
 }
 
-function CompanyNameField({ value, onChange }: CompanyNameFieldProps) {
+function CompanyNameField({ value, onChange, onSelect }: CompanyNameFieldProps) {
   const debouncedValue = useDebouncedValue(value, 300);
   const { data: companyNames = [] } = useCompanyNamesQuery(debouncedValue);
 
@@ -167,6 +169,7 @@ function CompanyNameField({ value, onChange }: CompanyNameFieldProps) {
       label="Company name"
       value={value}
       onChange={onChange}
+      onSelect={onSelect}
       options={companyNames}
     />
   );
@@ -314,6 +317,9 @@ export function JobFormModal({
                           await fetchCompanyNameByUrl(cleanedUrl);
                         if (companyName && !form.values.companyName.trim()) {
                           form.setFieldValue('companyName', companyName);
+                          if (!form.values.title.trim()) {
+                            form.setFieldValue('title', DEFAULT_JOB_TITLE);
+                          }
                         }
                       }}
                     />
@@ -328,6 +334,11 @@ export function JobFormModal({
                 <CompanyNameField
                   value={values.companyName}
                   onChange={(value) => setFieldValue('companyName', value)}
+                  onSelect={() => {
+                    if (!values.title.trim()) {
+                      setFieldValue('title', DEFAULT_JOB_TITLE);
+                    }
+                  }}
                 />
 
                 <JobTitleField

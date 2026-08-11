@@ -6,6 +6,7 @@ interface ComboBoxProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onSelect?: (value: string) => void;
   onBlur?: (event: FocusEvent<HTMLInputElement>) => void;
   options: string[];
   hideLabel?: boolean;
@@ -16,6 +17,7 @@ export function ComboBox({
   label,
   value,
   onChange,
+  onSelect,
   onBlur,
   options,
   hideLabel = false,
@@ -42,6 +44,7 @@ export function ComboBox({
 
   const handleSelect = (option: string) => {
     onChange(option);
+    onSelect?.(option);
     setIsOpen(false);
   };
 
