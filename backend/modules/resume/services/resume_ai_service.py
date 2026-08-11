@@ -116,8 +116,13 @@ high-impact, keyword-rich bullets over many thin ones.
 strongest, most quantified, most job-relevant achievement as the first bullet, and place comparatively weaker or \
 more routine bullets toward the end. A reader skimming only the first bullet of each entry should see the single \
 most compelling point for that role.
+  - Total rendered line count across ALL experience bullets combined (every entry's bullets summed together, \
+counting each bullet's own 1-2 rendered lines as defined above) must land at 21-22 lines — not fewer, not more. \
+This is a hard target, not a range to stay under: use it to decide how many bullets each entry gets and how much \
+each bullet can say. Before finalizing, add up the actual rendered line count across every bullet in every entry \
+and adjust (trim a bullet, drop one, or let a strong bullet run to 2 lines) until the total is exactly 21 or 22.
 - "skills": a JSON array of individual skill strings (one skill per array element — never a single joined/comma-separated \
-string), at most 15 skills, front-loaded with the most important/relevant \
+string), at most 20 skills, front-loaded with the most important/relevant \
 skills first and progressively less important ones toward the end (the first few entries are what a recruiter \
 skimming the list will actually read), with no grouping or categorization. Be selective, not exhaustive — do not \
 just return most of the candidate's skills list. Steps to build it:
@@ -127,9 +132,9 @@ description. Drop everything else, even if it's a fine general skill — irrelev
 "**") that are NOT in the candidate's skills list, but are close enough to something the candidate's real \
 experience (from the work experience section above) already demonstrates that listing them is honest — e.g. the \
 JD says a specific framework/library the candidate's bullets show equivalent hands-on work with. Add a small \
-number of these (typically 1-4), phrased using the job description's own terminology. Do not add a skill that has \
+number of these (typically 3-6), phrased using the job description's own terminology. Do not add a skill that has \
 no grounding at all in the candidate's base data.
-  3. The combined list from steps 1-2 must not exceed 15 entries; if it would, keep only the highest-relevance \
+  3. The combined list from steps 1-2 must not exceed 20 entries; if it would, keep only the highest-relevance \
 ones.
 
 Call the "{_SUBMIT_TOOL_NAME}" tool exactly once with the final result. Do not respond with plain text."""
