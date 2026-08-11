@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { Dropdown } from '../../../common/components/Dropdown';
+import { API_BASE_URL } from '../../../common/configs/api.config';
 import { useClipboard } from '../../../common/hooks/useClipboard';
 import {
   REFERRAL_STATUS_DROPDOWN_OPTIONS,
@@ -40,11 +41,8 @@ const COLUMNS: Column[] = [
   { key: 'analysis', label: 'Analysis', truncate: true, width: 140 },
 ];
 
-const RESUME_OUTPUT_DIR = '/home/yash/yash-files/Documents/Job/Resume/Custom';
-const RESUME_FILE_PREFIX = 'Yash_Verma_Resume';
-
 function buildResumeFileUrl(jobId: number): string {
-  return `file://${RESUME_OUTPUT_DIR}/${RESUME_FILE_PREFIX}_${jobId}.pdf`;
+  return `${API_BASE_URL}/resumes/${jobId}/file`;
 }
 
 const CHECKBOX_COLUMN_WIDTH = 40;
@@ -237,21 +235,16 @@ export function JobsTable({
                       <Trash2 size={16} />
                     </button>
                     {job.isCustomResumeGenerated ? (
-                      <button
-                        type="button"
+                      <a
+                        href={buildResumeFileUrl(job.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className={styles.viewResumeButton}
-                        onClick={() =>
-                          window.open(
-                            buildResumeFileUrl(job.id),
-                            '_blank',
-                            'noopener,noreferrer',
-                          )
-                        }
                         aria-label="View generated resume"
                         title="View generated resume"
                       >
                         <FileText size={16} />
-                      </button>
+                      </a>
                     ) : null}
                   </div>
                 </td>

@@ -107,3 +107,9 @@ def generate_resume_for_job(job_id: int) -> ResumeGenerationOutcome:
     output_dir = get_env('RESUME_OUTPUT_DIR')
 
     return _process_job(job, resume_input, output_dir)
+
+
+def get_resume_file_path(job_id: int) -> str:
+    resume_input = load_resume_input()
+    output_dir = get_env('RESUME_OUTPUT_DIR')
+    return os.path.join(output_dir, _resume_filename(resume_input, job_id))
