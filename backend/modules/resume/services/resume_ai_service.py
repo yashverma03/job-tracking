@@ -6,6 +6,7 @@ from common.exceptions.api_exceptions import ApiError
 from common.utils.env import get_env
 from modules.resume.types.resume_types import ResumeAiOutput, ResumeInput
 from modules.resume.utils.resume_constants import ANTHROPIC_REQUEST_TIMEOUT_SECONDS, CLAUDE_LOG_PATH
+from modules.resume.utils.text_cleaner import clean_job_description
 
 _client = anthropic.Anthropic(api_key=get_env('ANTHROPIC_API_KEY'), timeout=ANTHROPIC_REQUEST_TIMEOUT_SECONDS)
 
@@ -134,12 +135,12 @@ Call the "{_SUBMIT_TOOL_NAME}" tool exactly once with the final result. Do not r
 
 
 def _build_user_prompt(job_title: str, job_description: str) -> str:
+    cleaned_description = clean_job_description(job_description)
     return f"""Job title: {job_title}
-Job description (this may be messy — it can contain raw HTML tags, boilerplate, or irrelevant text; extract only \
-the relevant responsibilities, requirements, and keywords from it, ignoring markup and noise. Keywords or phrases \
-the job description emphasizes may be wrapped in "**"; treat anything wrapped that way as a high-priority keyword \
-to match against):
-{job_description}"""
+Job description (this may still contain boilerplate or irrelevant text; extract only the relevant \
+responsibilities, requirements, and keywords from it, ignoring noise. Keywords or phrases the job description \
+emphasizes may be wrapped in "**"; treat anything wrapped that way as a high-priority keyword to match against):
+{cleaned_description}"""
 
 
 def _call_anthropic_api(system_prompt: str, user_prompt: str, json_schema: dict) -> dict:
