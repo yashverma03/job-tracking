@@ -1,5 +1,7 @@
 import json
+import shutil
 import subprocess
+import tempfile
 from datetime import datetime
 
 from common.exceptions.api_exceptions import ApiError
@@ -140,6 +142,7 @@ def _run_claude_cli(system_prompt: str, user_prompt: str, json_schema: dict) -> 
     command = [
         CLAUDE_CLI_BINARY,
         '-p',
+        '--setting-sources', '',
         '--tools', '',
         '--system-prompt', system_prompt,
         '--model', get_env('CLAUDE_MODEL'),
@@ -150,14 +153,23 @@ def _run_claude_cli(system_prompt: str, user_prompt: str, json_schema: dict) -> 
     ]
     _log_claude_call(f'REQUEST command={command}')
 
+    # Run from a scratch directory with no CLAUDE.md to discover, so the CLI doesn't pull in
+    # this repo's project context. Unlike --bare, this keeps OAuth/subscription auth intact.
+    scratch_dir = tempfile.mkdtemp(prefix='resume-ai-cli-')
+
     start = datetime.now()
-    process = subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
+    try:
+        process = subprocess.Popen(
+            command,
+            cwd=scratch_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+    except Exception:
+        shutil.rmtree(scratch_dir, ignore_errors=True)
+        raise
     assert process.stdout is not None
 
     result = None
@@ -184,6 +196,7 @@ def _run_claude_cli(system_prompt: str, user_prompt: str, json_schema: dict) -> 
     finally:
         process.stdout.close()
         return_code = process.wait(timeout=10)
+        shutil.rmtree(scratch_dir, ignore_errors=True)
 
     elapsed = (datetime.now() - start).total_seconds()
     print(f'[resume_ai_service] Claude CLI exit_code={return_code} elapsed={elapsed:.1f}s')
