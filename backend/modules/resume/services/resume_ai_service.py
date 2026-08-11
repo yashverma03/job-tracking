@@ -140,7 +140,6 @@ def _run_claude_cli(system_prompt: str, user_prompt: str, json_schema: dict) -> 
     command = [
         CLAUDE_CLI_BINARY,
         '-p',
-        '--bare',
         '--tools', '',
         '--system-prompt', system_prompt,
         '--model', get_env('CLAUDE_MODEL'),
