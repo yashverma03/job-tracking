@@ -175,13 +175,7 @@ def _call_anthropic_api(system_prompt: str, user_prompt: str, json_schema: dict)
         raise ApiError(f'Anthropic API call failed: {exc}', status_code=500) from exc
 
     elapsed = (datetime.now() - start).total_seconds()
-    usage = response.usage
-    _log_ai_call(
-        f'RESPONSE elapsed={elapsed:.1f}s stop_reason={response.stop_reason} '
-        f'input_tokens={usage.input_tokens} output_tokens={usage.output_tokens} '
-        f'cache_creation_input_tokens={usage.cache_creation_input_tokens} '
-        f'cache_read_input_tokens={usage.cache_read_input_tokens}',
-    )
+    _log_ai_call(f'RESPONSE elapsed={elapsed:.1f}s {response.model_dump_json()}')
 
     tool_use_block = next((block for block in response.content if block.type == 'tool_use'), None)
     if tool_use_block is None:
