@@ -116,7 +116,8 @@ high-impact, keyword-rich bullets over many thin ones.
 strongest, most quantified, most job-relevant achievement as the first bullet, and place comparatively weaker or \
 more routine bullets toward the end. A reader skimming only the first bullet of each entry should see the single \
 most compelling point for that role.
-- "skills": a flat, comma-separated-ready array of at most 15 skills, front-loaded with the most important/relevant \
+- "skills": a JSON array of individual skill strings (one skill per array element — never a single joined/comma-separated \
+string), at most 15 skills, front-loaded with the most important/relevant \
 skills first and progressively less important ones toward the end (the first few entries are what a recruiter \
 skimming the list will actually read), with no grouping or categorization. Be selective, not exhaustive — do not \
 just return most of the candidate's skills list. Steps to build it:
@@ -193,7 +194,10 @@ def _parse_output(output: dict, resume_input: ResumeInput) -> ResumeAiOutput:
                         status_code=500)
     experience_bullets = [[str(bullet) for bullet in bullets] for bullets in raw_bullets]
 
-    skills = [str(item) for item in output['skills']]
+    raw_skills = output['skills']
+    if isinstance(raw_skills, str):
+        raw_skills = [item.strip() for item in raw_skills.split(',')]
+    skills = [str(item) for item in raw_skills if str(item).strip()]
 
     return ResumeAiOutput(summary=summary, experience_bullets=experience_bullets, skills=skills)
 
