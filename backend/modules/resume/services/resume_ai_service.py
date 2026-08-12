@@ -53,6 +53,7 @@ def _build_system_prompt(resume_input: ResumeInput) -> str:
     num_jobs = len(resume_input.experience)
     line_chars = RESUME_LINE_CHAR_LENGTH
     summary_max_chars = line_chars * 2
+    years_of_experience = resume_input.years_of_experience
 
     return f"""You are tailoring a candidate's resume content for a specific job application. The output must be \
 highly ATS (Applicant Tracking System) compliant. The job title and job description will be provided in the next \
@@ -101,9 +102,10 @@ around them.
 Return structured output with:
 - "summary": exactly 2 lines and no more, where 1 line = {line_chars} characters including spaces — so the summary \
 text must be at most {summary_max_chars} characters total. Summarize the candidate in terms that directly match \
-what the job description is looking for. The summary must always explicitly state the candidate has 2.5 years of \
-work experience (e.g. "... with 2.5 years of experience in ...") — this fact must appear every time, regardless of \
-job title or seniority implied by the job description. Before finalizing, count the actual character length and \
+what the job description is looking for. The summary must always explicitly state the candidate has \
+{years_of_experience} years of work experience (e.g. "... with {years_of_experience} years of experience in ..."\
+) — this fact must appear every time, regardless of job title or seniority implied by the job description. Before \
+finalizing, count the actual character length and \
 cut/tighten until it is at or under {summary_max_chars} characters.
 - "experience_bullets": one array of bullets per experience entry above, in the same order and same count of \
 entries as the input ({num_jobs} entries). The candidate's base bullets for each job are a menu of everything \
