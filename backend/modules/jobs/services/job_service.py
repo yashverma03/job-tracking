@@ -59,10 +59,7 @@ def _apply_filters(queryset, filters: JobFilterParams):
 def _with_default_sort_tier(queryset):
     return queryset.annotate(
         sort_tier=Case(
-            When(
-                Q(status=JobStatus.TO_APPLY) & ~Q(referral_status=JobReferralStatus.REQUIRED),
-                then=Value(0),
-            ),
+            When(status=JobStatus.TO_APPLY, then=Value(0)),
             When(referral_status=JobReferralStatus.REQUIRED, then=Value(1)),
             default=Value(2),
             output_field=IntegerField(),
