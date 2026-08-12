@@ -5,7 +5,11 @@ import anthropic
 from common.exceptions.api_exceptions import ApiError
 from common.utils.env import get_env
 from modules.resume.types.resume_types import ResumeAiOutput, ResumeInput
-from modules.resume.utils.resume_constants import ANTHROPIC_REQUEST_TIMEOUT_SECONDS, CLAUDE_LOG_PATH
+from modules.resume.utils.resume_constants import (
+    ANTHROPIC_REQUEST_TIMEOUT_SECONDS,
+    CLAUDE_LOG_PATH,
+    RESUME_LINE_CHAR_LENGTH,
+)
 from modules.resume.utils.text_cleaner import clean_job_description
 
 _client = anthropic.Anthropic(api_key=get_env('ANTHROPIC_API_KEY'), timeout=ANTHROPIC_REQUEST_TIMEOUT_SECONDS)
@@ -47,6 +51,8 @@ def _build_system_prompt(resume_input: ResumeInput) -> str:
     )
     skills_section = ', '.join(resume_input.skills)
     num_jobs = len(resume_input.experience)
+    line_chars = RESUME_LINE_CHAR_LENGTH
+    summary_max_chars = line_chars * 2
 
     return f"""You are tailoring a candidate's resume content for a specific job application. The output must be \
 highly ATS (Applicant Tracking System) compliant. The job title and job description will be provided in the next \
@@ -81,9 +87,10 @@ in its opening word, so the section doesn't feel like the same sentence repeated
 (summary line count, per-entry bullet count, skill count) exist specifically to enforce that. Treat them as hard \
 limits, not targets to aim near — going over is a failure even if the content is good. Favor being selective over \
 being comprehensive: it's always better to cut a mediocre bullet than to keep it just to fill space.
-- Line length: for every constraint below that is expressed in "lines," 1 line = 100 characters, including \
-spaces. This is a rendering-width limit, not a sentence-count limit — a single long sentence that runs past 100 \
-characters wraps onto a second rendered line and counts as 2 lines, even if it's grammatically one sentence.
+- Line length: for every constraint below that is expressed in "lines," 1 line = {line_chars} characters, including \
+spaces. This is a rendering-width limit, not a sentence-count limit — a single long sentence that runs past \
+{line_chars} characters wraps onto a second rendered line and counts as 2 lines, even if it's grammatically one \
+sentence.
 - Bold markup: in experience bullets, wrap the specific metric substrings (numbers, percentages, dollar amounts, \
 counts — e.g. "63%", "$1B+", "30M+", "4 hours to 30 minutes") in double asterisks, e.g. "reducing manual review by \
 **63%**". Only wrap the metric itself, never surrounding words, and only use this in experience bullets. This \
@@ -92,12 +99,12 @@ characters themselves do NOT count toward the character/line limits above; count
 around them.
 
 Return structured output with:
-- "summary": exactly 2 lines and no more, where 1 line = 100 characters including spaces — so the summary text \
-must be at most 200 characters total. Summarize the candidate in terms that directly match what the job \
-description is looking for. The summary must always explicitly state the candidate has 2.5 years of work \
-experience (e.g. "... with 2.5 years of experience in ...") — this fact must appear every time, regardless of job \
-title or seniority implied by the job description. Before finalizing, count the actual character length and \
-cut/tighten until it is at or under 200 characters.
+- "summary": exactly 2 lines and no more, where 1 line = {line_chars} characters including spaces — so the summary \
+text must be at most {summary_max_chars} characters total. Summarize the candidate in terms that directly match \
+what the job description is looking for. The summary must always explicitly state the candidate has 2.5 years of \
+work experience (e.g. "... with 2.5 years of experience in ...") — this fact must appear every time, regardless of \
+job title or seniority implied by the job description. Before finalizing, count the actual character length and \
+cut/tighten until it is at or under {summary_max_chars} characters.
 - "experience_bullets": one array of bullets per experience entry above, in the same order and same count of \
 entries as the input ({num_jobs} entries). The candidate's base bullets for each job are a menu of everything \
 they *could* say, not a checklist you must cover — you must be aggressively selective and drop most of them, \
@@ -108,10 +115,10 @@ reads as bulky and unfocused, which is worse than one with fewer, stronger bulle
 base bullets happen to exist for it: an internship-level title gets 1-2 bullets, a junior-level title gets 4-5 \
 bullets, and a regular/senior (non-junior, non-intern) title gets 4-5 bullets. If a title doesn't clearly match \
 any of these levels, use judgment based on how senior it reads.
-  - Each bullet should typically fit within 1 rendered line (~100 characters including spaces), but a bullet may \
-run up to 2 rendered lines (~200 characters) if it genuinely needs the space to convey a strong, specific, \
-keyword-relevant point — do not pad or artificially split bullets just to hit a line count. Prioritize a few \
-high-impact, keyword-rich bullets over many thin ones.
+  - Each bullet should typically fit within 1 rendered line (~{line_chars} characters including spaces), but a \
+bullet may run up to 2 rendered lines (~{summary_max_chars} characters) if it genuinely needs the space to convey a \
+strong, specific, keyword-relevant point — do not pad or artificially split bullets just to hit a line count. \
+Prioritize a few high-impact, keyword-rich bullets over many thin ones.
   - Order the bullets within each entry from most impressive/impactful to least impressive — front-load the \
 strongest, most quantified, most job-relevant achievement as the first bullet, and place comparatively weaker or \
 more routine bullets toward the end. A reader skimming only the first bullet of each entry should see the single \
