@@ -27,16 +27,11 @@ def _eligible_jobs_queryset():
         deleted_at__isnull=True,
         status=JobStatus.TO_APPLY,
         is_custom_resume_generated=False,
-    )
+        description__isnull=False,
+    ).exclude(description__exact='')
 
 
 def _process_job(job: Job, resume_input: ResumeInput, output_dir: str) -> ResumeGenerationOutcome:
-    if not job.description or not job.description.strip():
-        return ResumeGenerationOutcome(
-            job_id=job.pk,
-            error='Job description is required to generate a resume.',
-        )
-
     try:
         ai_output = generate_resume_content(job.title or '', job.description or '', resume_input)
         file_path = os.path.join(output_dir, _resume_filename(resume_input, job.pk))
@@ -102,6 +97,9 @@ def generate_resume_for_job(job_id: int) -> ResumeGenerationOutcome:
     job = Job.objects.filter(deleted_at__isnull=True, id=job_id).first()
     if job is None:
         raise ApiError(f'Job {job_id} not found', status_code=404)
+
+    if not job.description or not job.description.strip():
+        raise ApiError('Job description is required to generate a resume.', status_code=400)
 
     resume_input = load_resume_input()
     output_dir = get_env('RESUME_OUTPUT_DIR')
