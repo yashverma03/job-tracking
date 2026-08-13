@@ -10,6 +10,8 @@ const PROFILE_RESUME_URL = profileData.contact.resume_url;
 const PROFILE_EXPERIENCE_SUMMARY = profileData.base_summary;
 const PROFILE_SKILLS_SUMMARY = profileData.skills_summary;
 
+const PROFILE_INTRO_SENTENCE = `I'm a ${PROFILE_TITLE}${PROFILE_EXPERIENCE_SUMMARY.slice(PROFILE_EXPERIENCE_SUMMARY.indexOf(' with '))}.`;
+
 function assertJobsHaveRequiredFields(jobs: Job[]): void {
   jobs.forEach((job) => {
     if (!job.companyName || !job.title || !(job.url || job.officialId)) {
@@ -104,7 +106,7 @@ export function getLongReferralMessage(jobs: Job[]): string {
   return `
 Hi,
 
-${PROFILE_EXPERIENCE_SUMMARY}
+${PROFILE_INTRO_SENTENCE}
 
 ${PROFILE_SKILLS_SUMMARY}
 
@@ -146,7 +148,7 @@ ${subject}
 
 Hi,
 
-${PROFILE_EXPERIENCE_SUMMARY}
+${PROFILE_INTRO_SENTENCE}
 
 ${PROFILE_SKILLS_SUMMARY}
 
