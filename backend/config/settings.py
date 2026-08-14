@@ -128,6 +128,8 @@ Q_CLUSTER = {
     'workers': 1,
     'timeout': 3600,
     'retry': 3700,
+    'ack_failures': True,
+    'poll': 30,
     'queue_limit': 50,
     'bulk': 10,
     'sync': False,
