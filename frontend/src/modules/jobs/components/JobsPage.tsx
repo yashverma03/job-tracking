@@ -37,6 +37,7 @@ export function JobsPage() {
     deleteMutation,
     generateResumesMutation,
     buildResumeMutation,
+    fetchLatestJobsMutation,
   } = useJobMutations();
 
   const jobs = useMemo(() => data?.items ?? [], [data]);
@@ -139,6 +140,14 @@ export function JobsPage() {
       </div>
 
       <div className={styles.toolbar}>
+        <button
+          type="button"
+          className={styles.fetchLatestJobsButton}
+          disabled={fetchLatestJobsMutation.isPending}
+          onClick={() => fetchLatestJobsMutation.mutate()}
+        >
+          {fetchLatestJobsMutation.isPending ? 'Queuing...' : 'Get Latest Jobs'}
+        </button>
         <button
           type="button"
           className={styles.generateResumesButton}

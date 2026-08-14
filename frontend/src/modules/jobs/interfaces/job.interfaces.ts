@@ -49,6 +49,11 @@ export interface GenerateResumesQueuedResponse {
   message: string;
 }
 
+export interface ScraperPipelineQueuedResponse {
+  queued: boolean;
+  message: string;
+}
+
 export interface JobFormValues {
   url: string;
   secondaryUrl: string;

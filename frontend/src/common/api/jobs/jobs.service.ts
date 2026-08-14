@@ -10,6 +10,7 @@ import type {
   JobResponse,
   JobStatsResponse,
   JobUpdateRequest,
+  ScraperPipelineQueuedResponse,
 } from '../../../modules/jobs/interfaces/job.interfaces';
 
 const client = axios.create({ baseURL: API_BASE_URL });
@@ -76,6 +77,11 @@ export async function fetchJobTitles(
 
 export async function fetchJobStats(): Promise<JobStatsResponse> {
   const { data } = await client.get<JobStatsResponse>('/jobs/stats');
+  return data;
+}
+
+export async function triggerScraperPipeline(): Promise<ScraperPipelineQueuedResponse> {
+  const { data } = await client.post<ScraperPipelineQueuedResponse>('/scraper');
   return data;
 }
 
