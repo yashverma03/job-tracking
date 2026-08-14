@@ -21,4 +21,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include('modules.jobs.urls')),
     path('api/v1/', include('modules.resume.urls')),
+    path('api/v1/', include('modules.scraper.urls')),
 ]

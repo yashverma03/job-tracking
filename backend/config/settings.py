@@ -50,8 +50,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'corsheaders',
+    'django_q',
     'modules.jobs',
     'modules.resume',
+    'modules.scraper',
 ]
 
 MIDDLEWARE = [
@@ -114,6 +116,21 @@ DATABASES = {
         'HOST': get_env('POSTGRES_HOST'),
         'PORT': get_env('POSTGRES_PORT'),
     }
+}
+
+
+# Django-Q2 task queue — uses the ORM broker (this database), no Redis/RabbitMQ needed.
+# https://django-q2.readthedocs.io/en/master/configure.html
+
+Q_CLUSTER = {
+    'name': 'job_tracker',
+    'orm': 'default',
+    'workers': 1,
+    'timeout': 3600,
+    'retry': 3700,
+    'queue_limit': 50,
+    'bulk': 10,
+    'sync': False,
 }
 
 

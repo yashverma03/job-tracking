@@ -1,0 +1,25 @@
+from common.utils.notification_manager import NotificationManager
+from modules.jobs.models import Job
+from modules.resume.services.resume_generation_service import process_job
+from modules.resume.utils.resume_input_loader import load_resume_input
+from modules.resume.utils.resume_log import log_resume_batch_result, log_resume_progress
+
+
+def run_resume_generation_batch_task(job_ids: list[int], output_dir: str) -> None:
+    resume_input = load_resume_input()
+    jobs = list(Job.objects.filter(id__in=job_ids, deleted_at__isnull=True))
+
+    outcomes = []
+    for index, job in enumerate(jobs, start=1):
+        outcome = process_job(job, resume_input, output_dir)
+        outcomes.append(outcome)
+        log_resume_progress(index, len(jobs), outcome)
+
+    generated = [outcome for outcome in outcomes if outcome.file_path is not None]
+    failed = [outcome for outcome in outcomes if outcome.file_path is None]
+
+    log_resume_batch_result(total=len(jobs), generated=generated, failed=failed)
+    NotificationManager.show(
+        'Resume generation complete',
+        f'Total: {len(jobs)}\nSuccess: {len(generated)}\nFailed: {len(failed)}',
+    )
