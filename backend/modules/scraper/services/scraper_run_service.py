@@ -1,10 +1,11 @@
 from django.utils import timezone
 
+from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.enums.scraper_run_status import ScraperRunStatus
 from modules.scraper.models import ScraperRun
 
 
-def create_pending_run(name: str) -> ScraperRun:
+def create_pending_run(name: ScraperName) -> ScraperRun:
     return ScraperRun.objects.create(name=name, status=ScraperRunStatus.PENDING)
 
 

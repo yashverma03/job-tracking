@@ -5,6 +5,7 @@ from common.utils.env import get_env_int
 from modules.jobs.services import job_service, job_unique_key_service
 from modules.scraper.base.base_scraper import BaseScraper
 from modules.scraper.enums.scraper_name import ScraperName
+from modules.scraper.types import ScraperRunResult
 from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.scraper_logger import get_scraper_logger
 from modules.scraper.utils.text_cleaner import clean_text
@@ -28,8 +29,8 @@ DEFAULT_SEARCH_FILTERS = {
 
 class LinkedInScraper(BaseScraper):
     @property
-    def name(self) -> str:
-        return ScraperName.LINKEDIN.value
+    def name(self) -> ScraperName:
+        return ScraperName.LINKEDIN
 
     def __init__(self):
         self._logger = get_scraper_logger(self.name)
@@ -39,7 +40,7 @@ class LinkedInScraper(BaseScraper):
         self._total_unique_count = 0
         self._errors: list[dict] = []
 
-    def run(self) -> dict:
+    def run(self) -> ScraperRunResult:
         self._total_count = 0
         self._total_unique_count = 0
         self._errors = []
@@ -70,14 +71,14 @@ class LinkedInScraper(BaseScraper):
             len(self._errors),
         )
 
-        return {
-            'metadata': {
+        return ScraperRunResult(
+            metadata={
                 'total_count': self._total_count,
                 'total_unique_count': self._total_unique_count,
                 'error_count': len(self._errors),
             },
-            'errors': self._errors,
-        }
+            errors=self._errors,
+        )
 
     def _process_listing(self, listing: dict) -> None:
         url = listing['url']

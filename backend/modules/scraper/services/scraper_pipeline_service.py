@@ -19,8 +19,8 @@ def run_pipeline() -> None:
             logger.info('run marked Processing')
 
             result = scraper.run()
-            metadata = result['metadata']
-            errors = result['errors']
+            metadata = result.metadata
+            errors = result.errors
 
             if errors:
                 scraper_run_service.mark_failed(

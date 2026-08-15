@@ -1,12 +1,15 @@
 from abc import ABC, abstractmethod
 
+from modules.scraper.enums.scraper_name import ScraperName
+from modules.scraper.types import ScraperRunResult
+
 
 class BaseScraper(ABC):
     @property
     @abstractmethod
-    def name(self) -> str:
+    def name(self) -> ScraperName:
         """Unique identifier for this scraper, matches the value stored in scraper_runs.name."""
 
     @abstractmethod
-    def run(self) -> dict:
-        """Scrape job postings, inserting each non-duplicate one as it is found, and return run metadata."""
+    def run(self) -> ScraperRunResult:
+        """Scrape job postings, inserting each non-duplicate one as it is found, and return the run result."""
