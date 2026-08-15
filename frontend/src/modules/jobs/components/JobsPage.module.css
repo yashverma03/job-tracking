@@ -56,6 +56,11 @@
   @apply hover:bg-teal-900 disabled:opacity-50 disabled:hover:bg-teal-950;
 }
 
+.runScoringButton {
+  @apply rounded-lg border border-purple-700 bg-purple-950 px-4 py-2 text-sm font-semibold text-purple-200 shadow-sm transition-colors;
+  @apply hover:bg-purple-900 disabled:opacity-50 disabled:hover:bg-purple-950;
+}
+
 .statusText {
   @apply text-sm text-slate-400;
 }

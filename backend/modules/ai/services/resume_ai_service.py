@@ -1,26 +1,10 @@
-from datetime import datetime
-
-import anthropic
-
 from common.exceptions.api_exceptions import ApiError
-from common.utils.env import get_env
-from modules.ai.constants.ai_constants import (
-    ANTHROPIC_REQUEST_TIMEOUT_SECONDS,
-    CLAUDE_LOG_PATH,
-    RESUME_LINE_CHAR_LENGTH,
-)
+from modules.ai.constants.ai_constants import RESUME_GENERATION_CLAUDE_MODEL, RESUME_LINE_CHAR_LENGTH
+from modules.ai.services.anthropic_client_service import call_with_forced_tool
 from modules.resume.types.resume_types import ResumeAiOutput, ResumeInput
 from modules.resume.utils.text_cleaner import clean_job_description
 
-_client = anthropic.Anthropic(api_key=get_env('ANTHROPIC_API_KEY'), timeout=ANTHROPIC_REQUEST_TIMEOUT_SECONDS)
-
 _SUBMIT_TOOL_NAME = 'submit_resume_content'
-
-
-def _log_ai_call(message: str) -> None:
-    timestamp = datetime.now().isoformat(sep=' ', timespec='seconds')
-    with open(CLAUDE_LOG_PATH, 'a', encoding='utf-8') as f:
-        f.write(f'[{timestamp}] {message}\n')
 
 
 def _build_json_schema(resume_input: ResumeInput) -> dict:
@@ -159,44 +143,15 @@ emphasizes may be wrapped in "**"; treat anything wrapped that way as a high-pri
 
 
 def _call_anthropic_api(system_prompt: str, user_prompt: str, json_schema: dict) -> dict:
-    model = get_env('CLAUDE_MODEL')
-    _log_ai_call(f'REQUEST model={model} user_prompt_chars={len(user_prompt)}')
-
-    start = datetime.now()
-    try:
-        response = _client.messages.create(
-            model=model,
-            max_tokens=4096,
-            system=[
-                {
-                    'type': 'text',
-                    'text': system_prompt,
-                    'cache_control': {'type': 'ephemeral', 'ttl': '1h'},
-                },
-            ],
-            messages=[{'role': 'user', 'content': user_prompt}],
-            tools=[
-                {
-                    'name': _SUBMIT_TOOL_NAME,
-                    'description': 'Submit the tailored resume content.',
-                    'input_schema': json_schema,
-                },
-            ],
-            tool_choice={'type': 'tool', 'name': _SUBMIT_TOOL_NAME},
-        )
-    except anthropic.APIError as exc:
-        elapsed = (datetime.now() - start).total_seconds()
-        _log_ai_call(f'ERROR elapsed={elapsed:.1f}s {exc}')
-        raise ApiError(f'Anthropic API call failed: {exc}', status_code=500) from exc
-
-    elapsed = (datetime.now() - start).total_seconds()
-    _log_ai_call(f'RESPONSE elapsed={elapsed:.1f}s {response.model_dump_json()}')
-
-    tool_use_block = next((block for block in response.content if block.type == 'tool_use'), None)
-    if tool_use_block is None:
-        raise ApiError(f'Anthropic API did not return a tool_use block: {response.stop_reason}', status_code=500)
-
-    return tool_use_block.input
+    return call_with_forced_tool(
+        model=RESUME_GENERATION_CLAUDE_MODEL,
+        max_tokens=4096,
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        tool_name=_SUBMIT_TOOL_NAME,
+        tool_description='Submit the tailored resume content.',
+        json_schema=json_schema,
+    )
 
 
 def _parse_output(output: dict, resume_input: ResumeInput) -> ResumeAiOutput:

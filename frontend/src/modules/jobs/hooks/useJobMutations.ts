@@ -7,6 +7,7 @@ import {
   deleteJob,
   generateResumeForJob,
   generateResumes,
+  triggerJobScoring,
   triggerScraperPipeline,
   updateJob,
 } from '../../../common/api/jobs/jobs.service';
@@ -91,6 +92,21 @@ export function useJobMutations() {
     },
   });
 
+  const scoreJobsMutation = useMutation({
+    mutationFn: () => triggerJobScoring(),
+    onSuccess: (result) => {
+      if (result.queued) {
+        toast.success(result.message);
+      } else {
+        toast(result.message);
+      }
+      invalidateJobs();
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error) ?? 'Failed to queue AI scoring');
+    },
+  });
+
   const buildResumeMutation = useMutation({
     mutationFn: (jobId: number) => generateResumeForJob(jobId),
     onSuccess: () => {
@@ -111,5 +127,6 @@ export function useJobMutations() {
     generateResumesMutation,
     buildResumeMutation,
     fetchLatestJobsMutation,
+    scoreJobsMutation,
   };
 }

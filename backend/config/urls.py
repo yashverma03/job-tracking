@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/v1/', include('modules.jobs.urls')),
     path('api/v1/', include('modules.resume.urls')),
     path('api/v1/', include('modules.scraper.urls')),
+    path('api/v1/', include('modules.ai_scoring.urls')),
 ]

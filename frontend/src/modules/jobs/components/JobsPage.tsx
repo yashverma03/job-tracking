@@ -38,6 +38,7 @@ export function JobsPage() {
     generateResumesMutation,
     buildResumeMutation,
     fetchLatestJobsMutation,
+    scoreJobsMutation,
   } = useJobMutations();
 
   const jobs = useMemo(() => data?.items ?? [], [data]);
@@ -147,6 +148,14 @@ export function JobsPage() {
           onClick={() => fetchLatestJobsMutation.mutate()}
         >
           {fetchLatestJobsMutation.isPending ? 'Queuing...' : 'Get Latest Jobs'}
+        </button>
+        <button
+          type="button"
+          className={styles.runScoringButton}
+          disabled={scoreJobsMutation.isPending}
+          onClick={() => scoreJobsMutation.mutate()}
+        >
+          {scoreJobsMutation.isPending ? 'Queuing...' : 'Run AI Scoring'}
         </button>
         <button
           type="button"
