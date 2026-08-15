@@ -7,7 +7,7 @@ from common.exceptions.api_exceptions import ApiError
 from common.utils.env import get_env
 from modules.jobs.enums.job_status import JobStatus
 from modules.jobs.models import Job
-from modules.resume.services.resume_ai_service import generate_resume_content
+from modules.ai.services.resume_ai_service import generate_resume_content
 from modules.resume.services.resume_pdf_service import render_resume_pdf
 from modules.resume.types.resume_types import ResumeGenerationOutcome, ResumeInput
 from modules.resume.utils.resume_input_loader import load_resume_input

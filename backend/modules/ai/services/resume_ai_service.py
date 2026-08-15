@@ -4,12 +4,12 @@ import anthropic
 
 from common.exceptions.api_exceptions import ApiError
 from common.utils.env import get_env
-from modules.resume.types.resume_types import ResumeAiOutput, ResumeInput
-from modules.resume.utils.resume_constants import (
+from modules.ai.constants.ai_constants import (
     ANTHROPIC_REQUEST_TIMEOUT_SECONDS,
     CLAUDE_LOG_PATH,
     RESUME_LINE_CHAR_LENGTH,
 )
+from modules.resume.types.resume_types import ResumeAiOutput, ResumeInput
 from modules.resume.utils.text_cleaner import clean_job_description
 
 _client = anthropic.Anthropic(api_key=get_env('ANTHROPIC_API_KEY'), timeout=ANTHROPIC_REQUEST_TIMEOUT_SECONDS)
