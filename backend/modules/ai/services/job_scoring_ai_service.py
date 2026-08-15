@@ -5,7 +5,7 @@ from modules.resume.utils.resume_input_loader import load_resume_input
 
 _SUBMIT_TOOL_NAME = 'submit_job_score'
 
-_SYSTEM_PROMPT_TEMPLATE = """You are a job fit scorer. Analyze a job posting and determine how well it matches the \
+_SYSTEM_PROMPT_TEMPLATE = """You are a job fit scorer. Analyze a job posting and determine whether it matches the \
 candidate's job search preferences, then call the "submit_job_score" tool with your result.
 
 You will receive the company name, job title, job description, and location in the next message.
@@ -14,11 +14,14 @@ Thoroughly analyze the full job description before scoring — do not rely only 
 signals (e.g. broad role category, city) can often be inferred from the title and location alone, but details \
 such as salary, years of experience, work authorization, education qualification, and tech stack are frequently \
 only stated within the job description itself, so read it carefully for each of these before applying the gates \
-and scoring below.
+below.
+
+The score is binary: 100 if the job is a fit, 0 if it is not. Return a score of 0 if ANY hard gate below applies. \
+If NO hard gate applies, return a score of 100.
 
 ---
 
-## Hard Gates (score = 0, stop and return immediately — do not evaluate anything below)
+## Hard Gates (score = 0 if ANY of the following are true)
 
 Return a score of 0 and a short analysis stating which gate failed if ANY of the following are true:
 
@@ -55,46 +58,52 @@ If information for a gate criterion (experience, salary, or location) is not men
 that gate entirely — do not assume it fails, and do not penalize its absence anywhere else in scoring either. Only \
 gate on information that is explicitly present.
 
----
+In addition to the hard gates above, also return a score of 0 if ANY of the following checks fail (they are just \
+as much hard gates as the section above, not something that merely nudges the score):
 
-## Weighted Scoring (0-100), only when no hard gate applies
-
-Score holistically using these weighted factors. Never penalize a criterion that is simply not mentioned in the \
-job posting — score only on what is present.
-
-1. **Role fit (very high weight)** — Determine this from both the job title and the job description (the \
-description often reveals the true nature of the role even when the title alone is ambiguous or generic). Strong \
-matches: Backend Engineer, Software Engineer, Software Development Engineer, Backend Developer, Platform Engineer \
+- **Role fit** — Must match. Determine this from both the job title and the job description (the description \
+often reveals the true nature of the role even when the title alone is ambiguous or generic). Matches: Backend \
+Engineer, Software Engineer, Software Development Engineer, Backend Developer, Platform Engineer \
 (backend-focused), Java Developer, Python Developer, NodeJS Developer, Full Stack Developer (backend-heavy). \
 Small amounts of DevOps, AI, Cloud, or Data work are acceptable if backend engineering remains the primary \
-responsibility.
+responsibility — anything else does not match.
 
-2. **Tech stack overlap (moderate-high weight)** — Determine this from the job description, since the specific \
-technologies used are rarely stated in the title. Bonus proportional to overlap with: Languages (Java, Python, \
-JavaScript, TypeScript); Backend (Spring Boot, Hibernate, Django, Node.js, Express, NestJS); Databases (PostgreSQL, \
-MySQL, MongoDB, Redis); Messaging (Kafka, RabbitMQ); Cloud & DevOps (AWS, Docker, Kubernetes, Linux, CI/CD, Git, \
-GitHub Actions). Small bonus only for frontend tech (React, HTML, Redux, CSS, Tailwind CSS) — never a primary \
-driver of the score. Equivalent technologies to the above are acceptable.
+- **Tech stack overlap** — Must match. Determine this from the job description, since the specific technologies \
+used are rarely stated in the title. Identify the job's primary tech stack — the languages/frameworks/tools the \
+role is actually built around, not every technology mentioned in passing — including both backend and frontend \
+technologies. The candidate's tech stack is: {skills}.
 
-3. **Company quality (moderate weight, both directions)** — Give a meaningful bonus for a well-known/reputed \
-product company, a top MNC, or a reputed/well-funded startup. Reduce score for an obvious service/consulting/agency \
-company, a company with a poor engineering reputation, or a known toxic work culture. If nothing about company \
-quality can be inferred, treat as neutral.
+Before comparing, normalize both the job's tech stack and the candidate's tech stack: treat aliases, versions, and \
+closely related/equivalent technologies as the same technology rather than distinct ones (e.g. "JS" = \
+"JavaScript", "Node" = "Node.js", "Postgres" = "PostgreSQL", "K8s" = "Kubernetes", "React" = "React.js", a specific \
+framework version counts as a match for the framework itself). Also count a technology as a match if the \
+candidate's stack contains a directly equivalent/analogous technology in the same category (e.g. candidate has \
+MySQL and the job wants a different relational database, or candidate has Express and the job wants a different \
+Node.js web framework) — these should be treated as satisfying that part of the stack, not as a gap.
 
-4. **Red flags (moderate negative weight each)** — Reduce score if the posting mentions: 6-day work week, \
-rotational shifts, night shifts, on-call as a major responsibility, or "immediate joiners only."
+At least 80% of the job's normalized primary tech stack must overlap (directly or via an equivalent as described \
+above) with the candidate's normalized stack for this to match — anything less does not match.
 
-5. **Work mode** — Remote, Hybrid, and Onsite are all acceptable with no preference; do not score based on work \
-mode.
+- **Company quality** — Must pass. Fails if the company is an obvious service/third-party/staffing/consulting \
+agency (i.e. it builds software for other companies rather than its own product), or is known for a poor \
+engineering reputation or a toxic work culture. If nothing about company quality can be inferred, treat this check \
+as passing.
+
+- **Red flags** — Must pass. Fails if the posting mentions a 6-day work week, rotational shifts, night shifts, \
+on-call as a major responsibility, or "immediate joiners only".
+
+- **Work mode** — Always passes. Remote, Hybrid, and Onsite are all acceptable with no preference.
+
+The job is a fit (score 100) only if every check above passes. If any single check fails, the score is 0.
 
 ---
 
 ## Output
 
 Call the "submit_job_score" tool exactly once with:
-- "score": an integer from 0 to 100.
-- "analysis": 1-3 concise sentences covering why the score is high or low, major positives, any missing \
-information relevant to scoring, and any important red flags. Avoid unnecessary explanation.
+- "score": either 0 (not a fit) or 100 (a fit) — no value in between.
+- "analysis": 1-3 concise sentences covering why the job is or isn't a fit — if it fails, name every check that \
+failed, not just the first one. Avoid unnecessary explanation.
 
 Do not respond with plain text — only call the tool."""
 
@@ -105,6 +114,7 @@ def _build_system_prompt() -> str:
         min_experience_years=resume_input.min_experience_years,
         max_experience_years=resume_input.max_experience_years,
         expected_ctc_lpa=resume_input.expected_ctc_lpa,
+        skills=', '.join(resume_input.skills),
     )
 
 
@@ -120,7 +130,7 @@ def _build_json_schema() -> dict:
     return {
         'type': 'object',
         'properties': {
-            'score': {'type': 'integer', 'minimum': 0, 'maximum': 100},
+            'score': {'type': 'integer', 'enum': [0, 100]},
             'analysis': {'type': 'string'},
         },
         'required': ['score', 'analysis'],
