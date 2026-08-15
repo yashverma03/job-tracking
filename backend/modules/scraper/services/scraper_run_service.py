@@ -9,6 +9,12 @@ def create_pending_run(name: ScraperName) -> ScraperRun:
     return ScraperRun.objects.create(name=name, status=ScraperRunStatus.PENDING)
 
 
+def has_run_in_progress() -> bool:
+    return ScraperRun.objects.filter(
+        status__in=[ScraperRunStatus.PENDING, ScraperRunStatus.PROCESSING]
+    ).exists()
+
+
 def mark_processing(run: ScraperRun) -> None:
     run.status = ScraperRunStatus.PROCESSING
     run.save(update_fields=['status'])

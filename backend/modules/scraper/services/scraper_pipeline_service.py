@@ -1,4 +1,3 @@
-from django_q.models import Task
 from django_q.tasks import async_task
 
 from modules.scraper.scrapers.registry import get_enabled_scrapers
@@ -38,7 +37,7 @@ def run_pipeline() -> None:
 
 
 def _pipeline_in_progress() -> bool:
-    return Task.objects.filter(group=SCRAPER_PIPELINE_TASK_GROUP, stopped__isnull=True).exists()
+    return scraper_run_service.has_run_in_progress()
 
 
 def trigger_scraper_pipeline() -> dict:
