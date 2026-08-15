@@ -3,8 +3,10 @@ import re
 
 # Matches any HTML tag, e.g. <b>, </div>, <br/>
 HTML_TAG_PATTERN = re.compile(r'<[^>]+>')
-# Matches leading/trailing runs of whitespace or stray punctuation (_ , ' " -)
-TRIM_CHARS_PATTERN = re.compile(r"^[\s_,'\"\-]+|[\s_,'\"\-]+$")
+# Matches leading/trailing runs of whitespace or stray punctuation, including
+# non-ASCII dash variants (non-breaking hyphen, en/em dash, soft hyphen) that
+# sites like LinkedIn use in place of a plain "-"
+TRIM_CHARS_PATTERN = re.compile(r"^[\s_,'\"\-‐-―­]+|[\s_,'\"\-‐-―­]+$")
 # Matches 2+ consecutive spaces/tabs (newlines are left intact for multi-line text)
 MULTIPLE_SPACES_PATTERN = re.compile(r'[ \t]{2,}')
 

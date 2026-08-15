@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 
 from common.utils.env import get_env_int
 from modules.jobs.services import job_service, job_unique_key_service
+from modules.jobs.utils.url_cleaner import clean_job_url, extract_linkedin_job_id
 from modules.scraper.base.base_scraper import BaseScraper
 from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.types import ScraperRunResult
@@ -13,7 +14,6 @@ from modules.scraper.utils.user_agent_rotator import get_random_user_agent
 
 LISTING_URL = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search'
 DETAIL_URL_TEMPLATE = 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}'
-NORMALIZED_URL_TEMPLATE = 'https://www.linkedin.com/jobs/view/{job_id}'
 SEARCH_PAGE_REFERER = 'https://www.linkedin.com/jobs/search'
 PAGE_SIZE = 10
 REQUEST_TIMEOUT_SECONDS = 15
@@ -98,6 +98,17 @@ class LinkedInScraper(BaseScraper):
             self._logger.info('duplicate skipped: %s', url)
             return
 
+        missing_fields = [
+            field
+            for field in ('url', 'job_id', 'title', 'company_name', 'location')
+            if not listing.get(field)
+        ]
+        if missing_fields:
+            message = f'missing required fields: {", ".join(missing_fields)}'
+            self._logger.warning('job processing failed for %s: %s', url, message)
+            self._errors.append({'url': url, 'message': message})
+            return
+
         try:
             self._logger.info('fetching details for %s', url)
             description = self._fetch_job_details(job_id, referer=url)
@@ -137,8 +148,8 @@ class LinkedInScraper(BaseScraper):
             if link is None or not link.get('href'):
                 continue
 
-            raw_url = link['href'].split('?')[0].strip()
-            job_id = self._extract_job_id(raw_url)
+            raw_url = link['href'].strip()
+            job_id = extract_linkedin_job_id(raw_url)
             if job_id is None:
                 self._logger.warning('could not extract job id from url: %s', raw_url)
                 continue
@@ -149,7 +160,7 @@ class LinkedInScraper(BaseScraper):
 
             listings.append(
                 {
-                    'url': NORMALIZED_URL_TEMPLATE.format(job_id=job_id),
+                    'url': clean_job_url(raw_url),
                     'job_id': job_id,
                     'title': clean_text(title_el.get_text(strip=True) if title_el else None),
                     'company_name': clean_text(company_el.get_text(strip=True) if company_el else None),
@@ -158,12 +169,6 @@ class LinkedInScraper(BaseScraper):
             )
 
         return listings
-
-    @staticmethod
-    def _extract_job_id(url: str) -> str | None:
-        slug = url.rstrip('/').rsplit('/', 1)[-1]
-        job_id = slug.rsplit('-', 1)[-1]
-        return job_id if job_id.isdigit() else None
 
     def _fetch_job_details(self, job_id: str, referer: str) -> str | None:
         wait_between_requests()
