@@ -1,5 +1,7 @@
-import requests
+import random
+
 from bs4 import BeautifulSoup
+from curl_cffi import requests
 
 from common.utils.env import get_env_int
 from modules.jobs.services import job_service, job_unique_key_service
@@ -10,7 +12,16 @@ from modules.scraper.types import ScraperRunResult
 from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.scraper_logger import get_scraper_logger
 from modules.scraper.utils.text_cleaner import clean_text
-from modules.scraper.utils.user_agent_rotator import get_random_user_agent
+
+# One of these is chosen at random per scraper instance (i.e. per run), not per request,
+# so the TLS/HTTP fingerprint stays consistent across all requests in a session.
+IMPERSONATE_PROFILES = [
+    'chrome116', 'chrome119', 'chrome120', 'chrome123', 'chrome124',
+    'chrome131', 'chrome133a', 'chrome136',
+    'edge101',
+    'safari153', 'safari155', 'safari170', 'safari180', 'safari184',
+    'firefox133', 'firefox135',
+]
 
 LISTING_URL = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search'
 DETAIL_URL_TEMPLATE = 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}'
@@ -43,8 +54,10 @@ class LinkedInScraper(BaseScraper):
 
     def __init__(self):
         self._logger = get_scraper_logger(self.name)
-        self._session = requests.Session()
-        self._session.headers.update({**COMMON_HEADERS, 'User-Agent': get_random_user_agent()})
+        impersonate_profile = random.choice(IMPERSONATE_PROFILES)
+        self._session = requests.Session(impersonate=impersonate_profile)
+        self._session.headers.update(COMMON_HEADERS)
+        self._logger.info('using impersonate profile: %s', impersonate_profile)
         self._max_jobs_per_run = get_env_int(MAX_JOBS_PER_RUN_ENV_KEY)
         self._total_count = 0
         self._total_unique_count = 0
