@@ -7,7 +7,7 @@ _SUBMIT_TOOL_NAME = 'submit_job_score'
 _SYSTEM_PROMPT = """You are a job fit scorer. Analyze a job posting and determine how well it matches the \
 candidate's job search preferences, then call the "submit_job_score" tool with your result.
 
-You will receive the job's ID, company name, job title, job description, and location in the next message.
+You will receive the company name, job title, job description, and location in the next message.
 
 ---
 
@@ -71,17 +71,15 @@ mode.
 ## Output
 
 Call the "submit_job_score" tool exactly once with:
-- "jobId": the job ID provided in the next message, as a string.
 - "score": an integer from 0 to 100.
-- "analysis": 2-5 concise sentences covering why the score is high or low, major positives, any missing \
+- "analysis": 1-3 concise sentences covering why the score is high or low, major positives, any missing \
 information relevant to scoring, and any important red flags. Avoid unnecessary explanation.
 
 Do not respond with plain text — only call the tool."""
 
 
-def _build_user_prompt(job_id: int, company_name: str, title: str, description: str, location: str) -> str:
-    return f"""Job ID: {job_id}
-Company name: {company_name}
+def _build_user_prompt(company_name: str, title: str, description: str, location: str) -> str:
+    return f"""Company name: {company_name}
 Job title: {title}
 Location: {location}
 Job description:
@@ -92,11 +90,10 @@ def _build_json_schema() -> dict:
     return {
         'type': 'object',
         'properties': {
-            'jobId': {'type': 'string'},
             'score': {'type': 'integer', 'minimum': 0, 'maximum': 100},
             'analysis': {'type': 'string'},
         },
-        'required': ['jobId', 'score', 'analysis'],
+        'required': ['score', 'analysis'],
     }
 
 
@@ -113,7 +110,7 @@ def _call_anthropic_api(user_prompt: str, json_schema: dict) -> dict:
 
 
 def score_job(job_id: int, company_name: str, title: str, description: str, location: str) -> JobScoringOutcome:
-    user_prompt = _build_user_prompt(job_id, company_name, title, description, location)
+    user_prompt = _build_user_prompt(company_name, title, description, location)
     json_schema = _build_json_schema()
     output = _call_anthropic_api(user_prompt, json_schema)
 
