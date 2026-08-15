@@ -156,6 +156,26 @@ def create_job(data: dict) -> Job:
     return job
 
 
+def create_scraped_job(
+    title: str | None,
+    company_name: str | None,
+    location: str | None,
+    description: str | None,
+    url: str,
+) -> Job:
+    return create_job(
+        {
+            'title': title,
+            'company_name': company_name,
+            'location': location,
+            'description': description,
+            'url': url,
+            'status': JobStatus.PENDING,
+            'is_manual_created': False,
+        }
+    )
+
+
 def update_job(job_id: int, data: dict) -> Job:
     if data.get('url'):
         data['url'] = clean_job_url(data['url'])

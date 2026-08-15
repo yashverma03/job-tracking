@@ -3,10 +3,10 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
-from modules.jobs.services import job_unique_key_service
+from common.utils.env import get_env_int
+from modules.jobs.services import job_service, job_unique_key_service
 from modules.scraper.base.base_scraper import BaseScraper
 from modules.scraper.enums.scraper_name import ScraperName
-from modules.scraper.types.scraper_job_data import ScraperJobData
 from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.scraper_logger import get_scraper_logger
 from modules.scraper.utils.user_agent_rotator import get_random_user_agent
@@ -15,6 +15,7 @@ LISTING_URL = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/s
 DETAIL_URL_TEMPLATE = 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}'
 PAGE_SIZE = 10
 REQUEST_TIMEOUT_SECONDS = 15
+MAX_JOBS_PER_RUN_ENV_KEY = 'SCRAPER_MAX_JOBS_PER_RUN'
 
 DEFAULT_SEARCH_FILTERS = {
     'keywords': 'software',
@@ -35,49 +36,16 @@ class LinkedInScraper(BaseScraper):
     def __init__(self):
         self._logger = get_scraper_logger(self.name)
         self._session = requests.Session()
+        self._max_jobs_per_run = get_env_int(MAX_JOBS_PER_RUN_ENV_KEY)
         self._total_count = 0
         self._total_unique_count = 0
 
-    def get_data(self) -> list[ScraperJobData]:
-        listings = self._collect_listings()
-        self._total_count = len(listings)
-        self._logger.info('pagination complete, %s listing(s) found', self._total_count)
-
-        jobs: list[ScraperJobData] = []
-        for listing in listings:
-            url = listing['url']
-
-            if job_unique_key_service.is_duplicate(url, None):
-                self._logger.info('duplicate skipped: %s', url)
-                continue
-
-            self._logger.info('fetching details for %s', url)
-            description = self._fetch_job_details(url)
-
-            jobs.append(
-                ScraperJobData(
-                    url=url,
-                    title=listing['title'],
-                    company_name=listing['company_name'],
-                    location=listing['location'],
-                    description=description,
-                )
-            )
-
-        self._total_unique_count = len(jobs)
-        return jobs
-
-    def get_last_run_metadata(self) -> dict:
-        return {
-            'total_count': self._total_count,
-            'total_unique_count': self._total_unique_count,
-        }
-
-    def _collect_listings(self) -> list[dict]:
-        listings: list[dict] = []
+    def run(self) -> dict:
+        self._total_count = 0
+        self._total_unique_count = 0
         start = 0
 
-        while True:
+        while self._total_count < self._max_jobs_per_run:
             self._logger.info('fetching listing page start=%s', start)
             html = self._fetch_listing_page(start)
             page_listings = self._parse_listing_html(html)
@@ -85,11 +53,49 @@ class LinkedInScraper(BaseScraper):
             if not page_listings:
                 break
 
-            listings.extend(page_listings)
+            for listing in page_listings:
+                if self._total_count >= self._max_jobs_per_run:
+                    break
+
+                self._total_count += 1
+                self._process_listing(listing)
+
             start += PAGE_SIZE
             wait_between_requests()
 
-        return listings
+        self._logger.info(
+            'run complete, checked=%s inserted=%s', self._total_count, self._total_unique_count
+        )
+
+        return {
+            'total_count': self._total_count,
+            'total_unique_count': self._total_unique_count,
+        }
+
+    def _process_listing(self, listing: dict) -> None:
+        url = listing['url']
+
+        if job_unique_key_service.is_duplicate(url, None):
+            self._logger.info('duplicate skipped: %s', url)
+            return
+
+        self._logger.info('fetching details for %s', url)
+        description = self._fetch_job_details(url)
+
+        try:
+            job_service.create_scraped_job(
+                title=listing['title'],
+                company_name=listing['company_name'],
+                location=listing['location'],
+                description=description,
+                url=url,
+            )
+        except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the run
+            self._logger.warning('job insert failed for %s: %s', url, exc)
+            return
+
+        self._total_unique_count += 1
+        self._logger.info('job inserted: %s', url)
 
     def _fetch_listing_page(self, start: int) -> str:
         params = {**DEFAULT_SEARCH_FILTERS, 'start': start}
