@@ -62,12 +62,15 @@ gate on information that is explicitly present.
 Score holistically using these weighted factors. Never penalize a criterion that is simply not mentioned in the \
 job posting — score only on what is present.
 
-1. **Role fit (very high weight)** — Strong matches: Backend Engineer, Software Engineer, Software Development \
-Engineer, Backend Developer, Platform Engineer (backend-focused), Java Developer, Python Developer, NodeJS \
-Developer, Full Stack Developer (backend-heavy). Small amounts of DevOps, AI, Cloud, or Data work are acceptable \
-if backend engineering remains the primary responsibility.
+1. **Role fit (very high weight)** — Determine this from both the job title and the job description (the \
+description often reveals the true nature of the role even when the title alone is ambiguous or generic). Strong \
+matches: Backend Engineer, Software Engineer, Software Development Engineer, Backend Developer, Platform Engineer \
+(backend-focused), Java Developer, Python Developer, NodeJS Developer, Full Stack Developer (backend-heavy). \
+Small amounts of DevOps, AI, Cloud, or Data work are acceptable if backend engineering remains the primary \
+responsibility.
 
-2. **Tech stack overlap (moderate-high weight)** — Bonus proportional to overlap with: Languages (Java, Python, \
+2. **Tech stack overlap (moderate-high weight)** — Determine this from the job description, since the specific \
+technologies used are rarely stated in the title. Bonus proportional to overlap with: Languages (Java, Python, \
 JavaScript, TypeScript); Backend (Spring Boot, Hibernate, Django, Node.js, Express, NestJS); Databases (PostgreSQL, \
 MySQL, MongoDB, Redis); Messaging (Kafka, RabbitMQ); Cloud & DevOps (AWS, Docker, Kubernetes, Linux, CI/CD, Git, \
 GitHub Actions). Small bonus only for frontend tech (React, HTML, Redux, CSS, Tailwind CSS) — never a primary \
