@@ -7,11 +7,12 @@ from modules.scraper.base.base_scraper import BaseScraper
 from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.scraper_logger import get_scraper_logger
+from modules.scraper.utils.text_cleaner import clean_text
 from modules.scraper.utils.user_agent_rotator import get_random_user_agent
 
 LISTING_URL = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search'
 DETAIL_URL_TEMPLATE = 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}'
-NORMALIZED_URL_TEMPLATE = 'https://www.linkedin.com/jobs/view/{job_id}/'
+NORMALIZED_URL_TEMPLATE = 'https://www.linkedin.com/jobs/view/{job_id}'
 PAGE_SIZE = 10
 REQUEST_TIMEOUT_SECONDS = 15
 MAX_JOBS_PER_RUN_ENV_KEY = 'SCRAPER_MAX_JOBS_PER_RUN'
@@ -137,9 +138,9 @@ class LinkedInScraper(BaseScraper):
                 {
                     'url': NORMALIZED_URL_TEMPLATE.format(job_id=job_id),
                     'job_id': job_id,
-                    'title': title_el.get_text(strip=True) if title_el else None,
-                    'company_name': company_el.get_text(strip=True) if company_el else None,
-                    'location': location_el.get_text(strip=True) if location_el else None,
+                    'title': clean_text(title_el.get_text(strip=True) if title_el else None),
+                    'company_name': clean_text(company_el.get_text(strip=True) if company_el else None),
+                    'location': clean_text(location_el.get_text(strip=True) if location_el else None),
                 }
             )
 
@@ -168,4 +169,4 @@ class LinkedInScraper(BaseScraper):
         description_el = soup.find('div', class_='show-more-less-html__markup')
         if description_el is None:
             return None
-        return description_el.get_text(separator='\n', strip=True)
+        return clean_text(description_el.get_text(separator='\n', strip=True))
