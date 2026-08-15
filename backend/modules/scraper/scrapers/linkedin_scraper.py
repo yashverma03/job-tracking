@@ -71,9 +71,11 @@ class LinkedInScraper(BaseScraper):
         )
 
         return {
-            'total_count': self._total_count,
-            'total_unique_count': self._total_unique_count,
-            'error_count': len(self._errors),
+            'metadata': {
+                'total_count': self._total_count,
+                'total_unique_count': self._total_unique_count,
+                'error_count': len(self._errors),
+            },
             'errors': self._errors,
         }
 

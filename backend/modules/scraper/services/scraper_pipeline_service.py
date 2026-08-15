@@ -18,16 +18,17 @@ def run_pipeline() -> None:
             scraper_run_service.mark_processing(run)
             logger.info('run marked Processing')
 
-            metadata = scraper.run()
-            error_count = metadata.get('error_count', 0)
+            result = scraper.run()
+            metadata = result['metadata']
+            errors = result['errors']
 
-            if error_count:
+            if errors:
                 scraper_run_service.mark_failed(
                     run,
-                    error={'message': f'{error_count} job(s) failed during the run.'},
+                    error={'message': f'{len(errors)} job(s) failed during the run.', 'errors': errors},
                     metadata=metadata,
                 )
-                logger.error('run finished: Failed error_count=%s', error_count)
+                logger.error('run finished: Failed error_count=%s', len(errors))
             else:
                 scraper_run_service.mark_success(run, metadata=metadata)
                 logger.info('run finished: Success')
