@@ -1,10 +1,11 @@
 from modules.ai.services.anthropic_client_service import call_with_forced_tool
 from modules.ai_scoring.constants.ai_scoring_constants import JOB_SCORING_CLAUDE_MODEL
 from modules.ai_scoring.types.job_scoring_types import JobScoringOutcome
+from modules.resume.utils.resume_input_loader import load_resume_input
 
 _SUBMIT_TOOL_NAME = 'submit_job_score'
 
-_SYSTEM_PROMPT = """You are a job fit scorer. Analyze a job posting and determine how well it matches the \
+_SYSTEM_PROMPT_TEMPLATE = """You are a job fit scorer. Analyze a job posting and determine how well it matches the \
 candidate's job search preferences, then call the "submit_job_score" tool with your result.
 
 You will receive the company name, job title, job description, and location in the next message.
@@ -33,9 +34,20 @@ Rails, PHP, or Laravel.
 or excludes B.Tech holders).
 - The job explicitly requires work authorization/visa for a country other than India (candidate holds an India visa \
 and can work in India only).
-- Years of experience is explicitly mentioned in the job description and the candidate's 1-2.8 years does not fall \
-within the stated range.
-- Salary is explicitly mentioned in the job description and is below 12 LPA.
+- Years of experience is explicitly mentioned in the job description and the candidate's {min_experience_years}-\
+{max_experience_years} years does not fall within the stated range. Experience requirements can appear in many \
+different phrasings and places throughout the description (not just a single dedicated field) — e.g. "minimum X \
+years", "at least X years", "X+ years", "X-Y years of experience", "preferred experience: X years", "X years of \
+experience in <tech stack>", "0-X years", "junior/entry-level (X-Y years)", "senior (X+ years)". Scan the entire \
+description for every such mention, not just the first one, since a stated range for a specific tech stack or \
+responsibility can be a stricter gate than a general "years of experience" line elsewhere. From all mentions \
+found, determine the actual overall minimum and maximum years being asked for (a single number like "X+ years" or \
+"minimum X years" means minimum = X with no upper bound; "preferred X years" should be treated as the same kind of \
+signal as a stated requirement, not ignored just because it says "preferred"). Only gate on this if the \
+candidate's {min_experience_years}-{max_experience_years} years range does not overlap at all with the determined \
+minimum-maximum range — i.e. gate only if the job's minimum is above {max_experience_years} or the job's maximum \
+is below {min_experience_years}.
+- Salary is explicitly mentioned in the job description and is below {expected_ctc_lpa} LPA.
 - Location is explicitly mentioned and is not one of: Delhi, Gurgaon, Noida, Bangalore, Hyderabad, Pune, Chennai, \
 Mumbai, Remote, or "India" with no city specified.
 
@@ -84,6 +96,15 @@ information relevant to scoring, and any important red flags. Avoid unnecessary 
 Do not respond with plain text — only call the tool."""
 
 
+def _build_system_prompt() -> str:
+    resume_input = load_resume_input()
+    return _SYSTEM_PROMPT_TEMPLATE.format(
+        min_experience_years=resume_input.min_experience_years,
+        max_experience_years=resume_input.max_experience_years,
+        expected_ctc_lpa=resume_input.expected_ctc_lpa,
+    )
+
+
 def _build_user_prompt(company_name: str, title: str, description: str, location: str) -> str:
     return f"""Company name: {company_name}
 Job title: {title}
@@ -103,11 +124,11 @@ def _build_json_schema() -> dict:
     }
 
 
-def _call_anthropic_api(user_prompt: str, json_schema: dict) -> dict:
+def _call_anthropic_api(system_prompt: str, user_prompt: str, json_schema: dict) -> dict:
     return call_with_forced_tool(
         model=JOB_SCORING_CLAUDE_MODEL,
         max_tokens=1024,
-        system_prompt=_SYSTEM_PROMPT,
+        system_prompt=system_prompt,
         user_prompt=user_prompt,
         tool_name=_SUBMIT_TOOL_NAME,
         tool_description='Submit the job fit score and analysis.',
@@ -116,9 +137,10 @@ def _call_anthropic_api(user_prompt: str, json_schema: dict) -> dict:
 
 
 def score_job(job_id: int, company_name: str, title: str, description: str, location: str) -> JobScoringOutcome:
+    system_prompt = _build_system_prompt()
     user_prompt = _build_user_prompt(company_name, title, description, location)
     json_schema = _build_json_schema()
-    output = _call_anthropic_api(user_prompt, json_schema)
+    output = _call_anthropic_api(system_prompt, user_prompt, json_schema)
 
     return JobScoringOutcome(
         job_id=job_id,

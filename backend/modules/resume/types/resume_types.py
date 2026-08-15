@@ -46,7 +46,10 @@ class ResumeInput(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
     contact: ResumeContact
-    years_of_experience: str
+    years_of_experience: float
+    min_experience_years: float
+    max_experience_years: float
+    expected_ctc_lpa: float
     base_summary: str
     skills_summary: str
     experience: list[ResumeExperienceEntry]
