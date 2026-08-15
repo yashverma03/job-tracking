@@ -7,6 +7,7 @@ class JobStatus(models.TextChoices):
     IN_PROGRESS = 'In Progress', 'In Progress'
     REJECTED = 'Rejected', 'Rejected'
     NOT_CONSIDERING = 'Not considering', 'Not considering'
-    OTHER = 'Other', 'Other'
+    NOT_RELEVANT = 'Not relevant', 'Not relevant'
     PENDING = 'Pending', 'Pending'
     DUPLICATE = 'Duplicate', 'Duplicate'
+    OTHER = 'Other', 'Other'

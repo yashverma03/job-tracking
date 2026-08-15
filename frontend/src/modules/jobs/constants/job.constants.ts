@@ -4,9 +4,10 @@ export const JOB_STATUS_OPTIONS = [
   'In Progress',
   'Rejected',
   'Not considering',
-  'Other',
+  'Not relevant',
   'Pending',
   'Duplicate',
+  'Other',
 ] as const;
 
 export const JOB_REFERRAL_STATUS_OPTIONS = [
