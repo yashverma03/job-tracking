@@ -9,6 +9,12 @@ candidate's job search preferences, then call the "submit_job_score" tool with y
 
 You will receive the company name, job title, job description, and location in the next message.
 
+Thoroughly analyze the full job description before scoring — do not rely only on the title and location. Some \
+signals (e.g. broad role category, city) can often be inferred from the title and location alone, but details \
+such as salary, years of experience, work authorization, education qualification, and tech stack are frequently \
+only stated within the job description itself, so read it carefully for each of these before applying the gates \
+and scoring below.
+
 ---
 
 ## Hard Gates (score = 0, stop and return immediately — do not evaluate anything below)
