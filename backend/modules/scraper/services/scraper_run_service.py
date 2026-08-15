@@ -20,8 +20,9 @@ def mark_success(run: ScraperRun, metadata: dict | None = None) -> None:
     run.save(update_fields=['status', 'metadata', 'completed_at'])
 
 
-def mark_failed(run: ScraperRun, error: dict) -> None:
+def mark_failed(run: ScraperRun, error: dict, metadata: dict | None = None) -> None:
     run.status = ScraperRunStatus.FAILED
     run.error = error
+    run.metadata = metadata
     run.completed_at = timezone.now()
-    run.save(update_fields=['status', 'error', 'completed_at'])
+    run.save(update_fields=['status', 'error', 'metadata', 'completed_at'])

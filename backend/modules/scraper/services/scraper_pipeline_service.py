@@ -19,9 +19,18 @@ def run_pipeline() -> None:
             logger.info('run marked Processing')
 
             metadata = scraper.run()
+            error_count = metadata.get('error_count', 0)
 
-            scraper_run_service.mark_success(run, metadata=metadata)
-            logger.info('run finished: Success')
+            if error_count:
+                scraper_run_service.mark_failed(
+                    run,
+                    error={'message': f'{error_count} job(s) failed during the run.'},
+                    metadata=metadata,
+                )
+                logger.error('run finished: Failed error_count=%s', error_count)
+            else:
+                scraper_run_service.mark_success(run, metadata=metadata)
+                logger.info('run finished: Success')
         except Exception as exc:  # noqa: BLE001 - one scraper's failure must not abort remaining scrapers
             scraper_run_service.mark_failed(run, {'message': str(exc)})
             logger.error('run finished: Failed error=%s', exc)
