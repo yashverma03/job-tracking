@@ -1,9 +1,13 @@
 import random
 import time
 
-MIN_DELAY_SECONDS = 2.0
-MAX_DELAY_SECONDS = 5.0
+from common.utils.env import get_env_int
+
+MIN_DELAY_MS_ENV_KEY = 'SCRAPER_MIN_DELAY_MS'
+MAX_DELAY_MS_ENV_KEY = 'SCRAPER_MAX_DELAY_MS'
 
 
-def wait_between_requests(min_seconds: float = MIN_DELAY_SECONDS, max_seconds: float = MAX_DELAY_SECONDS) -> None:
-    time.sleep(random.uniform(min_seconds, max_seconds))
+def wait_between_requests() -> None:
+    min_ms = get_env_int(MIN_DELAY_MS_ENV_KEY)
+    max_ms = get_env_int(MAX_DELAY_MS_ENV_KEY)
+    time.sleep(random.uniform(min_ms, max_ms) / 1000)

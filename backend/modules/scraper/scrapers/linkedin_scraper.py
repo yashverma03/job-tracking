@@ -14,9 +14,18 @@ from modules.scraper.utils.user_agent_rotator import get_random_user_agent
 LISTING_URL = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search'
 DETAIL_URL_TEMPLATE = 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}'
 NORMALIZED_URL_TEMPLATE = 'https://www.linkedin.com/jobs/view/{job_id}'
+SEARCH_PAGE_REFERER = 'https://www.linkedin.com/jobs/search'
 PAGE_SIZE = 10
 REQUEST_TIMEOUT_SECONDS = 15
 MAX_JOBS_PER_RUN_ENV_KEY = 'SCRAPER_MAX_JOBS_PER_RUN'
+
+COMMON_HEADERS = {
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'same-origin',
+}
 
 DEFAULT_SEARCH_FILTERS = {
     'keywords': 'software',
@@ -35,6 +44,7 @@ class LinkedInScraper(BaseScraper):
     def __init__(self):
         self._logger = get_scraper_logger(self.name)
         self._session = requests.Session()
+        self._session.headers.update({**COMMON_HEADERS, 'User-Agent': get_random_user_agent()})
         self._max_jobs_per_run = get_env_int(MAX_JOBS_PER_RUN_ENV_KEY)
         self._total_count = 0
         self._total_unique_count = 0
@@ -90,7 +100,7 @@ class LinkedInScraper(BaseScraper):
 
         try:
             self._logger.info('fetching details for %s', url)
-            description = self._fetch_job_details(job_id)
+            description = self._fetch_job_details(job_id, referer=url)
 
             job_service.create_scraped_job(
                 title=listing['title'],
@@ -112,7 +122,7 @@ class LinkedInScraper(BaseScraper):
         response = self._session.get(
             LISTING_URL,
             params=params,
-            headers={'User-Agent': get_random_user_agent()},
+            headers={'Referer': SEARCH_PAGE_REFERER},
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
@@ -155,13 +165,13 @@ class LinkedInScraper(BaseScraper):
         job_id = slug.rsplit('-', 1)[-1]
         return job_id if job_id.isdigit() else None
 
-    def _fetch_job_details(self, job_id: str) -> str | None:
+    def _fetch_job_details(self, job_id: str, referer: str) -> str | None:
         wait_between_requests()
 
         detail_url = DETAIL_URL_TEMPLATE.format(job_id=job_id)
         response = self._session.get(
             detail_url,
-            headers={'User-Agent': get_random_user_agent()},
+            headers={'Referer': referer},
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
