@@ -3,7 +3,7 @@ import random
 from bs4 import BeautifulSoup
 from curl_cffi import requests
 
-from common.utils.env import get_env_int
+from common.utils.env import get_env, get_env_int
 from modules.jobs.services import job_service, job_unique_key_service
 from modules.jobs.utils.url_cleaner import clean_job_url, extract_linkedin_job_id
 from modules.scraper.base.base_scraper import BaseScraper
@@ -29,6 +29,10 @@ SEARCH_PAGE_REFERER = 'https://www.linkedin.com/jobs/search'
 PAGE_SIZE = 10
 REQUEST_TIMEOUT_SECONDS = 15
 MAX_JOBS_PER_RUN_ENV_KEY = 'SCRAPER_MAX_JOBS_PER_RUN'
+PROXY_HOST_ENV_KEY = 'SCRAPER_PROXY_HOST'
+PROXY_PORT_ENV_KEY = 'SCRAPER_PROXY_PORT'
+PROXY_USERNAME_ENV_KEY = 'SCRAPER_PROXY_USERNAME'
+PROXY_PASSWORD_ENV_KEY = 'SCRAPER_PROXY_PASSWORD'
 
 COMMON_HEADERS = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -58,10 +62,23 @@ class LinkedInScraper(BaseScraper):
         self._session = requests.Session(impersonate=impersonate_profile)
         self._session.headers.update(COMMON_HEADERS)
         self._logger.info('using impersonate profile: %s', impersonate_profile)
+
+        proxy_url = self._build_proxy_url()
+        self._session.proxies = {'http': proxy_url, 'https': proxy_url}
+        self._logger.info('using proxy: %s', PROXY_HOST_ENV_KEY)
+
         self._max_jobs_per_run = get_env_int(MAX_JOBS_PER_RUN_ENV_KEY)
         self._total_count = 0
         self._total_unique_count = 0
         self._errors: list[dict] = []
+
+    @staticmethod
+    def _build_proxy_url() -> str:
+        host = get_env(PROXY_HOST_ENV_KEY)
+        port = get_env(PROXY_PORT_ENV_KEY)
+        username = get_env(PROXY_USERNAME_ENV_KEY)
+        password = get_env(PROXY_PASSWORD_ENV_KEY)
+        return f'http://{username}:{password}@{host}:{port}'
 
     def run(self) -> ScraperRunResult:
         self._total_count = 0
