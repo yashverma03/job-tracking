@@ -1,4 +1,5 @@
 import random
+import secrets
 
 from bs4 import BeautifulSoup
 from curl_cffi import requests
@@ -34,6 +35,13 @@ PROXY_PORT_ENV_KEY = 'SCRAPER_PROXY_PORT'
 PROXY_USERNAME_ENV_KEY = 'SCRAPER_PROXY_USERNAME'
 PROXY_PASSWORD_ENV_KEY = 'SCRAPER_PROXY_PASSWORD'
 
+# DataImpulse session-id parameter (https://docs.dataimpulse.com/proxies/parameters/session-id):
+# appending `__sessid.<id>` to the username pins the proxy to one IP until we mint a new session id.
+# We rotate that id ourselves every MIN..MAX_PROXY_ROTATION_REQUESTS requests to get a fresh IP.
+MIN_PROXY_ROTATION_REQUESTS = 50
+MAX_PROXY_ROTATION_REQUESTS = 150
+IP_CHECK_URL = 'https://api.ipify.org?format=json'
+
 COMMON_HEADERS = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.9',
@@ -63,22 +71,52 @@ class LinkedInScraper(BaseScraper):
         self._session.headers.update(COMMON_HEADERS)
         self._logger.info('using impersonate profile: %s', impersonate_profile)
 
-        proxy_url = self._build_proxy_url()
-        self._session.proxies = {'http': proxy_url, 'https': proxy_url}
-        self._logger.info('using proxy: %s', PROXY_HOST_ENV_KEY)
+        self._proxy_host = get_env(PROXY_HOST_ENV_KEY)
+        self._proxy_port = get_env(PROXY_PORT_ENV_KEY)
+        self._proxy_username = get_env(PROXY_USERNAME_ENV_KEY)
+        self._proxy_password = get_env(PROXY_PASSWORD_ENV_KEY)
+        self._requests_since_rotation = 0
+        self._requests_until_rotation = 0
+        self._rotate_proxy_session()
 
         self._max_jobs_per_run = get_env_int(MAX_JOBS_PER_RUN_ENV_KEY)
         self._total_count = 0
         self._total_unique_count = 0
         self._errors: list[dict] = []
 
-    @staticmethod
-    def _build_proxy_url() -> str:
-        host = get_env(PROXY_HOST_ENV_KEY)
-        port = get_env(PROXY_PORT_ENV_KEY)
-        username = get_env(PROXY_USERNAME_ENV_KEY)
-        password = get_env(PROXY_PASSWORD_ENV_KEY)
-        return f'http://{username}:{password}@{host}:{port}'
+    def _build_proxy_url(self, session_id: str) -> str:
+        username = f'{self._proxy_username}__sessid.{session_id}'
+        return f'http://{username}:{self._proxy_password}@{self._proxy_host}:{self._proxy_port}'
+
+    def _rotate_proxy_session(self) -> None:
+        session_id = secrets.token_hex(8)
+        proxy_url = self._build_proxy_url(session_id)
+        self._session.proxies = {'http': proxy_url, 'https': proxy_url}
+        self._requests_since_rotation = 0
+        self._requests_until_rotation = random.randint(
+            MIN_PROXY_ROTATION_REQUESTS, MAX_PROXY_ROTATION_REQUESTS
+        )
+        self._logger.info(
+            'rotated proxy session id=%s, next rotation after %s requests',
+            session_id,
+            self._requests_until_rotation,
+        )
+        self._log_current_proxy_ip()
+
+    def _log_current_proxy_ip(self) -> None:
+        try:
+            response = self._session.get(IP_CHECK_URL, timeout=REQUEST_TIMEOUT_SECONDS)
+            response.raise_for_status()
+            self._logger.info('current proxy egress ip (as seen by LinkedIn): %s', response.json()['ip'])
+        except Exception as exc:  # noqa: BLE001 - IP check failure must not abort the run
+            self._logger.warning('failed to check proxy egress ip: %s', exc)
+
+    def _request(self, url: str, **kwargs) -> requests.Response:
+        if self._requests_since_rotation >= self._requests_until_rotation:
+            self._rotate_proxy_session()
+
+        self._requests_since_rotation += 1
+        return self._session.get(url, **kwargs)
 
     def run(self) -> ScraperRunResult:
         self._total_count = 0
@@ -160,7 +198,7 @@ class LinkedInScraper(BaseScraper):
 
     def _fetch_listing_page(self, start: int) -> str:
         params = {**DEFAULT_SEARCH_FILTERS, 'start': start}
-        response = self._session.get(
+        response = self._request(
             LISTING_URL,
             params=params,
             headers={'Referer': SEARCH_PAGE_REFERER},
@@ -204,7 +242,7 @@ class LinkedInScraper(BaseScraper):
         wait_between_requests()
 
         detail_url = DETAIL_URL_TEMPLATE.format(job_id=job_id)
-        response = self._session.get(
+        response = self._request(
             detail_url,
             headers={'Referer': referer},
             timeout=REQUEST_TIMEOUT_SECONDS,
