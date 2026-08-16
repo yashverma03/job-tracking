@@ -54,7 +54,6 @@ INSTALLED_APPS = [
     'modules.jobs',
     'modules.resume',
     'modules.scraper',
-    'modules.ai_scoring',
 ]
 
 MIDDLEWARE = [

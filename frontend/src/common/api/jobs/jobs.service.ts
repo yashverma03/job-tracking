@@ -8,7 +8,6 @@ import type {
   JobListQueryParams,
   JobListResponse,
   JobResponse,
-  JobScoringQueuedResponse,
   JobStatsResponse,
   JobUpdateRequest,
   ScraperPipelineQueuedResponse,
@@ -83,11 +82,6 @@ export async function fetchJobStats(): Promise<JobStatsResponse> {
 
 export async function triggerScraperPipeline(): Promise<ScraperPipelineQueuedResponse> {
   const { data } = await client.post<ScraperPipelineQueuedResponse>('/scraper');
-  return data;
-}
-
-export async function triggerJobScoring(): Promise<JobScoringQueuedResponse> {
-  const { data } = await client.post<JobScoringQueuedResponse>('/jobs/score');
   return data;
 }
 

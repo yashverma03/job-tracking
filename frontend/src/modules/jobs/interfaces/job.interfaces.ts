@@ -54,12 +54,6 @@ export interface ScraperPipelineQueuedResponse {
   message: string;
 }
 
-export interface JobScoringQueuedResponse {
-  queued: boolean;
-  processing: number;
-  message: string;
-}
-
 export interface JobFormValues {
   url: string;
   secondaryUrl: string;
