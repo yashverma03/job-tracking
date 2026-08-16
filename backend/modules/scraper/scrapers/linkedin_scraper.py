@@ -107,7 +107,7 @@ class LinkedInScraper(BaseScraper):
         try:
             response = self._session.get(IP_CHECK_URL, timeout=REQUEST_TIMEOUT_SECONDS)
             response.raise_for_status()
-            self._logger.info('current proxy egress ip (as seen by LinkedIn): %s', response.json()['ip'])
+            self._logger.info('Proxy IP: %s', response.json()['ip'])
         except Exception as exc:  # noqa: BLE001 - IP check failure must not abort the run
             self._logger.warning('failed to check proxy egress ip: %s', exc)
 
