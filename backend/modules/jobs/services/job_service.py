@@ -191,6 +191,20 @@ def update_job(job_id: int, data: dict) -> Job:
     return job
 
 
+def update_job_score(job_id: int, score: int, analysis: str) -> Job:
+    job = get_job(job_id)
+    job.score = score
+    job.analysis = analysis
+    update_fields = ['score', 'analysis']
+
+    if job.status == JobStatus.PENDING:
+        job.status = JobStatus.TO_APPLY if score == 100 else JobStatus.NOT_RELEVANT
+        update_fields.append('status')
+
+    job.save(update_fields=update_fields)
+    return job
+
+
 def mark_url_seen(url: str) -> str:
     cleaned_url = clean_job_url(url)
     return job_unique_key_service.mark_url_seen(cleaned_url)

@@ -10,6 +10,7 @@ from modules.jobs.dto import (
     JobCreateDTO,
     JobListQueryDTO,
     JobResponseDTO,
+    JobScoreUpdateDTO,
     JobSuggestionsQueryDTO,
     JobUpdateDTO,
     MarkUrlSeenDTO,
@@ -48,6 +49,13 @@ class JobDetailView(APIView):
     def delete(self, request, job_id):
         job_service.soft_delete_job(job_id)
         return Response(status=204)
+
+
+class JobScoreUpdateView(APIView):
+    def patch(self, request, job_id):
+        data = validate(JobScoreUpdateDTO(data=request.data))
+        updated_job = job_service.update_job_score(job_id, data['score'], data['analysis'])
+        return Response(JobResponseDTO(updated_job).data)
 
 
 class MarkUrlSeenView(APIView):
