@@ -41,7 +41,8 @@ and can work in India only).
 {max_experience_years} years does not fall within the stated range. Experience requirements can appear in many \
 different phrasings and places throughout the description (not just a single dedicated field) — e.g. "minimum X \
 years", "at least X years", "X+ years", "X-Y years of experience", "preferred experience: X years", "X years of \
-experience in <tech stack>", "0-X years", "junior/entry-level (X-Y years)", "senior (X+ years)". Scan the entire \
+experience in <tech stack>", "0-X years", "junior/entry-level (X-Y years)", "senior (X+ years)", "X YOE", "X+ YOE", \
+"X-Y YOE", "YOE: X", "X yrs", "X-Y yrs". Scan the entire \
 description for every such mention, not just the first one, since a stated range for a specific tech stack or \
 responsibility can be a stricter gate than a general "years of experience" line elsewhere. From all mentions \
 found, determine the actual overall minimum and maximum years being asked for (a single number like "X+ years" or \
