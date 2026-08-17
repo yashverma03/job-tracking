@@ -35,10 +35,10 @@ const COLUMNS: Column[] = [
   { key: 'companyName', label: 'Company name', width: 140 },
   { key: 'title', label: 'Title', width: 160 },
   { key: 'officialId', label: 'Official ID', width: 110 },
-  { key: 'description', label: 'Description', truncate: true, width: 100 },
-  { key: 'location', label: 'Location', width: 130 },
-  { key: 'score', label: 'Score', width: 80 },
-  { key: 'analysis', label: 'Analysis', truncate: true, width: 140 },
+  { key: 'description', label: 'Description', truncate: true, width: 95 },
+  { key: 'location', label: 'Location', width: 100 },
+  { key: 'score', label: 'Score', width: 60 },
+  { key: 'analysis', label: 'Analysis', truncate: true, width: 80 },
 ];
 
 function buildResumeFileUrl(jobId: number): string {
@@ -52,7 +52,7 @@ const DATE_COLUMN_WIDTH = 120;
 const DATE_FORMAT = 'DD MMM YYYY';
 const STATUS_COLUMN_WIDTH = 170;
 const REFERRAL_STATUS_COLUMN_WIDTH = 220;
-const RESUME_GENERATED_COLUMN_WIDTH = 130;
+const RESUME_GENERATED_COLUMN_WIDTH = 90;
 const MESSAGES_COLUMN_WIDTH = 224;
 
 interface JobsTableProps {
