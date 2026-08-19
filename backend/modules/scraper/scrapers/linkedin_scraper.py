@@ -3,6 +3,7 @@ import secrets
 
 from bs4 import BeautifulSoup
 from curl_cffi import requests
+from curl_cffi.requests.exceptions import HTTPError
 
 from common.utils.env import get_env, get_env_int
 from common.utils.http import get_with_retry
@@ -29,6 +30,7 @@ LISTING_URL = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/s
 DETAIL_URL_TEMPLATE = 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}'
 SEARCH_PAGE_REFERER = 'https://www.linkedin.com/jobs/search'
 PAGE_SIZE = 10
+MAX_CONSECUTIVE_EMPTY_PAGES = 2
 REQUEST_TIMEOUT_SECONDS = 15
 MAX_JOBS_PER_RUN_ENV_KEY = 'SCRAPER_MAX_JOBS_PER_RUN'
 PROXY_HOST_ENV_KEY = 'SCRAPER_PROXY_HOST'
@@ -41,7 +43,6 @@ PROXY_PASSWORD_ENV_KEY = 'SCRAPER_PROXY_PASSWORD'
 # We rotate that id ourselves every MIN..MAX_PROXY_ROTATION_REQUESTS requests to get a fresh IP.
 MIN_PROXY_ROTATION_REQUESTS = 50
 MAX_PROXY_ROTATION_REQUESTS = 150
-IP_CHECK_URL = 'https://api.ipify.org?format=json'
 
 COMMON_HEADERS = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -102,15 +103,6 @@ class LinkedInScraper(BaseScraper):
             session_id,
             self._requests_until_rotation,
         )
-        self._log_current_proxy_ip()
-
-    def _log_current_proxy_ip(self) -> None:
-        try:
-            response = self._session.get(IP_CHECK_URL, timeout=REQUEST_TIMEOUT_SECONDS)
-            response.raise_for_status()
-            self._logger.info('Proxy IP: %s', response.json()['ip'])
-        except Exception as exc:  # noqa: BLE001 - IP check failure must not abort the run
-            self._logger.warning('failed to check proxy egress ip: %s', exc)
 
     def _request(self, url: str, **kwargs) -> requests.Response:
         if self._requests_since_rotation >= self._requests_until_rotation:
@@ -124,14 +116,30 @@ class LinkedInScraper(BaseScraper):
         self._total_unique_count = 0
         self._errors = []
         start = 0
+        consecutive_empty_pages = 0
 
         while self._total_count < self._max_jobs_per_run:
             self._logger.info('fetching listing page start=%s', start)
-            html = self._fetch_listing_page(start)
+            try:
+                html = self._fetch_listing_page(start)
+            except HTTPError as exc:
+                status_code = exc.response.status_code if exc.response is not None else None
+                if status_code is not None and 400 <= status_code < 500:
+                    self._logger.warning('stopping pagination, listing page failed with %s', exc)
+                    break
+                raise
             page_listings = self._parse_listing_html(html)
 
             if not page_listings:
-                break
+                consecutive_empty_pages += 1
+                if consecutive_empty_pages >= MAX_CONSECUTIVE_EMPTY_PAGES:
+                    self._logger.info('stopping pagination after %s consecutive empty pages', consecutive_empty_pages)
+                    break
+                start += PAGE_SIZE
+                wait_between_requests()
+                continue
+
+            consecutive_empty_pages = 0
 
             for listing in page_listings:
                 if self._total_count >= self._max_jobs_per_run:
