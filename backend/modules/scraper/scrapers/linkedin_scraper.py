@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests
 from curl_cffi.requests.exceptions import HTTPError
 
-from common.utils.env import get_env, get_env_int
+from common.utils.env import get_env
 from common.utils.http import get_with_retry
 from modules.jobs.services import job_service, job_unique_key_service
 from modules.jobs.utils.url_cleaner import clean_job_url, extract_linkedin_job_id
@@ -32,7 +32,6 @@ SEARCH_PAGE_REFERER = 'https://www.linkedin.com/jobs/search'
 PAGE_SIZE = 10
 MAX_CONSECUTIVE_EMPTY_PAGES = 2
 REQUEST_TIMEOUT_SECONDS = 15
-MAX_JOBS_PER_RUN_ENV_KEY = 'SCRAPER_MAX_JOBS_PER_RUN'
 PROXY_HOST_ENV_KEY = 'SCRAPER_PROXY_HOST'
 PROXY_PORT_ENV_KEY = 'SCRAPER_PROXY_PORT'
 PROXY_USERNAME_ENV_KEY = 'SCRAPER_PROXY_USERNAME'
@@ -81,7 +80,6 @@ class LinkedInScraper(BaseScraper):
         self._requests_until_rotation = 0
         self._rotate_proxy_session()
 
-        self._max_jobs_per_run = get_env_int(MAX_JOBS_PER_RUN_ENV_KEY)
         self._total_count = 0
         self._total_unique_count = 0
         self._errors: list[dict] = []
@@ -111,14 +109,14 @@ class LinkedInScraper(BaseScraper):
         self._requests_since_rotation += 1
         return get_with_retry(self._session, url, **kwargs)
 
-    def run(self) -> ScraperRunResult:
+    def run(self, max_jobs_per_run: int, start_offset: int) -> ScraperRunResult:
         self._total_count = 0
         self._total_unique_count = 0
         self._errors = []
-        start = 0
+        start = start_offset
         consecutive_empty_pages = 0
 
-        while self._total_count < self._max_jobs_per_run:
+        while self._total_count < max_jobs_per_run:
             self._logger.info('fetching listing page start=%s', start)
             try:
                 html = self._fetch_listing_page(start)
@@ -142,7 +140,7 @@ class LinkedInScraper(BaseScraper):
             consecutive_empty_pages = 0
 
             for listing in page_listings:
-                if self._total_count >= self._max_jobs_per_run:
+                if self._total_count >= max_jobs_per_run:
                     break
 
                 self._total_count += 1

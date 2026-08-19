@@ -7,7 +7,7 @@ from modules.scraper.utils.scraper_logger import get_scraper_logger
 SCRAPER_PIPELINE_TASK_GROUP = 'scraper_pipeline'
 
 
-def run_pipeline() -> None:
+def run_pipeline(max_jobs_per_run: int, start_offset: int) -> None:
     for scraper in get_enabled_scrapers():
         logger = get_scraper_logger(scraper.name)
         run = scraper_run_service.create_pending_run(scraper.name)
@@ -17,7 +17,7 @@ def run_pipeline() -> None:
             scraper_run_service.mark_processing(run)
             logger.info('run marked Processing')
 
-            result = scraper.run()
+            result = scraper.run(max_jobs_per_run, start_offset)
             metadata = result.metadata
             errors = result.errors
 
@@ -40,12 +40,14 @@ def _pipeline_in_progress() -> bool:
     return scraper_run_service.has_run_in_progress()
 
 
-def trigger_scraper_pipeline() -> dict:
+def trigger_scraper_pipeline(max_jobs_per_run: int, start_offset: int) -> dict:
     if _pipeline_in_progress():
         return {'queued': False, 'message': 'A scraper pipeline run is already in progress.'}
 
     async_task(
         'modules.scraper.tasks.run_scraper_pipeline_task',
+        max_jobs_per_run,
+        start_offset,
         group=SCRAPER_PIPELINE_TASK_GROUP,
     )
 

@@ -15,6 +15,7 @@ import type {
   GenerateResumesOutcome,
   JobCreateRequest,
   JobUpdateRequest,
+  ScraperPipelineTriggerRequest,
 } from '../interfaces/job.interfaces';
 
 interface UpdateMutationArgs {
@@ -78,7 +79,8 @@ export function useJobMutations() {
   });
 
   const fetchLatestJobsMutation = useMutation({
-    mutationFn: () => triggerScraperPipeline(),
+    mutationFn: (payload: ScraperPipelineTriggerRequest) =>
+      triggerScraperPipeline(payload),
     onSuccess: (result) => {
       if (result.queued) {
         toast.success(result.message);
