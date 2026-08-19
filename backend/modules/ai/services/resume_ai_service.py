@@ -1,4 +1,3 @@
-from common.exceptions.api_exceptions import ApiError
 from modules.ai.constants.ai_constants import RESUME_GENERATION_CLAUDE_MODEL, RESUME_LINE_CHAR_LENGTH
 from modules.ai.services.anthropic_client_service import call_with_forced_tool
 from modules.resume.types.resume_types import ResumeAiOutput, ResumeInput
@@ -158,9 +157,6 @@ def _parse_output(output: dict, resume_input: ResumeInput) -> ResumeAiOutput:
     summary = str(output['summary'])
 
     raw_bullets = output['experience_bullets']
-    if len(raw_bullets) != len(resume_input.experience):
-        raise ApiError('AI response experience_bullets count does not match resume input experience count.',
-                        status_code=500)
     experience_bullets = [[str(bullet) for bullet in bullets] for bullets in raw_bullets]
 
     raw_skills = output['skills']

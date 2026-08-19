@@ -52,6 +52,8 @@ def _apply_filters(queryset, filters: JobFilterParams):
         search_query = Q()
         for field in SEARCH_FIELDS:
             search_query |= Q(**{f'{field}__icontains': filters.search})
+        if filters.search.strip().isdigit():
+            search_query |= Q(id=int(filters.search.strip()))
         queryset = queryset.filter(search_query)
     return queryset
 
