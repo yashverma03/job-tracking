@@ -52,3 +52,10 @@ def trigger_scraper_pipeline(max_jobs_per_run: int, start_offset: int) -> dict:
     )
 
     return {'queued': True, 'message': 'Scraper pipeline started.'}
+
+
+def init_scraper_pipeline(max_jobs_per_run: int, start_offset: int) -> dict:
+    if scraper_run_service.has_run_today():
+        return {'queued': False, 'message': 'A scraper pipeline run already exists for today.'}
+
+    return trigger_scraper_pipeline(max_jobs_per_run, start_offset)

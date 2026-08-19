@@ -15,6 +15,10 @@ def has_run_in_progress() -> bool:
     ).exists()
 
 
+def has_run_today() -> bool:
+    return ScraperRun.objects.filter(created_at__date=timezone.now().date()).exists()
+
+
 def mark_processing(run: ScraperRun) -> None:
     run.status = ScraperRunStatus.PROCESSING
     run.save(update_fields=['status'])
