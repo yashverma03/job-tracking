@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests
 
 from common.utils.env import get_env, get_env_int
+from common.utils.http import get_with_retry
 from modules.jobs.services import job_service, job_unique_key_service
 from modules.jobs.utils.url_cleaner import clean_job_url, extract_linkedin_job_id
 from modules.scraper.base.base_scraper import BaseScraper
@@ -116,7 +117,7 @@ class LinkedInScraper(BaseScraper):
             self._rotate_proxy_session()
 
         self._requests_since_rotation += 1
-        return self._session.get(url, **kwargs)
+        return get_with_retry(self._session, url, **kwargs)
 
     def run(self) -> ScraperRunResult:
         self._total_count = 0
