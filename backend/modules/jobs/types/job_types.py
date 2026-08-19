@@ -12,3 +12,5 @@ class JobFilterParams:
     date_from: Optional[date] = None
     date_to: Optional[date] = None
     search: Optional[str] = None
+    is_custom_resume_generated: Optional[bool] = None
+    has_description: Optional[bool] = None

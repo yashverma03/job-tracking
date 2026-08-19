@@ -7,7 +7,8 @@ from modules.resume.utils.resume_log import log_resume_batch_result, log_resume_
 
 def run_resume_generation_batch_task(job_ids: list[int], output_dir: str) -> None:
     resume_input = load_resume_input()
-    jobs = list(Job.objects.filter(id__in=job_ids, deleted_at__isnull=True))
+    jobs_by_id = Job.objects.in_bulk(job_ids)
+    jobs = [jobs_by_id[job_id] for job_id in job_ids if job_id in jobs_by_id]
 
     outcomes = []
     for index, job in enumerate(jobs, start=1):

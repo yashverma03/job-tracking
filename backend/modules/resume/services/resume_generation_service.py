@@ -7,12 +7,15 @@ from common.exceptions.api_exceptions import ApiError
 from common.utils.env import get_env
 from modules.jobs.enums.job_status import JobStatus
 from modules.jobs.models import Job
+from modules.jobs.services.job_service import list_jobs
+from modules.jobs.types.job_types import JobFilterParams
 from modules.ai.services.resume_ai_service import generate_resume_content
 from modules.resume.services.resume_pdf_service import render_resume_pdf
 from modules.resume.types.resume_types import ResumeGenerationOutcome, ResumeInput
 from modules.resume.utils.resume_input_loader import load_resume_input
 
 RESUME_BATCH_TASK_GROUP = 'resume_generation_batch'
+MAX_ELIGIBLE_JOBS = 10000
 
 
 def _resume_filename(resume_input: ResumeInput, job_id: int) -> str:
@@ -20,13 +23,15 @@ def _resume_filename(resume_input: ResumeInput, job_id: int) -> str:
     return f'{name_slug}_Resume_{job_id}.pdf'
 
 
-def _eligible_jobs_queryset():
-    return Job.objects.filter(
-        deleted_at__isnull=True,
+def _eligible_job_ids_in_priority_order() -> list[int]:
+    filters = JobFilterParams(
+        page=1,
+        limit=MAX_ELIGIBLE_JOBS,
         status=JobStatus.TO_APPLY,
         is_custom_resume_generated=False,
-        description__isnull=False,
-    ).exclude(description__exact='')
+        has_description=True,
+    )
+    return [job.pk for job in list_jobs(filters).items]
 
 
 def _batch_in_progress() -> bool:
@@ -52,7 +57,7 @@ def generate_resumes_for_pending_jobs() -> dict:
         return {'queued': False, 'processing': 0, 'message': 'A resume generation batch is already in progress.'}
 
     output_dir = get_env('RESUME_OUTPUT_DIR')
-    job_ids = list(_eligible_jobs_queryset().values_list('id', flat=True))
+    job_ids = _eligible_job_ids_in_priority_order()
 
     if not job_ids:
         return {'queued': False, 'processing': 0, 'message': 'No jobs pending resume generation.'}

@@ -55,6 +55,13 @@ def _apply_filters(queryset, filters: JobFilterParams):
         if filters.search.strip().isdigit():
             search_query |= Q(id=int(filters.search.strip()))
         queryset = queryset.filter(search_query)
+    if filters.is_custom_resume_generated is not None:
+        queryset = queryset.filter(is_custom_resume_generated=filters.is_custom_resume_generated)
+    if filters.has_description is not None:
+        if filters.has_description:
+            queryset = queryset.filter(description__isnull=False).exclude(description__exact='')
+        else:
+            queryset = queryset.filter(Q(description__isnull=True) | Q(description__exact=''))
     return queryset
 
 
