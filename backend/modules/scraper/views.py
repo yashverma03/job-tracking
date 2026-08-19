@@ -16,7 +16,7 @@ class TriggerScraperPipelineView(APIView):
 
 class InitScraperPipelineView(APIView):
     def post(self, request):
-        data = validate(ScraperPipelineInitDTO(data=request.query_params))
-        result = init_scraper_pipeline(data['limit'], data['start'])
+        data = validate(ScraperPipelineInitDTO(data=request.data))
+        result = init_scraper_pipeline(data['max_jobs_per_run'], data['start_offset'])
         status_code = 202 if result['queued'] else 200
         return Response(ScraperPipelineQueuedDTO(result).data, status=status_code)
