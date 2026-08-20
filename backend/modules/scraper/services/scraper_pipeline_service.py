@@ -1,5 +1,6 @@
 from django_q.tasks import async_task
 
+from common.utils.notification_manager import NotificationManager
 from modules.scraper.scrapers.registry import get_enabled_scrapers
 from modules.scraper.services import scraper_run_service
 from modules.scraper.utils.scraper_logger import get_scraper_logger
@@ -8,6 +9,9 @@ SCRAPER_PIPELINE_TASK_GROUP = 'scraper_pipeline'
 
 
 def run_pipeline(max_jobs_per_run: int, start_offset: int) -> None:
+    succeeded = []
+    failed = []
+
     for scraper in get_enabled_scrapers():
         logger = get_scraper_logger(scraper.name)
         run = scraper_run_service.create_pending_run(scraper.name)
@@ -28,12 +32,20 @@ def run_pipeline(max_jobs_per_run: int, start_offset: int) -> None:
                     metadata=metadata,
                 )
                 logger.error('run finished: Failed error_count=%s', len(errors))
+                failed.append(scraper.name)
             else:
                 scraper_run_service.mark_success(run, metadata=metadata)
                 logger.info('run finished: Success')
+                succeeded.append(scraper.name)
         except Exception as exc:  # noqa: BLE001 - one scraper's failure must not abort remaining scrapers
             scraper_run_service.mark_failed(run, {'message': str(exc)})
             logger.error('run finished: Failed error=%s', exc)
+            failed.append(scraper.name)
+
+    NotificationManager.show(
+        'Scraper pipeline complete',
+        f'Total: {len(succeeded) + len(failed)}\nSuccess: {len(succeeded)}\nFailed: {len(failed)}',
+    )
 
 
 def _pipeline_in_progress() -> bool:
