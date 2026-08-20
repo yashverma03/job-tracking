@@ -1,11 +1,13 @@
 import random
 import secrets
+import threading
+from concurrent.futures import Future, ThreadPoolExecutor, wait as wait_futures
 
 from bs4 import BeautifulSoup
 from curl_cffi import requests
 from curl_cffi.requests.exceptions import HTTPError
 
-from common.utils.env import get_env
+from common.utils.env import get_env, get_env_int
 from common.utils.http import get_with_retry
 from modules.jobs.services import job_service, job_unique_key_service
 from modules.jobs.utils.url_cleaner import clean_job_url, extract_linkedin_job_id
@@ -37,11 +39,9 @@ PROXY_PORT_ENV_KEY = 'SCRAPER_PROXY_PORT'
 PROXY_USERNAME_ENV_KEY = 'SCRAPER_PROXY_USERNAME'
 PROXY_PASSWORD_ENV_KEY = 'SCRAPER_PROXY_PASSWORD'
 
-# DataImpulse session-id parameter (https://docs.dataimpulse.com/proxies/parameters/session-id):
-# appending `__sessid.<id>` to the username pins the proxy to one IP until we mint a new session id.
-# We rotate that id ourselves every MIN..MAX_PROXY_ROTATION_REQUESTS requests to get a fresh IP.
-MIN_PROXY_ROTATION_REQUESTS = 50
-MAX_PROXY_ROTATION_REQUESTS = 150
+MIN_PROXY_ROTATION_REQUESTS_ENV_KEY = 'SCRAPER_MIN_PROXY_ROTATION_REQUESTS'
+MAX_PROXY_ROTATION_REQUESTS_ENV_KEY = 'SCRAPER_MAX_PROXY_ROTATION_REQUESTS'
+DETAIL_WORKER_COUNT_ENV_KEY = 'SCRAPER_DETAIL_WORKER_COUNT'
 
 COMMON_HEADERS = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -60,6 +60,44 @@ DEFAULT_SEARCH_FILTERS = {
 }
 
 
+class _ProxyLane:
+    """An independent session + rotating proxy IP, used by one worker thread at a time."""
+
+    def __init__(self, scraper: 'LinkedInScraper', label: str):
+        self._scraper = scraper
+        self._label = label
+        impersonate_profile = random.choice(IMPERSONATE_PROFILES)
+        self.session = requests.Session(impersonate=impersonate_profile)
+        self.session.headers.update(COMMON_HEADERS)
+        self.requests_since_rotation = 0
+        self.requests_until_rotation = 0
+        self._rotate_proxy_session()
+        scraper._logger.info('lane %s using impersonate profile: %s', label, impersonate_profile)
+
+    def _rotate_proxy_session(self) -> None:
+        session_id = secrets.token_hex(8)
+        proxy_url = self._scraper._build_proxy_url(session_id)
+        self.session.proxies = {'http': proxy_url, 'https': proxy_url}
+        self.requests_since_rotation = 0
+        self.requests_until_rotation = random.randint(
+            get_env_int(MIN_PROXY_ROTATION_REQUESTS_ENV_KEY),
+            get_env_int(MAX_PROXY_ROTATION_REQUESTS_ENV_KEY),
+        )
+        self._scraper._logger.info(
+            'lane %s rotated proxy session id=%s, next rotation after %s requests',
+            self._label,
+            session_id,
+            self.requests_until_rotation,
+        )
+
+    def request(self, url: str, **kwargs) -> requests.Response:
+        if self.requests_since_rotation >= self.requests_until_rotation:
+            self._rotate_proxy_session()
+
+        self.requests_since_rotation += 1
+        return get_with_retry(self.session, url, **kwargs)
+
+
 class LinkedInScraper(BaseScraper):
     @property
     def name(self) -> ScraperName:
@@ -67,19 +105,21 @@ class LinkedInScraper(BaseScraper):
 
     def __init__(self):
         self._logger = get_scraper_logger(self.name)
-        impersonate_profile = random.choice(IMPERSONATE_PROFILES)
-        self._session = requests.Session(impersonate=impersonate_profile)
-        self._session.headers.update(COMMON_HEADERS)
-        self._logger.info('using impersonate profile: %s', impersonate_profile)
 
         self._proxy_host = get_env(PROXY_HOST_ENV_KEY)
         self._proxy_port = get_env(PROXY_PORT_ENV_KEY)
         self._proxy_username = get_env(PROXY_USERNAME_ENV_KEY)
         self._proxy_password = get_env(PROXY_PASSWORD_ENV_KEY)
-        self._requests_since_rotation = 0
-        self._requests_until_rotation = 0
-        self._rotate_proxy_session()
 
+        # Dedicated lane for sequential listing-page pagination requests.
+        self._listing_lane = _ProxyLane(self, label='listing')
+
+        # Lazily-created, one-per-thread lanes for concurrent job detail fetches.
+        self._thread_local = threading.local()
+        self._lane_counter = 0
+        self._lane_counter_lock = threading.Lock()
+
+        self._state_lock = threading.Lock()
         self._total_count = 0
         self._total_unique_count = 0
         self._errors: list[dict] = []
@@ -88,26 +128,18 @@ class LinkedInScraper(BaseScraper):
         username = f'{self._proxy_username}__sessid.{session_id}'
         return f'http://{username}:{self._proxy_password}@{self._proxy_host}:{self._proxy_port}'
 
-    def _rotate_proxy_session(self) -> None:
-        session_id = secrets.token_hex(8)
-        proxy_url = self._build_proxy_url(session_id)
-        self._session.proxies = {'http': proxy_url, 'https': proxy_url}
-        self._requests_since_rotation = 0
-        self._requests_until_rotation = random.randint(
-            MIN_PROXY_ROTATION_REQUESTS, MAX_PROXY_ROTATION_REQUESTS
-        )
-        self._logger.info(
-            'rotated proxy session id=%s, next rotation after %s requests',
-            session_id,
-            self._requests_until_rotation,
-        )
+    def _get_detail_lane(self) -> _ProxyLane:
+        lane = getattr(self._thread_local, 'lane', None)
+        if lane is None:
+            with self._lane_counter_lock:
+                self._lane_counter += 1
+                label = f'detail-{self._lane_counter}'
+            lane = _ProxyLane(self, label=label)
+            self._thread_local.lane = lane
+        return lane
 
     def _request(self, url: str, **kwargs) -> requests.Response:
-        if self._requests_since_rotation >= self._requests_until_rotation:
-            self._rotate_proxy_session()
-
-        self._requests_since_rotation += 1
-        return get_with_retry(self._session, url, **kwargs)
+        return self._listing_lane.request(url, **kwargs)
 
     def run(self, max_jobs_per_run: int, start_offset: int) -> ScraperRunResult:
         self._total_count = 0
@@ -115,39 +147,46 @@ class LinkedInScraper(BaseScraper):
         self._errors = []
         start = start_offset
         consecutive_empty_pages = 0
+        pending: list[Future] = []
 
-        while self._total_count < max_jobs_per_run:
-            self._logger.info('fetching listing page start=%s', start)
-            try:
-                html = self._fetch_listing_page(start)
-            except HTTPError as exc:
-                status_code = exc.response.status_code if exc.response is not None else None
-                if status_code is not None and 400 <= status_code < 500:
-                    self._logger.warning('stopping pagination, listing page failed with %s', exc)
-                    break
-                raise
-            page_listings = self._parse_listing_html(html)
+        detail_worker_count = get_env_int(DETAIL_WORKER_COUNT_ENV_KEY)
+        with ThreadPoolExecutor(max_workers=detail_worker_count, thread_name_prefix='linkedin-detail') as executor:
+            while self._total_count < max_jobs_per_run:
+                self._logger.info('fetching listing page start=%s', start)
+                try:
+                    html = self._fetch_listing_page(start)
+                except HTTPError as exc:
+                    status_code = exc.response.status_code if exc.response is not None else None
+                    if status_code is not None and 400 <= status_code < 500:
+                        self._logger.warning('stopping pagination, listing page failed with %s', exc)
+                        break
+                    raise
+                page_listings = self._parse_listing_html(html)
 
-            if not page_listings:
-                consecutive_empty_pages += 1
-                if consecutive_empty_pages >= MAX_CONSECUTIVE_EMPTY_PAGES:
-                    self._logger.info('stopping pagination after %s consecutive empty pages', consecutive_empty_pages)
-                    break
+                if not page_listings:
+                    consecutive_empty_pages += 1
+                    if consecutive_empty_pages >= MAX_CONSECUTIVE_EMPTY_PAGES:
+                        self._logger.info('stopping pagination after %s consecutive empty pages', consecutive_empty_pages)
+                        break
+                    start += PAGE_SIZE
+                    wait_between_requests()
+                    continue
+
+                consecutive_empty_pages = 0
+
+                for listing in page_listings:
+                    if self._total_count >= max_jobs_per_run:
+                        break
+
+                    self._total_count += 1
+                    pending.append(executor.submit(self._process_listing, listing))
+
                 start += PAGE_SIZE
                 wait_between_requests()
-                continue
 
-            consecutive_empty_pages = 0
-
-            for listing in page_listings:
-                if self._total_count >= max_jobs_per_run:
-                    break
-
-                self._total_count += 1
-                self._process_listing(listing)
-
-            start += PAGE_SIZE
-            wait_between_requests()
+            wait_futures(pending)
+            for future in pending:
+                future.result()  # surface any unexpected (non-per-job) exception
 
         self._logger.info(
             'run complete, checked=%s inserted=%s errors=%s',
@@ -181,7 +220,8 @@ class LinkedInScraper(BaseScraper):
         if missing_fields:
             message = f'missing required fields: {", ".join(missing_fields)}'
             self._logger.warning('job processing failed for %s: %s', url, message)
-            self._errors.append({'url': url, 'message': message})
+            with self._state_lock:
+                self._errors.append({'url': url, 'message': message})
             return
 
         try:
@@ -197,10 +237,12 @@ class LinkedInScraper(BaseScraper):
             )
         except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the run
             self._logger.warning('job processing failed for %s: %s', url, exc)
-            self._errors.append({'url': url, 'message': str(exc)})
+            with self._state_lock:
+                self._errors.append({'url': url, 'message': str(exc)})
             return
 
-        self._total_unique_count += 1
+        with self._state_lock:
+            self._total_unique_count += 1
         self._logger.info('job inserted: %s', url)
 
     def _fetch_listing_page(self, start: int) -> str:
@@ -251,7 +293,7 @@ class LinkedInScraper(BaseScraper):
         wait_between_requests()
 
         detail_url = DETAIL_URL_TEMPLATE.format(job_id=job_id)
-        response = self._request(
+        response = self._get_detail_lane().request(
             detail_url,
             headers={'Referer': referer},
             timeout=REQUEST_TIMEOUT_SECONDS,
