@@ -226,7 +226,9 @@ class LinkedInScraper(BaseScraper):
             raw_url = link['href'].strip()
             job_id = extract_linkedin_job_id(raw_url)
             if job_id is None:
-                self._logger.warning('could not extract job id from url: %s', raw_url)
+                message = 'could not extract job id from url'
+                self._logger.warning('%s: %s', message, raw_url)
+                self._errors.append({'url': raw_url, 'message': message})
                 continue
 
             title_el = card.find('h3', class_='base-search-card__title')
