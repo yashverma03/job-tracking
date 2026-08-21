@@ -1,7 +1,7 @@
 from collections import Counter
 
-from django.db.models import Case, Count, IntegerField, Q, Value, When
-from django.db.models.functions import Lower, Trim
+from django.db.models import Case, CharField, Count, IntegerField, Q, Value, When
+from django.db.models.functions import Cast, Lower, Trim
 from django.utils import timezone
 
 from common.exceptions.api_exceptions import ApiError
@@ -14,7 +14,7 @@ from modules.jobs.types.job_types import JobFilterParams
 from modules.jobs.utils.domain import extract_domain, is_job_board_domain
 from modules.jobs.utils.url_cleaner import clean_job_url
 
-SEARCH_FIELDS = ['url', 'secondary_url', 'title', 'company_name', 'official_id', 'description']
+SEARCH_FIELDS = ['url', 'secondary_url', 'title', 'company_name', 'official_id']
 
 
 def _ensure_url_not_duplicate(url: str | None, secondary_url: str | None) -> None:
@@ -49,11 +49,10 @@ def _apply_filters(queryset, filters: JobFilterParams):
     if filters.date_to:
         queryset = queryset.filter(created_at__date__lte=filters.date_to)
     if filters.search:
-        search_query = Q()
+        queryset = queryset.annotate(id_str=Cast('id', output_field=CharField()))
+        search_query = Q(id_str__icontains=filters.search)
         for field in SEARCH_FIELDS:
             search_query |= Q(**{f'{field}__icontains': filters.search})
-        if filters.search.strip().isdigit():
-            search_query |= Q(id=int(filters.search.strip()))
         queryset = queryset.filter(search_query)
     if filters.is_custom_resume_generated is not None:
         queryset = queryset.filter(is_custom_resume_generated=filters.is_custom_resume_generated)
