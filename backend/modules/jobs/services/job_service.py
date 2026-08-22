@@ -205,7 +205,7 @@ def update_job_score(job_id: int, score: int, analysis: str) -> Job:
     job.analysis = analysis
     update_fields = ['score', 'analysis']
 
-    if job.status == JobStatus.PENDING:
+    if job.status in (JobStatus.PENDING, JobStatus.TO_APPLY, JobStatus.NOT_RELEVANT):
         job.status = JobStatus.TO_APPLY if score == 100 else JobStatus.NOT_RELEVANT
         update_fields.append('status')
 
