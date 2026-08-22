@@ -18,8 +18,6 @@ from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.scraper_logger import get_scraper_logger
 from modules.scraper.utils.text_cleaner import clean_text
 
-# One of these is chosen at random per scraper instance (i.e. per run), not per request,
-# so the TLS/HTTP fingerprint stays consistent across all requests in a session.
 IMPERSONATE_PROFILES = [
     'chrome116', 'chrome119', 'chrome120', 'chrome123', 'chrome124',
     'chrome131', 'chrome133a', 'chrome136',
@@ -38,9 +36,6 @@ PROXY_HOST_ENV_KEY = 'SCRAPER_PROXY_HOST'
 PROXY_PORT_ENV_KEY = 'SCRAPER_PROXY_PORT'
 PROXY_USERNAME_ENV_KEY = 'SCRAPER_PROXY_USERNAME'
 PROXY_PASSWORD_ENV_KEY = 'SCRAPER_PROXY_PASSWORD'
-
-MIN_PROXY_ROTATION_REQUESTS_ENV_KEY = 'SCRAPER_MIN_PROXY_ROTATION_REQUESTS'
-MAX_PROXY_ROTATION_REQUESTS_ENV_KEY = 'SCRAPER_MAX_PROXY_ROTATION_REQUESTS'
 DETAIL_WORKER_COUNT_ENV_KEY = 'SCRAPER_DETAIL_WORKER_COUNT'
 
 COMMON_HEADERS = {
@@ -60,42 +55,33 @@ DEFAULT_SEARCH_FILTERS = {
 }
 
 
+def _new_session(scraper: 'LinkedInScraper') -> requests.Session:
+    """Build a fresh session: random impersonate profile (TLS/user-agent fingerprint) and a new
+    proxy exit IP."""
+    impersonate_profile = random.choice(IMPERSONATE_PROFILES)
+    proxy_url = scraper._build_proxy_url(secrets.token_hex(8))
+
+    session = requests.Session(impersonate=impersonate_profile)
+    session.headers.update(COMMON_HEADERS)
+    session.proxies = {'http': proxy_url, 'https': proxy_url}
+    return session
+
+
 class _ProxyLane:
-    """An independent session + rotating proxy IP, used by one worker thread at a time."""
+    """A session used by one worker thread at a time. On retry the current session is discarded
+    and a brand new one is used instead, since a failure is usually tied to the specific IP/fingerprint
+    combo."""
 
     def __init__(self, scraper: 'LinkedInScraper', label: str):
         self._scraper = scraper
         self._label = label
-        impersonate_profile = random.choice(IMPERSONATE_PROFILES)
-        self.session = requests.Session(impersonate=impersonate_profile)
-        self.session.headers.update(COMMON_HEADERS)
-        self.requests_since_rotation = 0
-        self.requests_until_rotation = 0
-        self._rotate_proxy_session()
-        scraper._logger.info('lane %s using impersonate profile: %s', label, impersonate_profile)
-
-    def _rotate_proxy_session(self) -> None:
-        session_id = secrets.token_hex(8)
-        proxy_url = self._scraper._build_proxy_url(session_id)
-        self.session.proxies = {'http': proxy_url, 'https': proxy_url}
-        self.requests_since_rotation = 0
-        self.requests_until_rotation = random.randint(
-            get_env_int(MIN_PROXY_ROTATION_REQUESTS_ENV_KEY),
-            get_env_int(MAX_PROXY_ROTATION_REQUESTS_ENV_KEY),
-        )
-        self._scraper._logger.info(
-            'lane %s rotated proxy session id=%s, next rotation after %s requests',
-            self._label,
-            session_id,
-            self.requests_until_rotation,
-        )
+        self.session = _new_session(scraper)
 
     def request(self, url: str, **kwargs) -> requests.Response:
-        if self.requests_since_rotation >= self.requests_until_rotation:
-            self._rotate_proxy_session()
+        def on_retry():
+            self.session = _new_session(self._scraper)
 
-        self.requests_since_rotation += 1
-        return get_with_retry(self.session, url, **kwargs)
+        return get_with_retry(lambda: self.session, url, on_retry=on_retry, **kwargs)
 
 
 class LinkedInScraper(BaseScraper):
