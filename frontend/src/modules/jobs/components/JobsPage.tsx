@@ -14,7 +14,7 @@ import type {
   JobListQueryParams,
   JobUpdateRequest,
 } from '../interfaces/job.interfaces';
-import type { Job } from '../types/job.types';
+import type { Job, JobsViewMode } from '../types/job.types';
 import styles from './JobsPage.module.css';
 
 const INITIAL_FILTERS: JobListQueryParams = {
@@ -24,6 +24,7 @@ const INITIAL_FILTERS: JobListQueryParams = {
 
 export function JobsPage() {
   const [filters, setFilters] = useState<JobListQueryParams>(INITIAL_FILTERS);
+  const [mode, setMode] = useState<JobsViewMode>('all');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [cloneSource, setCloneSource] = useState<JobCloneSource | null>(null);
@@ -118,6 +119,21 @@ export function JobsPage() {
     }
   };
 
+  const handleModeChange = (newMode: JobsViewMode) => {
+    setMode(newMode);
+    setFilters((prev) => {
+      const next = { ...prev, page: 1 };
+      delete next.status;
+      delete next.referralStatus;
+      if (newMode === 'apply') {
+        next.status = 'To Apply';
+      } else if (newMode === 'referral') {
+        next.referralStatus = 'Referral required';
+      }
+      return next;
+    });
+  };
+
   const goToPage = (page: number) => {
     setFilters((prev) => ({ ...prev, page }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -162,7 +178,12 @@ export function JobsPage() {
         </button>
       </div>
 
-      <JobsFilters filters={filters} onChange={setFilters} />
+      <JobsFilters
+        filters={filters}
+        onChange={setFilters}
+        mode={mode}
+        onModeChange={handleModeChange}
+      />
 
       <div className={styles.statsBarSlot}>
         {selectedJobs.length < 2 && (
@@ -190,6 +211,7 @@ export function JobsPage() {
             onEdit={openEditForm}
             onDelete={handleDelete}
             onClone={openCloneForm}
+            mode={mode}
           />
 
           <div className={styles.pagination}>

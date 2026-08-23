@@ -19,7 +19,7 @@ import {
 } from '../constants/job.constants';
 import { useJobMutations } from '../hooks/useJobMutations';
 import { MessageButtons } from './MessageButtons';
-import type { Job } from '../types/job.types';
+import type { Job, JobsViewMode } from '../types/job.types';
 import styles from './JobsTable.module.css';
 
 interface Column {
@@ -62,6 +62,7 @@ interface JobsTableProps {
   onEdit: (job: Job) => void;
   onDelete: (job: Job) => void;
   onClone: (job: Job) => void;
+  mode: JobsViewMode;
 }
 
 export function JobsTable({
@@ -71,7 +72,10 @@ export function JobsTable({
   onEdit,
   onDelete,
   onClone,
+  mode,
 }: JobsTableProps) {
+  const showStatusColumn = mode !== 'referral';
+  const showReferralColumn = mode !== 'apply';
   const { copy } = useClipboard();
   const { updateMutation, buildResumeMutation } = useJobMutations();
 
@@ -152,18 +156,22 @@ export function JobsTable({
               >
                 Date
               </th>
-              <th
-                className={`${styles.th} ${styles.cellTruncate}`}
-                style={{ width: STATUS_COLUMN_WIDTH }}
-              >
-                Job Status
-              </th>
-              <th
-                className={`${styles.th} ${styles.cellTruncate}`}
-                style={{ width: REFERRAL_STATUS_COLUMN_WIDTH }}
-              >
-                Referral status
-              </th>
+              {showStatusColumn && (
+                <th
+                  className={`${styles.th} ${styles.cellTruncate}`}
+                  style={{ width: STATUS_COLUMN_WIDTH }}
+                >
+                  Job Status
+                </th>
+              )}
+              {showReferralColumn && (
+                <th
+                  className={`${styles.th} ${styles.cellTruncate}`}
+                  style={{ width: REFERRAL_STATUS_COLUMN_WIDTH }}
+                >
+                  Referral status
+                </th>
+              )}
               {COLUMNS.map((column) => (
                 <Fragment key={column.key}>
                   <th
@@ -267,62 +275,68 @@ export function JobsTable({
                 >
                   {dayjs(job.createdAt).format(DATE_FORMAT)}
                 </td>
-                <td
-                  className={styles.cellTruncate}
-                  style={{ width: STATUS_COLUMN_WIDTH }}
-                >
-                  <div className={styles.statusCellInner}>
-                    <Dropdown
-                      label="Status"
-                      hideLabel
-                      value={job.status}
-                      onChange={(value) => handleStatusChange(job, value)}
-                      options={STATUS_DROPDOWN_OPTIONS}
-                      highlighted={job.status === 'To Apply'}
-                    />
-                    {job.status === 'To Apply' ? (
-                      <button
-                        type="button"
-                        className={styles.quickActionButton}
-                        onClick={() => handleStatusChange(job, 'Applied')}
-                        title="Mark as Applied"
-                        aria-label="Mark as Applied"
-                      >
-                        <CheckCheck size={14} />
-                      </button>
-                    ) : null}
-                  </div>
-                </td>
-                <td
-                  className={styles.cellTruncate}
-                  style={{ width: REFERRAL_STATUS_COLUMN_WIDTH }}
-                >
-                  <div className={styles.statusCellInner}>
-                    <Dropdown
-                      label="Referral status"
-                      hideLabel
-                      value={job.referralStatus}
-                      onChange={(value) =>
-                        handleReferralStatusChange(job, value)
-                      }
-                      options={REFERRAL_STATUS_DROPDOWN_OPTIONS}
-                      highlighted={job.referralStatus === 'Referral required'}
-                    />
-                    {job.referralStatus === 'Referral required' ? (
-                      <button
-                        type="button"
-                        className={styles.quickActionButton}
-                        onClick={() =>
-                          handleReferralStatusChange(job, 'Referral asked')
+                {showStatusColumn && (
+                  <td
+                    className={styles.cellTruncate}
+                    style={{ width: STATUS_COLUMN_WIDTH }}
+                  >
+                    <div className={styles.statusCellInner}>
+                      <Dropdown
+                        label="Status"
+                        hideLabel
+                        value={job.status}
+                        onChange={(value) => handleStatusChange(job, value)}
+                        options={STATUS_DROPDOWN_OPTIONS}
+                        highlighted={job.status === 'To Apply'}
+                      />
+                      {job.status === 'To Apply' ? (
+                        <button
+                          type="button"
+                          className={styles.quickActionButton}
+                          onClick={() => handleStatusChange(job, 'Applied')}
+                          title="Mark as Applied"
+                          aria-label="Mark as Applied"
+                        >
+                          <CheckCheck size={14} />
+                        </button>
+                      ) : null}
+                    </div>
+                  </td>
+                )}
+                {showReferralColumn && (
+                  <td
+                    className={styles.cellTruncate}
+                    style={{ width: REFERRAL_STATUS_COLUMN_WIDTH }}
+                  >
+                    <div className={styles.statusCellInner}>
+                      <Dropdown
+                        label="Referral status"
+                        hideLabel
+                        value={job.referralStatus}
+                        onChange={(value) =>
+                          handleReferralStatusChange(job, value)
                         }
-                        title="Mark as Referral asked"
-                        aria-label="Mark as Referral asked"
-                      >
-                        <CheckCheck size={14} />
-                      </button>
-                    ) : null}
-                  </div>
-                </td>
+                        options={REFERRAL_STATUS_DROPDOWN_OPTIONS}
+                        highlighted={
+                          job.referralStatus === 'Referral required'
+                        }
+                      />
+                      {job.referralStatus === 'Referral required' ? (
+                        <button
+                          type="button"
+                          className={styles.quickActionButton}
+                          onClick={() =>
+                            handleReferralStatusChange(job, 'Referral asked')
+                          }
+                          title="Mark as Referral asked"
+                          aria-label="Mark as Referral asked"
+                        >
+                          <CheckCheck size={14} />
+                        </button>
+                      ) : null}
+                    </div>
+                  </td>
+                )}
                 {COLUMNS.map((column) => {
                   if (column.key === 'url' || column.key === 'secondaryUrl') {
                     const linkValue = job[column.key] as string | null;

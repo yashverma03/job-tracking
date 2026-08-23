@@ -9,7 +9,11 @@
 }
 
 .searchField {
-  @apply flex w-100 flex-none flex-col gap-1 text-sm;
+  @apply flex w-76 flex-none flex-col gap-1 text-sm;
+}
+
+.dropdownField {
+  @apply w-44 flex-none;
 }
 
 .searchInputWrapper {

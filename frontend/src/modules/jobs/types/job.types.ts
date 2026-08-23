@@ -6,6 +6,8 @@ import type {
 export type JobStatus = (typeof JOB_STATUS_OPTIONS)[number];
 export type JobReferralStatus = (typeof JOB_REFERRAL_STATUS_OPTIONS)[number];
 
+export type JobsViewMode = 'all' | 'apply' | 'referral';
+
 export interface Job {
   id: number;
   url: string | null;

@@ -7,12 +7,21 @@ import {
   JOB_STATUS_OPTIONS,
 } from '../constants/job.constants';
 import type { JobListQueryParams } from '../interfaces/job.interfaces';
+import type { JobsViewMode } from '../types/job.types';
 import styles from './JobsFilters.module.css';
 
 interface JobsFiltersProps {
   filters: JobListQueryParams;
   onChange: (filters: JobListQueryParams) => void;
+  mode: JobsViewMode;
+  onModeChange: (mode: JobsViewMode) => void;
 }
+
+const MODE_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'apply', label: 'Apply' },
+  { value: 'referral', label: 'Referral' },
+];
 
 const formatDisplayDate = (value?: string) => {
   if (!value) return '';
@@ -28,7 +37,12 @@ const REFERRAL_STATUS_OPTIONS = JOB_REFERRAL_STATUS_OPTIONS.map((option) => ({
   label: option,
 }));
 
-export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
+export function JobsFilters({
+  filters,
+  onChange,
+  mode,
+  onModeChange,
+}: JobsFiltersProps) {
   const updateFilter = (patch: Partial<JobListQueryParams>) => {
     onChange({ ...filters, ...patch, page: 1 });
   };
@@ -56,21 +70,34 @@ export function JobsFilters({ filters, onChange }: JobsFiltersProps) {
 
   return (
     <div className={styles.container}>
-      <Dropdown
-        label="Status"
-        value={filters.status ?? ''}
-        onChange={handleStatusChange}
-        options={STATUS_OPTIONS}
-        allowEmpty
-      />
+      <div className={styles.dropdownField}>
+        <Dropdown
+          label="Mode"
+          value={mode}
+          onChange={(value) => onModeChange(value as JobsViewMode)}
+          options={MODE_OPTIONS}
+        />
+      </div>
 
-      <Dropdown
-        label="Referral status"
-        value={filters.referralStatus ?? ''}
-        onChange={handleReferralStatusChange}
-        options={REFERRAL_STATUS_OPTIONS}
-        allowEmpty
-      />
+      <div className={styles.dropdownField}>
+        <Dropdown
+          label="Status"
+          value={filters.status ?? ''}
+          onChange={handleStatusChange}
+          options={STATUS_OPTIONS}
+          allowEmpty
+        />
+      </div>
+
+      <div className={styles.dropdownField}>
+        <Dropdown
+          label="Referral status"
+          value={filters.referralStatus ?? ''}
+          onChange={handleReferralStatusChange}
+          options={REFERRAL_STATUS_OPTIONS}
+          allowEmpty
+        />
+      </div>
 
       <label className={styles.searchField}>
         <span className={styles.label}>Search</span>
