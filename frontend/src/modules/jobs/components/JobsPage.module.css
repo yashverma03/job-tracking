@@ -1,7 +1,7 @@
 @reference "../../../index.css";
 
 .page {
-  @apply mx-auto flex max-w-[1800px] flex-col gap-4 px-3 py-4;
+  @apply mx-auto flex max-w-[2300px] flex-col gap-4 px-3 py-4;
 }
 
 .header {
