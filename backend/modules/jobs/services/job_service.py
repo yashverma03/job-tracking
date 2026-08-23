@@ -41,9 +41,9 @@ def _active_jobs_queryset():
 
 def _apply_filters(queryset, filters: JobFilterParams):
     if filters.status:
-        queryset = queryset.filter(status=filters.status)
+        queryset = queryset.filter(status__in=filters.status)
     if filters.referral_status:
-        queryset = queryset.filter(referral_status=filters.referral_status)
+        queryset = queryset.filter(referral_status__in=filters.referral_status)
     if filters.date_from:
         queryset = queryset.filter(created_at__date__gte=filters.date_from)
     if filters.date_to:

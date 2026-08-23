@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import type { ChangeEvent } from 'react';
 
 import { Dropdown } from '../../../common/components/Dropdown';
+import { MultiSelectDropdown } from '../../../common/components/MultiSelectDropdown';
 import {
   JOB_REFERRAL_STATUS_OPTIONS,
   JOB_STATUS_OPTIONS,
@@ -54,16 +55,18 @@ export function JobsFilters({
       updateFilter({ [key]: value || undefined });
     };
 
-  const handleStatusChange = (value: string) => {
+  const handleStatusChange = (values: string[]) => {
     updateFilter({
-      status: value ? (value as JobListQueryParams['status']) : undefined,
+      status: values.length
+        ? (values as JobListQueryParams['status'])
+        : undefined,
     });
   };
 
-  const handleReferralStatusChange = (value: string) => {
+  const handleReferralStatusChange = (values: string[]) => {
     updateFilter({
-      referralStatus: value
-        ? (value as JobListQueryParams['referralStatus'])
+      referralStatus: values.length
+        ? (values as JobListQueryParams['referralStatus'])
         : undefined,
     });
   };
@@ -80,22 +83,20 @@ export function JobsFilters({
       </div>
 
       <div className={styles.dropdownField}>
-        <Dropdown
+        <MultiSelectDropdown
           label="Status"
-          value={filters.status ?? ''}
+          values={filters.status ?? []}
           onChange={handleStatusChange}
           options={STATUS_OPTIONS}
-          allowEmpty
         />
       </div>
 
       <div className={styles.dropdownField}>
-        <Dropdown
+        <MultiSelectDropdown
           label="Referral status"
-          value={filters.referralStatus ?? ''}
+          values={filters.referralStatus ?? []}
           onChange={handleReferralStatusChange}
           options={REFERRAL_STATUS_OPTIONS}
-          allowEmpty
         />
       </div>
 

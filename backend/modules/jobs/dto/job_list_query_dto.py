@@ -6,9 +6,17 @@ from modules.jobs.types.job_types import JobFilterParams
 
 
 class JobListQueryDTO(serializers.Serializer):
-    status = serializers.ChoiceField(choices=JobStatus.choices, required=False, allow_null=True)
-    referral_status = serializers.ChoiceField(
-        choices=JobReferralStatus.choices, required=False, allow_null=True
+    status = serializers.ListField(
+        child=serializers.ChoiceField(choices=JobStatus.choices),
+        required=False,
+        allow_null=True,
+        allow_empty=True,
+    )
+    referral_status = serializers.ListField(
+        child=serializers.ChoiceField(choices=JobReferralStatus.choices),
+        required=False,
+        allow_null=True,
+        allow_empty=True,
     )
     date_from = serializers.DateField(required=False, allow_null=True)
     date_to = serializers.DateField(required=False, allow_null=True)

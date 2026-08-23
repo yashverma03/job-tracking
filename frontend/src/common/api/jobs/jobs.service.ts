@@ -14,7 +14,10 @@ import type {
   ScraperPipelineTriggerRequest,
 } from '../../../modules/jobs/interfaces/job.interfaces';
 
-const client = axios.create({ baseURL: API_BASE_URL });
+const client = axios.create({
+  baseURL: API_BASE_URL,
+  paramsSerializer: { indexes: null },
+});
 
 export async function fetchJobs(
   params: JobListQueryParams,

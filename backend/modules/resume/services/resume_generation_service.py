@@ -27,7 +27,7 @@ def _eligible_job_ids_in_priority_order() -> list[int]:
     filters = JobFilterParams(
         page=1,
         limit=MAX_ELIGIBLE_JOBS,
-        status=JobStatus.TO_APPLY,
+        status=[JobStatus.TO_APPLY],
         is_custom_resume_generated=False,
         has_description=True,
     )

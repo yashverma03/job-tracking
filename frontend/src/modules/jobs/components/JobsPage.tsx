@@ -126,9 +126,9 @@ export function JobsPage() {
       delete next.status;
       delete next.referralStatus;
       if (newMode === 'apply') {
-        next.status = 'To Apply';
+        next.status = ['To Apply'];
       } else if (newMode === 'referral') {
-        next.referralStatus = 'Referral required';
+        next.referralStatus = ['Referral required'];
       }
       return next;
     });

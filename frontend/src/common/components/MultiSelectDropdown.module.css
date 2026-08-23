@@ -1,0 +1,35 @@
+@reference "../../index.css";
+
+.container {
+  @apply relative flex flex-col gap-1 text-sm;
+}
+
+.label {
+  @apply font-medium text-slate-300;
+}
+
+.trigger {
+  @apply flex w-full items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-left text-sm text-slate-100 shadow-sm transition-colors;
+  @apply hover:border-slate-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none;
+}
+
+.triggerText {
+  @apply truncate;
+}
+
+.arrow {
+  @apply shrink-0 text-xs text-slate-400;
+}
+
+.menu {
+  @apply absolute top-full left-0 z-30 mt-1 max-h-56 w-max min-w-full overflow-y-auto rounded-lg border border-slate-700 bg-slate-800 p-1 shadow-lg;
+}
+
+.option {
+  @apply flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-100 transition-colors;
+  @apply hover:bg-slate-700;
+}
+
+.checkbox {
+  @apply h-4 w-4 accent-indigo-500;
+}

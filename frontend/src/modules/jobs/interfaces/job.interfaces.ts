@@ -23,8 +23,8 @@ export interface JobCreateRequest {
 export type JobUpdateRequest = Partial<JobCreateRequest>;
 
 export interface JobListQueryParams {
-  status?: JobStatus;
-  referralStatus?: JobReferralStatus;
+  status?: JobStatus[];
+  referralStatus?: JobReferralStatus[];
   dateFrom?: string;
   dateTo?: string;
   search?: string;
