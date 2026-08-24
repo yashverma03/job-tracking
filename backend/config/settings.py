@@ -14,7 +14,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from common.utils.env import get_env
+from common.utils.env import get_env, get_env_int
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -125,7 +125,7 @@ DATABASES = {
 Q_CLUSTER = {
     'name': 'job_tracker',
     'orm': 'default',
-    'workers': 1,
+    'workers': get_env_int('Q_CLUSTER_WORKERS'),
     'timeout': 86400,
     'retry': 86500,
     'ack_failures': True,
