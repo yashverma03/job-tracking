@@ -40,17 +40,26 @@ def run_pipeline(max_jobs_per_run: int, start_offset: int, time_range_hours: int
                 logger.info('run finished: Success')
                 succeeded.append(scraper.name)
 
-            breakdown.append(f'{scraper.name}: success={job_success_count}, failed={len(errors)}')
+            breakdown.append(
+                f'{scraper.name.capitalize()}:\n'
+                f'Total: {job_success_count + len(errors)}\n'
+                f'Success: {job_success_count}\n'
+                f'Failed: {len(errors)}'
+            )
         except Exception as exc:  # noqa: BLE001 - one scraper's failure must not abort remaining scrapers
             scraper_run_service.mark_failed(run, {'message': str(exc)})
             logger.error('run finished: Failed error=%s', exc)
             failed.append(scraper.name)
-            breakdown.append(f'{scraper.name}: success=0, failed=0 (run error: {exc})')
+            breakdown.append(
+                f'{scraper.name.capitalize()}:\n'
+                f'Total: 0\n'
+                f'Success: 0\n'
+                f'Failed: 0 (run error: {exc})'
+            )
 
     NotificationManager.show(
         'Scraper pipeline complete',
-        f'Total: {len(succeeded) + len(failed)}\nSuccess: {len(succeeded)}\nFailed: {len(failed)}\n\n'
-        + '\n'.join(breakdown),
+        '\n\n'.join(breakdown),
     )
 
 
