@@ -8,7 +8,7 @@ from modules.scraper.utils.scraper_logger import get_scraper_logger
 SCRAPER_PIPELINE_TASK_GROUP = 'scraper_pipeline'
 
 
-def run_pipeline(max_jobs_per_run: int, start_offset: int) -> None:
+def run_pipeline(max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> None:
     succeeded = []
     failed = []
     breakdown = []
@@ -22,7 +22,7 @@ def run_pipeline(max_jobs_per_run: int, start_offset: int) -> None:
             scraper_run_service.mark_processing(run)
             logger.info('run marked Processing')
 
-            result = scraper.run(max_jobs_per_run, start_offset)
+            result = scraper.run(max_jobs_per_run, start_offset, time_range_hours)
             metadata = result.metadata
             errors = result.errors
             job_success_count = metadata.get('total_unique_count', 0) - len(errors)
@@ -58,7 +58,7 @@ def _pipeline_in_progress() -> bool:
     return scraper_run_service.has_run_in_progress()
 
 
-def trigger_scraper_pipeline(max_jobs_per_run: int, start_offset: int) -> dict:
+def trigger_scraper_pipeline(max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> dict:
     if _pipeline_in_progress():
         return {'queued': False, 'message': 'A scraper pipeline run is already in progress.'}
 
@@ -66,14 +66,15 @@ def trigger_scraper_pipeline(max_jobs_per_run: int, start_offset: int) -> dict:
         'modules.scraper.tasks.run_scraper_pipeline_task',
         max_jobs_per_run,
         start_offset,
+        time_range_hours,
         group=SCRAPER_PIPELINE_TASK_GROUP,
     )
 
     return {'queued': True, 'message': 'Scraper pipeline started.'}
 
 
-def init_scraper_pipeline(max_jobs_per_run: int, start_offset: int) -> dict:
+def init_scraper_pipeline(max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> dict:
     if scraper_run_service.has_run_today():
         return {'queued': False, 'message': 'A scraper pipeline run already exists for today.'}
 
-    return trigger_scraper_pipeline(max_jobs_per_run, start_offset)
+    return trigger_scraper_pipeline(max_jobs_per_run, start_offset, time_range_hours)

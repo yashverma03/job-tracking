@@ -5,6 +5,8 @@ import type { ScraperPipelineTriggerRequest } from '../interfaces/job.interfaces
 import styles from './FetchLatestJobsModal.module.css';
 
 const DEFAULT_MAX_JOBS_PER_RUN = 1000;
+const DEFAULT_TIME_RANGE_HOURS = 24;
+const MAX_TIME_RANGE_HOURS = 168;
 
 interface FetchLatestJobsModalProps {
   onClose: () => void;
@@ -21,15 +23,22 @@ export function FetchLatestJobsModal({
     String(DEFAULT_MAX_JOBS_PER_RUN),
   );
   const [startOffset, setStartOffset] = useState('0');
+  const [timeRangeHours, setTimeRangeHours] = useState(
+    String(DEFAULT_TIME_RANGE_HOURS),
+  );
 
   const parsedMaxJobsPerRun = Number(maxJobsPerRun);
   const parsedStartOffset = Number(startOffset);
+  const parsedTimeRangeHours = Number(timeRangeHours);
   const isValid =
     Number.isInteger(parsedMaxJobsPerRun) &&
     parsedMaxJobsPerRun >= 1 &&
     parsedMaxJobsPerRun <= 1000 &&
     Number.isInteger(parsedStartOffset) &&
-    parsedStartOffset >= 0;
+    parsedStartOffset >= 0 &&
+    Number.isInteger(parsedTimeRangeHours) &&
+    parsedTimeRangeHours >= 1 &&
+    parsedTimeRangeHours <= MAX_TIME_RANGE_HOURS;
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -38,6 +47,7 @@ export function FetchLatestJobsModal({
     onSubmit({
       maxJobsPerRun: parsedMaxJobsPerRun,
       startOffset: parsedStartOffset,
+      timeRangeHours: parsedTimeRangeHours,
     });
   };
 
@@ -86,9 +96,19 @@ export function FetchLatestJobsModal({
               min={0}
               disabled={isSubmitting}
             />
-            <span className={styles.hint}>
-              Listing index to resume pagination from (0 to start over).
-            </span>
+          </label>
+
+          <label className={styles.label}>
+            Time range (hrs)
+            <input
+              type="number"
+              className={styles.input}
+              value={timeRangeHours}
+              onChange={(event) => setTimeRangeHours(event.target.value)}
+              min={1}
+              max={MAX_TIME_RANGE_HOURS}
+              disabled={isSubmitting}
+            />
           </label>
 
           <div className={styles.actions}>

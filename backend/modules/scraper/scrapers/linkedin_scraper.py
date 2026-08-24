@@ -46,10 +46,11 @@ COMMON_HEADERS = {
     'Sec-Fetch-Site': 'same-origin',
 }
 
+SECONDS_PER_HOUR = 3600
+
 DEFAULT_SEARCH_FILTERS = {
     'keywords': 'software',
     'location': 'India',
-    'f_TPR': 'r86400',
     'f_E': '2,3,4',
     'f_JT': 'F',
 }
@@ -127,10 +128,11 @@ class LinkedInScraper(BaseScraper):
     def _request(self, url: str, **kwargs) -> requests.Response:
         return self._listing_lane.request(url, **kwargs)
 
-    def run(self, max_jobs_per_run: int, start_offset: int) -> ScraperRunResult:
+    def run(self, max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> ScraperRunResult:
         self._total_count = 0
         self._total_unique_count = 0
         self._errors = []
+        self._time_range_seconds = time_range_hours * SECONDS_PER_HOUR
         start = start_offset
         consecutive_empty_pages = 0
         pending: list[Future] = []
@@ -232,7 +234,7 @@ class LinkedInScraper(BaseScraper):
         self._logger.info('job inserted: %s', url)
 
     def _fetch_listing_page(self, start: int) -> str:
-        params = {**DEFAULT_SEARCH_FILTERS, 'start': start}
+        params = {**DEFAULT_SEARCH_FILTERS, 'f_TPR': f'r{self._time_range_seconds}', 'start': start}
         response = self._request(
             LISTING_URL,
             params=params,
