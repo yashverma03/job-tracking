@@ -50,6 +50,7 @@ class ResumeInput(BaseModel):
     min_experience_years: float
     max_experience_years: float
     expected_ctc_lpa: float
+    shortlist_cap: int
     base_summary: str
     skills_summary: str
     experience: list[ResumeExperienceEntry]
