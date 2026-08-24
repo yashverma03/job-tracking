@@ -13,13 +13,27 @@ const PROFILE_SKILLS_SUMMARY = profileData.skills_summary;
 const PROFILE_INTRO_SENTENCE = `I'm a ${PROFILE_TITLE}${PROFILE_EXPERIENCE_SUMMARY.slice(PROFILE_EXPERIENCE_SUMMARY.indexOf(' with '))}.`;
 
 function assertJobsHaveRequiredFields(jobs: Job[]): void {
-  jobs.forEach((job) => {
-    if (!job.companyName || !job.title || !(job.url || job.officialId)) {
-      throw new Error(
-        `Job ${job.id} is missing required fields for message generation: company name, title, and (URL or job ID) must all be present.`,
-      );
-    }
-  });
+  requireField(jobs, (job) => Boolean(job.title), 'job title');
+  requireField(jobs, (job) => Boolean(job.companyName), 'company name');
+  requireField(
+    jobs,
+    (job) => Boolean(job.url || job.secondaryUrl || job.officialId),
+    'job URL or job ID',
+  );
+}
+
+function requireField(
+  jobs: Job[],
+  predicate: (job: Job) => boolean,
+  fieldLabel: string,
+): void {
+  const invalidJobs = jobs.filter((job) => !predicate(job));
+  if (invalidJobs.length > 0) {
+    const ids = invalidJobs.map((job) => job.id).join(', ');
+    throw new Error(
+      `Job(s) ${ids} missing required field for message generation: ${fieldLabel}`,
+    );
+  }
 }
 
 function jobIdSuffix(job: Job): string {
@@ -27,7 +41,16 @@ function jobIdSuffix(job: Job): string {
 }
 
 function effectiveUrl(job: Job): string | null {
-  return job.secondaryUrl || job.url;
+  return job.secondaryUrl || job.url || null;
+}
+
+function requireOfficialId(job: Job): string {
+  if (!job.officialId) {
+    throw new Error(
+      `Job ${job.id} is missing both a URL and a job ID for message generation`,
+    );
+  }
+  return job.officialId;
 }
 
 function formatJobsList(jobs: Job[]): string {
@@ -35,9 +58,20 @@ function formatJobsList(jobs: Job[]): string {
   return jobs
     .map((job, index) => {
       const numbering = multipleJobs ? `${index + 1}. ` : '';
-      return `${numbering}${job.title ?? 'Untitled role'}${jobIdSuffix(job)}\n${effectiveUrl(job)}`;
+      const url = effectiveUrl(job);
+      const titleLine = `${numbering}${job.title}${url ? jobIdSuffix(job) : ''}`;
+      const locatorLine = url ?? `Job ID: ${requireOfficialId(job)}`;
+      return `${titleLine}\n${locatorLine}`;
     })
     .join('\n');
+}
+
+function singleJobLine(job: Job): string {
+  const url = effectiveUrl(job);
+  if (url) {
+    return `Job: ${url}${jobIdSuffix(job)}`;
+  }
+  return `Job ID: ${requireOfficialId(job)}`;
 }
 
 function sharedCompanyName(jobs: Job[]): string | null {
@@ -50,32 +84,40 @@ function sharedCompanyName(jobs: Job[]): string | null {
 
 const SHORT_REFERRAL_MESSAGE_MAX_LENGTH = 300;
 
+type ShortMessageMode = 'urlAndId' | 'urlOnly' | 'idOnly';
+
 function buildShortReferralJobsBlock(
   jobs: Job[],
-  useJobIdOnly: boolean,
+  mode: ShortMessageMode,
 ): string {
   const [firstJob] = jobs;
   const isSingle = jobs.length === 1;
 
-  if (useJobIdOnly) {
+  if (mode === 'idOnly') {
+    requireField(jobs, (job) => Boolean(job.officialId), 'job ID');
     return isSingle
       ? `Job ID: ${firstJob.officialId}`
       : `Job IDs: ${jobs.map((job) => job.officialId).join(', ')}`;
   }
 
+  requireField(jobs, (job) => Boolean(effectiveUrl(job)), 'job URL');
+  const includeId = mode === 'urlAndId';
+
   return isSingle
-    ? `Job: ${effectiveUrl(firstJob)}${jobIdSuffix(firstJob)}`
-    : `Jobs:\n${jobs.map((job) => effectiveUrl(job)).join('\n')}`;
+    ? `Job: ${effectiveUrl(firstJob)}${includeId ? jobIdSuffix(firstJob) : ''}`
+    : `Jobs:\n${jobs
+        .map((job) => `${effectiveUrl(job)}${includeId ? jobIdSuffix(job) : ''}`)
+        .join('\n')}`;
 }
 
-function buildShortReferralMessage(jobs: Job[], useJobIdOnly: boolean): string {
+function buildShortReferralMessage(jobs: Job[], mode: ShortMessageMode): string {
   const [firstJob] = jobs;
 
-  const jobsBlock = buildShortReferralJobsBlock(jobs, useJobIdOnly);
+  const jobsBlock = buildShortReferralJobsBlock(jobs, mode);
 
   return `
 Hi, I'm ${PROFILE_NAME}, ${PROFILE_TITLE}.
-I'm interested in the ${firstJob.title ?? 'role'} role at ${firstJob.companyName ?? 'your organisation'} and would appreciate your referral.
+I'm interested in the ${firstJob.title} role at ${firstJob.companyName} and would appreciate your referral.
 
 ${jobsBlock}
 Resume: ${PROFILE_RESUME_URL}
@@ -88,12 +130,21 @@ export function getShortReferralMessage(jobs: Job[]): string {
   if (jobs.length === 0) return '';
   assertJobsHaveRequiredFields(jobs);
 
-  const messageWithUrl = buildShortReferralMessage(jobs, false);
-  if (messageWithUrl.length <= SHORT_REFERRAL_MESSAGE_MAX_LENGTH) {
-    return messageWithUrl;
+  const allHaveUrl = jobs.every((job) => Boolean(effectiveUrl(job)));
+
+  if (allHaveUrl) {
+    const withUrlAndId = buildShortReferralMessage(jobs, 'urlAndId');
+    if (withUrlAndId.length <= SHORT_REFERRAL_MESSAGE_MAX_LENGTH) {
+      return withUrlAndId;
+    }
+
+    const withUrlOnly = buildShortReferralMessage(jobs, 'urlOnly');
+    if (withUrlOnly.length <= SHORT_REFERRAL_MESSAGE_MAX_LENGTH) {
+      return withUrlOnly;
+    }
   }
 
-  return buildShortReferralMessage(jobs, true);
+  return buildShortReferralMessage(jobs, 'idOnly');
 }
 
 export function getLongReferralMessage(jobs: Job[]): string {
@@ -132,15 +183,15 @@ export function getEmailMessage(jobs: Job[]): string {
   const company = sharedCompanyName(jobs);
 
   const subject = isSingle
-    ? `Application for ${firstJob.title ?? 'the role'}`
+    ? `Application for ${firstJob.title}`
     : `Application for ${jobs.length} roles`;
 
   const applySentence = isSingle
-    ? `I am enthusiastic about the opportunity and would like to apply for the role of ${firstJob.title ?? 'this role'} at ${firstJob.companyName ?? 'your organisation'}.`
+    ? `I am enthusiastic about the opportunity and would like to apply for the role of ${firstJob.title} at ${firstJob.companyName}.`
     : `I am enthusiastic about these opportunities and would like to apply for the following role${jobs.length > 1 ? 's' : ''}${company ? ` at ${company}` : ''}:`;
 
   const jobsBlock = isSingle
-    ? `Job: ${effectiveUrl(firstJob)}${jobIdSuffix(firstJob)}`
+    ? singleJobLine(firstJob)
     : `Jobs:\n${formatJobsList(jobs)}`;
 
   return `
