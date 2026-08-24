@@ -47,7 +47,7 @@ function buildResumeFileUrl(jobId: number): string {
 
 const CHECKBOX_COLUMN_WIDTH = 40;
 const ACTIONS_COLUMN_WIDTH = 160;
-const ID_COLUMN_WIDTH = 56;
+const ID_COLUMN_WIDTH = 70;
 const DATE_COLUMN_WIDTH = 120;
 const DATE_FORMAT = 'DD MMM YYYY';
 const STATUS_COLUMN_WIDTH = 170;
