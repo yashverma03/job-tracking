@@ -23,6 +23,11 @@ interface UpdateMutationArgs {
   payload: JobUpdateRequest;
 }
 
+interface BulkUpdateMutationArgs {
+  ids: number[];
+  payload: JobUpdateRequest;
+}
+
 function extractResumeOutcomeError(error: unknown): string | undefined {
   if (!axios.isAxiosError(error)) return undefined;
   const data = error.response?.data as GenerateResumesOutcome | undefined;
@@ -52,6 +57,17 @@ export function useJobMutations() {
     },
     onError: (error) =>
       toast.error(extractErrorMessage(error) ?? 'Failed to update job'),
+  });
+
+  const bulkUpdateMutation = useMutation({
+    mutationFn: ({ ids, payload }: BulkUpdateMutationArgs) =>
+      Promise.all(ids.map((id) => updateJob(id, payload))),
+    onSuccess: () => {
+      invalidateJobs();
+      toast.success('Jobs updated');
+    },
+    onError: (error) =>
+      toast.error(extractErrorMessage(error) ?? 'Failed to update jobs'),
   });
 
   const deleteMutation = useMutation({
@@ -109,6 +125,7 @@ export function useJobMutations() {
   return {
     createMutation,
     updateMutation,
+    bulkUpdateMutation,
     deleteMutation,
     generateResumesMutation,
     buildResumeMutation,

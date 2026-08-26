@@ -5,7 +5,11 @@
 }
 
 .actions {
-  @apply col-start-2 flex justify-center;
+  @apply col-start-2 flex items-center justify-center gap-15;
+}
+
+.dropdownGroup {
+  @apply flex items-center gap-2;
 }
 
 .count {
