@@ -152,10 +152,20 @@ export function JobsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const resetFilters = () => {
+    setSearchParams(new URLSearchParams());
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Job Tracker</h1>
+        <button
+          type="button"
+          className={styles.title}
+          onClick={resetFilters}
+        >
+          Job Tracker
+        </button>
         <div className={styles.headerButtons}>
           <button
             type="button"

@@ -9,7 +9,7 @@
 }
 
 .title {
-  @apply text-2xl font-bold tracking-tight;
+  @apply cursor-pointer text-2xl font-bold tracking-tight transition-opacity hover:opacity-80;
 }
 
 .addButton {
