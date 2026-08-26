@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { DEFAULT_PAGE_SIZE } from '../../../common/constants/pagination.constants';
+import { useUrlSearchParams } from '../../../common/hooks/useUrlSearchParams';
 import { JobsFilters } from './JobsFilters';
 import { JobsTable } from './JobsTable';
 import { BulkActionsBar } from './BulkActionsBar';
@@ -10,6 +10,11 @@ import { FetchLatestJobsModal } from './FetchLatestJobsModal';
 import { useJobMutations } from '../hooks/useJobMutations';
 import { useJobsQuery } from '../hooks/useJobsQuery';
 import { useJobStatsQuery } from '../hooks/useJobStatsQuery';
+import {
+  buildSearchParams,
+  parseFiltersFromSearchParams,
+  parseModeFromSearchParams,
+} from '../utils/filterParams.utils';
 import type {
   JobListQueryParams,
   JobUpdateRequest,
@@ -17,14 +22,25 @@ import type {
 import type { Job, JobsViewMode } from '../types/job.types';
 import styles from './JobsPage.module.css';
 
-const INITIAL_FILTERS: JobListQueryParams = {
-  page: 1,
-  limit: DEFAULT_PAGE_SIZE,
-};
-
 export function JobsPage() {
-  const [filters, setFilters] = useState<JobListQueryParams>(INITIAL_FILTERS);
-  const [mode, setMode] = useState<JobsViewMode>('all');
+  const [searchParams, setSearchParams] = useUrlSearchParams();
+  const filters = useMemo(
+    () => parseFiltersFromSearchParams(searchParams),
+    [searchParams],
+  );
+  const mode = useMemo(
+    () => parseModeFromSearchParams(searchParams),
+    [searchParams],
+  );
+
+  const setFilters = (
+    updater: JobListQueryParams | ((prev: JobListQueryParams) => JobListQueryParams),
+  ) => {
+    const next =
+      typeof updater === 'function' ? updater(filters) : updater;
+    setSearchParams(buildSearchParams(next, mode));
+  };
+
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [cloneSource, setCloneSource] = useState<JobCloneSource | null>(null);
@@ -120,18 +136,15 @@ export function JobsPage() {
   };
 
   const handleModeChange = (newMode: JobsViewMode) => {
-    setMode(newMode);
-    setFilters((prev) => {
-      const next = { ...prev, page: 1 };
-      delete next.status;
-      delete next.referralStatus;
-      if (newMode === 'apply') {
-        next.status = ['To Apply'];
-      } else if (newMode === 'referral') {
-        next.referralStatus = ['Referral required'];
-      }
-      return next;
-    });
+    const next: JobListQueryParams = { ...filters, page: 1 };
+    delete next.status;
+    delete next.referralStatus;
+    if (newMode === 'apply') {
+      next.status = ['To Apply'];
+    } else if (newMode === 'referral') {
+      next.referralStatus = ['Referral required'];
+    }
+    setSearchParams(buildSearchParams(next, newMode));
   };
 
   const goToPage = (page: number) => {
