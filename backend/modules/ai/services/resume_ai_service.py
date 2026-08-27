@@ -117,17 +117,20 @@ and adjust (trim a bullet, drop one, or let a strong bullet run to 2 lines) unti
 string), at most 20 skills, front-loaded with the most important/relevant \
 skills first and progressively less important ones toward the end (the first few entries are what a recruiter \
 skimming the list will actually read), with no grouping or categorization. Be selective, not exhaustive — do not \
-just return most of the candidate's skills list. Steps to build it:
-  1. From the candidate's skills list above, select only the skills that are actually relevant to this job \
-description. Drop everything else, even if it's a fine general skill — irrelevant skills waste space.
-  2. Identify important skills/technologies/tools named in the job description (including anything wrapped in \
-"**") that are NOT in the candidate's skills list, but are close enough to something the candidate's real \
-experience (from the work experience section above) already demonstrates that listing them is honest — e.g. the \
-JD says a specific framework/library the candidate's bullets show equivalent hands-on work with. Add a small \
-number of these (typically 3-6), phrased using the job description's own terminology. Do not add a skill that has \
-no grounding at all in the candidate's base data.
-  3. The combined list from steps 1-2 must not exceed 20 entries; if it would, keep only the highest-relevance \
-ones.
+just return most of the candidate's skills list. The candidate's skills list above is the skill pool — it is the \
+only source of skills; every entry you output must trace back to something in that pool. Do not introduce a \
+language, framework, library, tool, platform, or any other technology that is absent from the pool, even if the \
+job description names it and even if the candidate's work experience seems to imply familiarity with it — if it \
+is not in the pool, it does not go in the output, no exceptions. Steps to build it:
+  1. From the pool, select only the skills that are actually relevant to this job description. Drop everything \
+else, even if it's a fine general skill — irrelevant skills waste space.
+  2. For each selected skill, check whether the job description (including anything wrapped in "**") refers to \
+the same thing using different wording, a different abbreviation/expansion, or a closely-related/adjacent variant \
+(e.g. the pool has "Postgres" and the JD says "PostgreSQL"; the pool has "React" and the JD says "React.js"; the \
+pool has "CI/CD" and the JD says "Continuous Integration"). When it does, normalize that pool skill's phrasing to \
+match the job description's terminology so the keyword match is exact. This is a rewording step only — it must \
+still name the same underlying skill that was already in the pool, never a different one.
+  3. The output must not exceed 20 entries; if step 1 selects more, keep only the highest-relevance ones.
 
 Call the "{_SUBMIT_TOOL_NAME}" tool exactly once with the final result. Do not respond with plain text."""
 
