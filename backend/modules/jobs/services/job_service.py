@@ -170,6 +170,7 @@ def create_scraped_job(
     location: str | None,
     description: str | None,
     url: str,
+    referral_status: str,
 ) -> Job:
     return create_job(
         {
@@ -180,6 +181,7 @@ def create_scraped_job(
             'url': url,
             'status': JobStatus.PENDING,
             'is_manual_created': False,
+            'referral_status': referral_status,
         }
     )
 

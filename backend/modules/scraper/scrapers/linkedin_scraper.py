@@ -212,6 +212,10 @@ class LinkedInScraper(BaseScraper):
                 self._errors.append({'url': url, 'message': message})
             return
 
+        if self.is_job_excluded(listing['title'], listing['location'], listing['company_name']):
+            self._logger.info('excluded by filter rules: %s', url)
+            return
+
         try:
             self._logger.info('fetching details for %s', url)
             description = self._fetch_job_details(job_id, referer=url)
@@ -222,6 +226,7 @@ class LinkedInScraper(BaseScraper):
                 location=listing['location'],
                 description=description,
                 url=url,
+                referral_status=self.get_referral_status_for_company(listing['company_name']),
             )
         except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the run
             self._logger.warning('job processing failed for %s: %s', url, exc)
