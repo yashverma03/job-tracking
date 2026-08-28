@@ -1,4 +1,3 @@
-import random
 import secrets
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, wait as wait_futures
@@ -13,16 +12,9 @@ from modules.jobs.utils.url_cleaner import clean_job_url, extract_linkedin_job_i
 from modules.scraper.base.base_scraper import BaseScraper
 from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.types import ScraperRunResult
+from modules.scraper.utils.http_session import new_session
 from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.text_cleaner import clean_text
-
-IMPERSONATE_PROFILES = [
-    'chrome116', 'chrome119', 'chrome120', 'chrome123', 'chrome124',
-    'chrome131', 'chrome133a', 'chrome136',
-    'edge101',
-    'safari153', 'safari155', 'safari170', 'safari180', 'safari184',
-    'firefox133', 'firefox135',
-]
 
 LISTING_URL = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search'
 DETAIL_URL_TEMPLATE = 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{job_id}'
@@ -36,14 +28,6 @@ PROXY_USERNAME_ENV_KEY = 'SCRAPER_PROXY_USERNAME'
 PROXY_PASSWORD_ENV_KEY = 'SCRAPER_PROXY_PASSWORD'
 DETAIL_WORKER_COUNT_ENV_KEY = 'SCRAPER_DETAIL_WORKER_COUNT'
 
-COMMON_HEADERS = {
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Sec-Fetch-Dest': 'empty',
-    'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Site': 'same-origin',
-}
-
 SECONDS_PER_HOUR = 3600
 
 DEFAULT_SEARCH_FILTERS = {
@@ -55,15 +39,10 @@ DEFAULT_SEARCH_FILTERS = {
 
 
 def _new_session(scraper: 'LinkedInScraper') -> requests.Session:
-    """Build a fresh session: random impersonate profile (TLS/user-agent fingerprint) and a new
-    proxy exit IP."""
-    impersonate_profile = random.choice(IMPERSONATE_PROFILES)
+    """Build a fresh session with a new proxy exit IP (a fresh random impersonate
+    profile/fingerprint is handled by new_session itself)."""
     proxy_url = scraper._build_proxy_url(secrets.token_hex(8))
-
-    session = requests.Session(impersonate=impersonate_profile)
-    session.headers.update(COMMON_HEADERS)
-    session.proxies = {'http': proxy_url, 'https': proxy_url}
-    return session
+    return new_session(proxy_url)
 
 
 class _ProxyLane:
