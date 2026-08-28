@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db import connection, transaction
 from django.utils import timezone
 from django_q.models import Schedule
 from django_q.tasks import async_task, schedule
@@ -26,6 +27,11 @@ SUMMARY_NOTIFICATION_HEIGHT = 320
 # batch summary is read, so the notification reflects the fully-resolved state.
 NOTIFICATION_DELAY = timedelta(minutes=1)
 NOTIFY_PIPELINE_COMPLETE_TASK = 'modules.scraper.tasks.notify_pipeline_complete_task'
+
+# Arbitrary constant used as a Postgres advisory-lock key so that two scraper tasks
+# finishing at nearly the same instant can't both pass the "is anything else pending?"
+# check and each schedule their own notification.
+PIPELINE_NOTIFICATION_LOCK_KEY = 727_100_001
 
 
 def run_scraper(scraper: BaseScraper, max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> None:
@@ -106,16 +112,25 @@ def _notify_if_pipeline_complete() -> None:
     if scraper_run_service.has_run_in_progress():
         return
 
-    # Avoid scheduling duplicate notifications if more than one task observes an empty
-    # in-progress queue in quick succession.
-    if Schedule.objects.filter(func=NOTIFY_PIPELINE_COMPLETE_TASK, next_run__gte=timezone.now()).exists():
-        return
+    # Two scraper tasks can both observe an empty in-progress queue within the same
+    # instant (e.g. both finish together). An advisory lock serializes them so only one
+    # ever schedules the notification: the second waits for the first to commit its
+    # schedule, then re-checks and sees it already exists.
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT pg_advisory_xact_lock(%s)', [PIPELINE_NOTIFICATION_LOCK_KEY])
 
-    schedule(
-        NOTIFY_PIPELINE_COMPLETE_TASK,
-        schedule_type=Schedule.ONCE,
-        next_run=timezone.now() + NOTIFICATION_DELAY,
-    )
+        if scraper_run_service.has_run_in_progress():
+            return
+
+        if Schedule.objects.filter(func=NOTIFY_PIPELINE_COMPLETE_TASK, next_run__gte=timezone.now()).exists():
+            return
+
+        schedule(
+            NOTIFY_PIPELINE_COMPLETE_TASK,
+            schedule_type=Schedule.ONCE,
+            next_run=timezone.now() + NOTIFICATION_DELAY,
+        )
 
 
 def check_and_notify_pipeline_complete() -> None:
