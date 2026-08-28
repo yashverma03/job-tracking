@@ -72,6 +72,7 @@ class BaseScraper(ABC):
                 description=description,
                 url=listing['url'],
                 referral_status=self.get_referral_status_for_company(listing['company_name']),
+                official_id=listing.get('official_id'),
             )
         except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the run
             self._record_error(url, str(exc))
