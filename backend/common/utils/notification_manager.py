@@ -20,7 +20,7 @@ class NotificationManager:
     """Manages OS notifications using zenity."""
 
     @staticmethod
-    def show(title: str, message: str) -> None:
+    def show(title: str, message: str, width: int | None = None, height: int | None = None) -> None:
         env = os.environ.copy()
         env.setdefault('DISPLAY', _DEFAULT_DISPLAY)
         env.setdefault('DBUS_SESSION_BUS_ADDRESS', _DEFAULT_DBUS_ADDRESS)
@@ -32,9 +32,15 @@ class NotificationManager:
             else:
                 logger.warning('Could not discover XAUTHORITY; notification may fail to display: %s', title)
 
+        command = ['zenity', '--info', '--title', title, '--text', message]
+        if width is not None:
+            command += ['--width', str(width)]
+        if height is not None:
+            command += ['--height', str(height)]
+
         try:
             process = subprocess.Popen(
-                ['zenity', '--info', '--title', title, '--text', message],
+                command,
                 env=env,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,

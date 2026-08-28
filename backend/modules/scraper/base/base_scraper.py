@@ -1,6 +1,7 @@
 import threading
 from abc import ABC, abstractmethod
 
+from common.utils.env import get_env_int
 from modules.company.services import company_service
 from modules.jobs.enums.job_referral_status import JobReferralStatus
 from modules.jobs.services import job_service, job_unique_key_service
@@ -10,6 +11,7 @@ from modules.scraper.utils.job_filter import is_location_excluded, is_title_excl
 from modules.scraper.utils.scraper_logger import get_scraper_logger
 
 REQUIRED_LISTING_FIELDS = ('url', 'title', 'company_name', 'location')
+DETAIL_WORKER_COUNT_ENV_KEY = 'SCRAPER_DETAIL_WORKER_COUNT'
 
 
 class BaseScraper(ABC):
@@ -18,6 +20,12 @@ class BaseScraper(ABC):
         self._state_lock = threading.Lock()
         self._total_unique_count = 0
         self._errors: list[dict] = []
+
+    @property
+    def detail_worker_count(self) -> int:
+        """Shared worker-pool size for concurrent job-detail fetches, every scraper
+        strategy reads the same env-configured value."""
+        return get_env_int(DETAIL_WORKER_COUNT_ENV_KEY)
 
     @property
     @abstractmethod

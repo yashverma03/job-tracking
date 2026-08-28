@@ -6,12 +6,13 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests
 from curl_cffi.requests.exceptions import HTTPError
 
-from common.utils.env import get_env, get_env_int
+from common.utils.env import get_env
 from common.utils.http import get_with_retry
 from modules.jobs.utils.url_cleaner import clean_job_url, extract_linkedin_job_id
 from modules.scraper.base.base_scraper import BaseScraper
 from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.types import ScraperRunResult
+from modules.scraper.constants import REQUEST_TIMEOUT_SECONDS, SECONDS_PER_HOUR
 from modules.scraper.utils.http_session import new_session
 from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.text_cleaner import clean_text
@@ -21,14 +22,10 @@ DETAIL_URL_TEMPLATE = 'https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/{
 SEARCH_PAGE_REFERER = 'https://www.linkedin.com/jobs/search'
 PAGE_SIZE = 10
 MAX_CONSECUTIVE_EMPTY_PAGES = 5
-REQUEST_TIMEOUT_SECONDS = 15
 PROXY_HOST_ENV_KEY = 'SCRAPER_PROXY_HOST'
 PROXY_PORT_ENV_KEY = 'SCRAPER_PROXY_PORT'
 PROXY_USERNAME_ENV_KEY = 'SCRAPER_PROXY_USERNAME'
 PROXY_PASSWORD_ENV_KEY = 'SCRAPER_PROXY_PASSWORD'
-DETAIL_WORKER_COUNT_ENV_KEY = 'SCRAPER_DETAIL_WORKER_COUNT'
-
-SECONDS_PER_HOUR = 3600
 
 DEFAULT_SEARCH_FILTERS = {
     'keywords': 'software',
@@ -110,8 +107,7 @@ class LinkedInScraper(BaseScraper):
         consecutive_empty_pages = 0
         pending: list[Future] = []
 
-        detail_worker_count = get_env_int(DETAIL_WORKER_COUNT_ENV_KEY)
-        with ThreadPoolExecutor(max_workers=detail_worker_count, thread_name_prefix='linkedin-detail') as executor:
+        with ThreadPoolExecutor(max_workers=self.detail_worker_count, thread_name_prefix='linkedin-detail') as executor:
             while self._total_count < max_jobs_per_run:
                 self._logger.info('fetching listing page start=%s', start)
                 try:

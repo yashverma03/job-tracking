@@ -19,6 +19,12 @@ def has_run_today() -> bool:
     return ScraperRun.objects.filter(created_at__date=timezone.now().date()).exists()
 
 
+def get_runs_for_today() -> list[ScraperRun]:
+    return list(
+        ScraperRun.objects.filter(created_at__date=timezone.now().date()).order_by('name', 'created_at')
+    )
+
+
 def mark_processing(run: ScraperRun) -> None:
     run.status = ScraperRunStatus.PROCESSING
     run.save(update_fields=['status'])

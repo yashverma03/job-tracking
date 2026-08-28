@@ -54,12 +54,6 @@ export interface ScraperPipelineQueuedResponse {
   message: string;
 }
 
-export interface ScraperPipelineTriggerRequest {
-  maxJobsPerRun: number;
-  startOffset: number;
-  timeRangeHours: number;
-}
-
 export interface JobFormValues {
   url: string;
   secondaryUrl: string;
