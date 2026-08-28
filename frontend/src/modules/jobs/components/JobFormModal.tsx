@@ -1,4 +1,4 @@
-import { useEffect, useRef, type FocusEvent } from 'react';
+import { useEffect, type FocusEvent } from 'react';
 
 import dayjs from 'dayjs';
 import { Formik, Form, Field, type FieldProps } from 'formik';
@@ -93,8 +93,6 @@ function jobToFormValues(
   };
 }
 
-const REFERRAL_REQUIRED_STATUS = 'Referral required' as const;
-
 function toJobPayload(
   values: JobFormValues,
   isEdit: boolean,
@@ -121,38 +119,40 @@ function toJobPayload(
   return payload;
 }
 
-interface AutoReferralDefaultProps {
-  companyName: string;
-  title: string;
-  officialId: string;
-  referralStatus: JobFormValues['referralStatus'];
-  setFieldValue: (field: string, value: string) => void;
-}
+// interface AutoReferralDefaultProps {
+//   companyName: string;
+//   title: string;
+//   officialId: string;
+//   referralStatus: JobFormValues['referralStatus'];
+//   setFieldValue: (field: string, value: string) => void;
+// }
 
-function AutoReferralDefault({
-  companyName,
-  title,
-  officialId,
-  referralStatus,
-  setFieldValue,
-}: AutoReferralDefaultProps) {
-  const hasAutoApplied = useRef(false);
+// const REFERRAL_REQUIRED_STATUS = 'Referral required' as const;
 
-  useEffect(() => {
-    if (hasAutoApplied.current) return;
-    const hasIdentifyingInfo = Boolean(
-      companyName.trim() || title.trim() || officialId.trim(),
-    );
-    if (!hasIdentifyingInfo) return;
-
-    hasAutoApplied.current = true;
-    if (referralStatus === DEFAULT_JOB_REFERRAL_STATUS) {
-      setFieldValue('referralStatus', REFERRAL_REQUIRED_STATUS);
-    }
-  }, [companyName, title, officialId, referralStatus, setFieldValue]);
-
-  return null;
-}
+// function AutoReferralDefault({
+//   companyName,
+//   title,
+//   officialId,
+//   referralStatus,
+//   setFieldValue,
+// }: AutoReferralDefaultProps) {
+//   const hasAutoApplied = useRef(false);
+//
+//   useEffect(() => {
+//     if (hasAutoApplied.current) return;
+//     const hasIdentifyingInfo = Boolean(
+//       companyName.trim() || title.trim() || officialId.trim(),
+//     );
+//     if (!hasIdentifyingInfo) return;
+//
+//     hasAutoApplied.current = true;
+//     if (referralStatus === DEFAULT_JOB_REFERRAL_STATUS) {
+//       setFieldValue('referralStatus', REFERRAL_REQUIRED_STATUS);
+//     }
+//   }, [companyName, title, officialId, referralStatus, setFieldValue]);
+//
+//   return null;
+// }
 
 interface CompanyNameFieldProps {
   value: string;
@@ -270,7 +270,7 @@ export function JobFormModal({
             <Form className={styles.form}>
               <SubmitOnCtrlEnter submitForm={submitForm} />
 
-              {!isEdit && !cloneFrom && (
+              {/* {!isEdit && !cloneFrom && (
                 <AutoReferralDefault
                   companyName={values.companyName}
                   title={values.title}
@@ -278,7 +278,7 @@ export function JobFormModal({
                   referralStatus={values.referralStatus}
                   setFieldValue={setFieldValue}
                 />
-              )}
+              )} */}
 
               {isEdit && (
                 <div className={styles.row}>
