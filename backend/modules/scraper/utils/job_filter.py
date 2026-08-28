@@ -1,30 +1,31 @@
-import re
-from dataclasses import dataclass
-
 from common.utils.text_normalizer import normalize_text
 
-
-@dataclass(frozen=True)
-class TitleExclusionRule:
-    """A single title-exclusion rule. Plain rules are matched as a normalized substring
-    of the (normalized) incoming title; regex rules are matched with `re.search` against
-    the normalized incoming title, and are not themselves normalized."""
-
-    pattern: str
-    is_regex: bool = False
-
-
 # Roles that are out of scope regardless of scraper/source. Kept here (rather than per-scraper)
-# so every strategy excludes the same set of titles.
-EXCLUDED_TITLE_RULES: list[TitleExclusionRule] = [
-    TitleExclusionRule('manager'),
-    TitleExclusionRule('principle'),
-    TitleExclusionRule('lead'),
-    TitleExclusionRule('architect'),
-    TitleExclusionRule('firmware'),
-    TitleExclusionRule('sde 3'),
-    TitleExclusionRule('sde 4'),
-    TitleExclusionRule('staff'),
+# so every strategy excludes the same set of titles. A title is excluded if any of these
+# words/phrases is present anywhere in it, after normalizing both sides.
+EXCLUDED_TITLE_WORDS: list[str] = [
+    'manager',
+    'principle',
+    'lead',
+    'architect',
+    'firmware',
+    'sde 3',
+    'sde 4',
+    'sde iii',
+    'sde iv',
+    'staff',
+    '.net developer',
+    'golang developer',
+    'c# developer',
+    'c# engineer',
+    'qa engineer',
+    'sdet',
+    'test',
+    'embedded',
+    'consultant',
+    'scala',
+    'mulesoft',
+    'salesforce',
 ]
 
 # Cities/regions in scope, matched as a normalized substring of the incoming location
@@ -63,14 +64,7 @@ def is_title_excluded(title: str | None) -> bool:
     if not normalized_title:
         return False
 
-    for rule in EXCLUDED_TITLE_RULES:
-        if rule.is_regex:
-            if re.search(rule.pattern, normalized_title):
-                return True
-        elif normalize_text(rule.pattern) in normalized_title:
-            return True
-
-    return False
+    return any(normalize_text(word) in normalized_title for word in EXCLUDED_TITLE_WORDS)
 
 
 def is_location_excluded(location: str | None) -> bool:
