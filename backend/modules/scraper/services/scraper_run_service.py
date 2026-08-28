@@ -19,6 +19,10 @@ def has_run_today() -> bool:
     return ScraperRun.objects.filter(created_at__date=timezone.now().date()).exists()
 
 
+def has_run_today_for_scraper(name: ScraperName) -> bool:
+    return ScraperRun.objects.filter(name=name, created_at__date=timezone.now().date()).exists()
+
+
 def get_runs_for_today() -> list[ScraperRun]:
     return list(
         ScraperRun.objects.filter(created_at__date=timezone.now().date()).order_by('name', 'created_at')

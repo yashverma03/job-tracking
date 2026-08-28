@@ -23,8 +23,18 @@ def run_scraper(scraper: BaseScraper, max_jobs_per_run: int, start_offset: int, 
     Queued as one Django-Q task per scraper so that scrapers execute in parallel across
     worker processes instead of one after another. Once the last scraper in the batch
     finishes, a single summary notification for the whole batch is shown (see
-    `_notify_if_pipeline_complete`)."""
+    `_notify_if_pipeline_complete`).
+
+    Idempotent per scraper per day: if this scraper already has a run recorded for
+    today, it's skipped - re-triggering the pipeline (e.g. clicking the button again)
+    only picks up scrapers that haven't run yet today."""
     logger = get_scraper_logger(scraper.name)
+
+    if scraper_run_service.has_run_today_for_scraper(scraper.name):
+        logger.info('skipping run, already ran today')
+        _notify_if_pipeline_complete()
+        return
+
     run = scraper_run_service.create_pending_run(scraper.name)
     logger.info('run started: run_id=%s', run.id)
 
@@ -91,12 +101,8 @@ def _notify_if_pipeline_complete() -> None:
     )
 
 
-def _pipeline_in_progress() -> bool:
-    return scraper_run_service.has_run_in_progress()
-
-
 def trigger_scraper_pipeline() -> dict:
-    if _pipeline_in_progress():
+    if scraper_run_service.has_run_in_progress():
         return {'queued': False, 'message': 'A scraper pipeline run is already in progress.'}
 
     max_jobs_per_run = get_env_int(MAX_JOBS_PER_RUN_ENV_KEY)
