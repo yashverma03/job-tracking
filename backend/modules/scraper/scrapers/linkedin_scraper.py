@@ -1,17 +1,15 @@
 import secrets
 import threading
-from concurrent.futures import Future, ThreadPoolExecutor, wait as wait_futures
 
 from bs4 import BeautifulSoup
 from curl_cffi import requests
-from curl_cffi.requests.exceptions import HTTPError
 
 from common.utils.env import get_env
 from common.utils.http import get_with_retry
 from modules.jobs.utils.url_cleaner import clean_job_url, extract_linkedin_job_id
 from modules.scraper.base.base_scraper import BaseScraper
 from modules.scraper.enums.scraper_name import ScraperName
-from modules.scraper.types import ScraperRunResult
+from modules.scraper.types import ListingPage, ScraperJobData
 from modules.scraper.constants import REQUEST_TIMEOUT_SECONDS, SECONDS_PER_HOUR
 from modules.scraper.utils.http_session import new_session
 from modules.scraper.utils.rate_limiter import wait_between_requests
@@ -64,6 +62,10 @@ class LinkedInScraper(BaseScraper):
     def name(self) -> ScraperName:
         return ScraperName.LINKEDIN
 
+    @property
+    def page_size(self) -> int:
+        return PAGE_SIZE
+
     def __init__(self):
         super().__init__()
 
@@ -72,15 +74,17 @@ class LinkedInScraper(BaseScraper):
         self._proxy_username = get_env(PROXY_USERNAME_ENV_KEY)
         self._proxy_password = get_env(PROXY_PASSWORD_ENV_KEY)
 
-        # Dedicated lane for sequential listing-page pagination requests.
         self._listing_lane = _ProxyLane(self, label='listing')
 
-        # Lazily-created, one-per-thread lanes for concurrent job detail fetches.
         self._thread_local = threading.local()
         self._lane_counter = 0
         self._lane_counter_lock = threading.Lock()
 
-        self._total_count = 0
+        self._consecutive_empty_pages = 0
+
+    def _reset_run_state(self) -> None:
+        super()._reset_run_state()
+        self._consecutive_empty_pages = 0
 
     def _build_proxy_url(self, session_id: str) -> str:
         username = f'{self._proxy_username}__sessid.{session_id}'
@@ -96,77 +100,26 @@ class LinkedInScraper(BaseScraper):
             self._thread_local.lane = lane
         return lane
 
-    def _request(self, url: str, **kwargs) -> requests.Response:
-        return self._listing_lane.request(url, **kwargs)
+    def _fetch_listing_page(self, start: int, time_range_hours: int) -> ListingPage:
+        html = self._fetch_listing_html(start, time_range_hours)
+        page_listings = self._parse_listing_html(html)
 
-    def run(self, max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> ScraperRunResult:
-        self._total_count = 0
-        self._reset_run_state()
-        self._time_range_seconds = time_range_hours * SECONDS_PER_HOUR
-        start = start_offset
-        consecutive_empty_pages = 0
-        pending: list[Future] = []
+        if not page_listings:
+            self._consecutive_empty_pages += 1
+            if self._consecutive_empty_pages >= MAX_CONSECUTIVE_EMPTY_PAGES:
+                self._logger.info(
+                    'stopping pagination after %s consecutive empty pages', self._consecutive_empty_pages
+                )
+                return ListingPage(stop=True)
+            return ListingPage()
 
-        with ThreadPoolExecutor(max_workers=self.detail_worker_count, thread_name_prefix='linkedin-detail') as executor:
-            while self._total_count < max_jobs_per_run:
-                self._logger.info('fetching listing page start=%s', start)
-                try:
-                    html = self._fetch_listing_page(start)
-                except HTTPError as exc:
-                    status_code = exc.response.status_code if exc.response is not None else None
-                    if status_code is not None and 400 <= status_code < 500:
-                        self._logger.warning('stopping pagination, listing page failed with %s', exc)
-                        break
-                    raise
-                page_listings = self._parse_listing_html(html)
+        self._consecutive_empty_pages = 0
+        return ListingPage(listings=page_listings)
 
-                if not page_listings:
-                    consecutive_empty_pages += 1
-                    if consecutive_empty_pages >= MAX_CONSECUTIVE_EMPTY_PAGES:
-                        self._logger.info('stopping pagination after %s consecutive empty pages', consecutive_empty_pages)
-                        break
-                    start += PAGE_SIZE
-                    wait_between_requests()
-                    continue
-
-                consecutive_empty_pages = 0
-
-                for listing in page_listings:
-                    if self._total_count >= max_jobs_per_run:
-                        break
-
-                    self._total_count += 1
-                    pending.append(executor.submit(self.add_job_from_listing, listing))
-
-                start += PAGE_SIZE
-                wait_between_requests()
-
-            wait_futures(pending)
-            for future in pending:
-                future.result()  # surface any unexpected (non-per-job) exception
-
-        self._logger.info(
-            'run complete, checked=%s inserted=%s errors=%s',
-            self._total_count,
-            self._total_unique_count,
-            len(self._errors),
-        )
-
-        return ScraperRunResult(
-            metadata={
-                'total_count': self._total_count,
-                'total_unique_count': self._total_unique_count,
-                'error_count': len(self._errors),
-            },
-            errors=self._errors,
-        )
-
-    def _fetch_description(self, listing: dict) -> str | None:
-        return self._fetch_job_details(listing['job_id'], referer=listing['url'])
-
-    def _fetch_listing_page(self, start: int) -> str:
-        params = {**DEFAULT_SEARCH_FILTERS, 'f_TPR': f'r{self._time_range_seconds}', 'start': start}
-        response = self._request(
+    def _fetch_listing_html(self, start: int, time_range_hours: int) -> str:
+        time_range_seconds = time_range_hours * SECONDS_PER_HOUR
+        params = {**DEFAULT_SEARCH_FILTERS, 'f_TPR': f'r{time_range_seconds}', 'start': start}
+        response = self._listing_lane.request(
             LISTING_URL,
             params=params,
             headers={'Referer': SEARCH_PAGE_REFERER},
@@ -175,7 +128,7 @@ class LinkedInScraper(BaseScraper):
         response.raise_for_status()
         return response.text
 
-    def _parse_listing_html(self, html: str) -> list[dict]:
+    def _parse_listing_html(self, html: str) -> list[ScraperJobData]:
         soup = BeautifulSoup(html, 'html.parser')
         listings = []
 
@@ -197,16 +150,19 @@ class LinkedInScraper(BaseScraper):
             location_el = card.find('span', class_='job-search-card__location')
 
             listings.append(
-                {
-                    'url': clean_job_url(raw_url),
-                    'job_id': job_id,
-                    'title': clean_text(title_el.get_text(strip=True) if title_el else None),
-                    'company_name': clean_text(company_el.get_text(strip=True) if company_el else None),
-                    'location': clean_text(location_el.get_text(strip=True) if location_el else None),
-                }
+                ScraperJobData(
+                    url=clean_job_url(raw_url),
+                    title=clean_text(title_el.get_text(strip=True) if title_el else None),
+                    company_name=clean_text(company_el.get_text(strip=True) if company_el else None),
+                    location=clean_text(location_el.get_text(strip=True) if location_el else None),
+                    extra={'job_id': job_id},
+                )
             )
 
         return listings
+
+    def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
+        return {'description': self._fetch_job_details(listing.extra['job_id'], referer=listing.url)}
 
     def _fetch_job_details(self, job_id: str, referer: str) -> str | None:
         wait_between_requests()

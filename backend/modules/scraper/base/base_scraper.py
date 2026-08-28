@@ -1,23 +1,45 @@
 import threading
 from abc import ABC, abstractmethod
+from concurrent.futures import Future, ThreadPoolExecutor, wait as wait_futures
+from dataclasses import replace
+
+from curl_cffi.requests.exceptions import HTTPError
 
 from common.utils.env import get_env_int
 from modules.company.services import company_service
 from modules.jobs.enums.job_referral_status import JobReferralStatus
 from modules.jobs.services import job_service, job_unique_key_service
 from modules.scraper.enums.scraper_name import ScraperName
-from modules.scraper.types import ScraperRunResult
+from modules.scraper.types import ListingPage, ScraperJobData, ScraperRunResult
 from modules.scraper.utils.job_filter import is_location_excluded, is_title_excluded
+from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.scraper_logger import get_scraper_logger
 
-REQUIRED_LISTING_FIELDS = ('url', 'title', 'company_name', 'location')
+REQUIRED_JOB_FIELDS = ('url', 'title', 'company_name', 'location')
 DETAIL_WORKER_COUNT_ENV_KEY = 'SCRAPER_DETAIL_WORKER_COUNT'
 
 
 class BaseScraper(ABC):
+    """Shared orchestration for every scraper strategy: pagination, the two-stage
+    exclusion filter, concurrent detail fetching, and persistence all live here so a
+    new scraper only has to implement the handful of methods below it - everything
+    else (dedup, filtering, threading, error bookkeeping, final validation, insert) is
+    common business logic and must not be duplicated per scraper.
+
+    Pipeline for each run:
+      1. `_fetch_listing_page` is called repeatedly to page through candidate jobs.
+      2. Each listing is checked by `_passes_pre_detail_filter` *before* any detail
+         request is made, so excluded jobs never cost an extra HTTP call.
+      3. Listings that pass are handed to the detail worker pool: `_fetch_detail_fields`
+         fills in whatever only the detail page can provide (typically the
+         description), the exclusion filter runs again now that those fields are
+         known, then a final compulsory-field check runs immediately before insert.
+    """
+
     def __init__(self):
         self._logger = get_scraper_logger(self.name)
         self._state_lock = threading.Lock()
+        self._total_count = 0
         self._total_unique_count = 0
         self._errors: list[dict] = []
 
@@ -32,15 +54,27 @@ class BaseScraper(ABC):
     def name(self) -> ScraperName:
         """Unique identifier for this scraper, matches the value stored in scraper_runs.name."""
 
+    @property
     @abstractmethod
-    def run(self, max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> ScraperRunResult:
-        """Scrape job postings, inserting each non-duplicate one as it is found, and return the run result."""
+    def page_size(self) -> int:
+        """Number of listings requested per page; used to advance the pagination offset."""
 
     @abstractmethod
-    def _fetch_description(self, listing: dict) -> str | None:
-        """Fetch the full job description for a listing. Scraper-specific."""
+    def _fetch_listing_page(self, start: int, time_range_hours: int) -> ListingPage:
+        """Fetch and parse one page of candidate jobs starting at `start`, applying any
+        listing-level filtering only the scraper itself can do (e.g. a posted-date
+        cutoff). Set `ListingPage.stop=True` once pagination should end (e.g. an empty
+        page, or a scraper-specific threshold like too many consecutive empty pages)."""
+
+    @abstractmethod
+    def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
+        """Fetch whatever fields require a per-job detail request - typically just
+        `description` - returned as a dict of field name -> value to merge onto the
+        listing. Only called for listings that already passed the pre-detail filter, so
+        implementations can assume the request is actually needed."""
 
     def _reset_run_state(self) -> None:
+        self._total_count = 0
         self._total_unique_count = 0
         self._errors = []
 
@@ -49,47 +83,120 @@ class BaseScraper(ABC):
         with self._state_lock:
             self._errors.append({'url': url, 'message': message})
 
-    def add_job_from_listing(self, listing: dict) -> None:
-        """Shared per-listing pipeline every scraper strategy should funnel its listings
-        through: de-duplication, required-field validation, the shared exclusion filter,
-        fetching the description (scraper-specific), and persisting the job. Only the
-        description fetch is scraper-specific; everything else is common business logic."""
-        url = listing.get('url')
+    def run(self, max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> ScraperRunResult:
+        """Page through listings, filter, then fetch details concurrently for anything
+        worth fetching. Identical across every scraper - only the abstract hooks above
+        vary per source."""
+        self._reset_run_state()
+        start = start_offset
+        pending: list[Future] = []
 
-        if job_unique_key_service.is_duplicate(url, None):
-            self._logger.info('excluded by filter rule (duplicate): %s', url)
-            return
+        with ThreadPoolExecutor(
+            max_workers=self.detail_worker_count, thread_name_prefix=f'{self.name.value}-detail'
+        ) as executor:
+            while self._total_count < max_jobs_per_run:
+                self._logger.info('fetching listing page start=%s', start)
+                try:
+                    page = self._fetch_listing_page(start, time_range_hours)
+                except HTTPError as exc:
+                    status_code = exc.response.status_code if exc.response is not None else None
+                    if status_code is not None and 400 <= status_code < 500:
+                        self._logger.warning('stopping pagination, listing page failed with %s', exc)
+                        break
+                    raise
 
-        missing_fields = [field for field in REQUIRED_LISTING_FIELDS if not listing.get(field)]
-        if missing_fields:
-            self._record_error(url, f'missing required fields: {", ".join(missing_fields)}')
-            return
+                for listing in page.listings:
+                    if self._total_count >= max_jobs_per_run:
+                        break
+                    if not self._passes_pre_detail_filter(listing):
+                        continue
 
-        exclusion_reason = self.get_exclusion_reason(listing['title'], listing['location'], listing['company_name'])
+                    self._total_count += 1
+                    pending.append(executor.submit(self._process_listing, listing))
+
+                start += self.page_size
+                wait_between_requests()
+
+                if page.stop:
+                    self._logger.info('stopping pagination (signaled by scraper)')
+                    break
+
+            wait_futures(pending)
+            for future in pending:
+                future.result()  # surface any unexpected (non-per-job) exception
+
+        self._logger.info(
+            'run complete, checked=%s inserted=%s errors=%s',
+            self._total_count,
+            self._total_unique_count,
+            len(self._errors),
+        )
+
+        return ScraperRunResult(
+            metadata={
+                'total_count': self._total_count,
+                'total_unique_count': self._total_unique_count,
+                'error_count': len(self._errors),
+            },
+            errors=self._errors,
+        )
+
+    def _passes_pre_detail_filter(self, listing: ScraperJobData) -> bool:
+        """First-pass filter, applied before spending an HTTP request on the job's
+        detail page: de-duplication plus the exclusion rules over whatever fields the
+        listing page already gave us. A field the listing page doesn't provide (e.g. a
+        source that only reveals location on the detail page) simply can't exclude the
+        job yet - the same rules run again in `_process_listing` once the detail
+        response has filled the gaps, and a final compulsory-field check runs right
+        before insert."""
+        if job_unique_key_service.is_duplicate(listing.url, None):
+            self._logger.info('excluded by filter rule (duplicate): %s', listing.url)
+            return False
+
+        exclusion_reason = self.get_exclusion_reason(listing.title, listing.location, listing.company_name)
         if exclusion_reason:
-            self._logger.info('excluded by filter rule (%s): %s', exclusion_reason, url)
-            return
+            self._logger.info('excluded by filter rule (%s): %s', exclusion_reason, listing.url)
+            return False
 
+        return True
+
+    def _process_listing(self, listing: ScraperJobData) -> None:
+        """Runs on the detail worker pool for every listing that passed the pre-detail
+        filter: fetches the scraper-specific detail fields, re-applies the exclusion
+        filter now that those fields are available, does a final compulsory-field
+        check, then persists the job. Only one scraper-specific call happens here
+        (`_fetch_detail_fields`) - everything else is shared."""
         try:
-            self._logger.info('fetching details for %s', url)
-            description = self._fetch_description(listing)
+            self._logger.info('fetching details for %s', listing.url)
+            detail_fields = self._fetch_detail_fields(listing)
+            listing = replace(listing, **detail_fields)
+
+            exclusion_reason = self.get_exclusion_reason(listing.title, listing.location, listing.company_name)
+            if exclusion_reason:
+                self._logger.info('excluded by filter rule (%s): %s', exclusion_reason, listing.url)
+                return
+
+            missing_fields = [field for field in REQUIRED_JOB_FIELDS if not getattr(listing, field)]
+            if missing_fields:
+                self._record_error(listing.url, f'missing required fields: {", ".join(missing_fields)}')
+                return
 
             job_service.create_scraped_job(
-                title=listing['title'],
-                company_name=listing['company_name'],
-                location=listing['location'],
-                description=description,
-                url=listing['url'],
-                referral_status=self.get_referral_status_for_company(listing['company_name']),
-                official_id=listing.get('official_id'),
+                title=listing.title,
+                company_name=listing.company_name,
+                location=listing.location,
+                description=listing.description,
+                url=listing.url,
+                referral_status=self.get_referral_status_for_company(listing.company_name),
+                official_id=listing.official_id,
             )
         except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the run
-            self._record_error(url, str(exc))
+            self._record_error(listing.url, str(exc))
             return
 
         with self._state_lock:
             self._total_unique_count += 1
-        self._logger.info('job inserted: %s', url)
+        self._logger.info('job inserted: %s', listing.url)
 
     def get_exclusion_reason(self, title: str | None, location: str | None, company_name: str | None) -> str | None:
         """Shared pre-insert filter every scraper strategy should apply: excluded role
