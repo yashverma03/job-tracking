@@ -9,13 +9,11 @@ from curl_cffi.requests.exceptions import HTTPError
 
 from common.utils.env import get_env, get_env_int
 from common.utils.http import get_with_retry
-from modules.jobs.services import job_service, job_unique_key_service
 from modules.jobs.utils.url_cleaner import clean_job_url, extract_linkedin_job_id
 from modules.scraper.base.base_scraper import BaseScraper
 from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.types import ScraperRunResult
 from modules.scraper.utils.rate_limiter import wait_between_requests
-from modules.scraper.utils.scraper_logger import get_scraper_logger
 from modules.scraper.utils.text_cleaner import clean_text
 
 IMPERSONATE_PROFILES = [
@@ -91,7 +89,7 @@ class LinkedInScraper(BaseScraper):
         return ScraperName.LINKEDIN
 
     def __init__(self):
-        self._logger = get_scraper_logger(self.name)
+        super().__init__()
 
         self._proxy_host = get_env(PROXY_HOST_ENV_KEY)
         self._proxy_port = get_env(PROXY_PORT_ENV_KEY)
@@ -106,10 +104,7 @@ class LinkedInScraper(BaseScraper):
         self._lane_counter = 0
         self._lane_counter_lock = threading.Lock()
 
-        self._state_lock = threading.Lock()
         self._total_count = 0
-        self._total_unique_count = 0
-        self._errors: list[dict] = []
 
     def _build_proxy_url(self, session_id: str) -> str:
         username = f'{self._proxy_username}__sessid.{session_id}'
@@ -130,8 +125,7 @@ class LinkedInScraper(BaseScraper):
 
     def run(self, max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> ScraperRunResult:
         self._total_count = 0
-        self._total_unique_count = 0
-        self._errors = []
+        self._reset_run_state()
         self._time_range_seconds = time_range_hours * SECONDS_PER_HOUR
         start = start_offset
         consecutive_empty_pages = 0
@@ -167,7 +161,7 @@ class LinkedInScraper(BaseScraper):
                         break
 
                     self._total_count += 1
-                    pending.append(executor.submit(self._process_listing, listing))
+                    pending.append(executor.submit(self.add_job_from_listing, listing))
 
                 start += PAGE_SIZE
                 wait_between_requests()
@@ -192,51 +186,8 @@ class LinkedInScraper(BaseScraper):
             errors=self._errors,
         )
 
-    def _process_listing(self, listing: dict) -> None:
-        url = listing['url']
-        job_id = listing['job_id']
-
-        if job_unique_key_service.is_duplicate(url, None):
-            self._logger.info('duplicate skipped: %s', url)
-            return
-
-        missing_fields = [
-            field
-            for field in ('url', 'job_id', 'title', 'company_name', 'location')
-            if not listing.get(field)
-        ]
-        if missing_fields:
-            message = f'missing required fields: {", ".join(missing_fields)}'
-            self._logger.warning('job processing failed for %s: %s', url, message)
-            with self._state_lock:
-                self._errors.append({'url': url, 'message': message})
-            return
-
-        if self.is_job_excluded(listing['title'], listing['location'], listing['company_name']):
-            self._logger.info('excluded by filter rules: %s', url)
-            return
-
-        try:
-            self._logger.info('fetching details for %s', url)
-            description = self._fetch_job_details(job_id, referer=url)
-
-            job_service.create_scraped_job(
-                title=listing['title'],
-                company_name=listing['company_name'],
-                location=listing['location'],
-                description=description,
-                url=url,
-                referral_status=self.get_referral_status_for_company(listing['company_name']),
-            )
-        except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the run
-            self._logger.warning('job processing failed for %s: %s', url, exc)
-            with self._state_lock:
-                self._errors.append({'url': url, 'message': str(exc)})
-            return
-
-        with self._state_lock:
-            self._total_unique_count += 1
-        self._logger.info('job inserted: %s', url)
+    def _fetch_description(self, listing: dict) -> str | None:
+        return self._fetch_job_details(listing['job_id'], referer=listing['url'])
 
     def _fetch_listing_page(self, start: int) -> str:
         params = {**DEFAULT_SEARCH_FILTERS, 'f_TPR': f'r{self._time_range_seconds}', 'start': start}
