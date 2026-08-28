@@ -32,9 +32,6 @@ class BaseScraper(ABC):
         return False
 
     def get_referral_status_for_company(self, company_name: str | None) -> str:
-        """Returns the referral status a job should be created with based on the company
-        table. Top companies are automatically marked as requiring a referral; every
-        other company defaults to not asking."""
-        if company_service.is_top_company(company_name):
-            return JobReferralStatus.REQUIRED
+        # if company_service.is_top_company(company_name):
+        #     return JobReferralStatus.REQUIRED
         return JobReferralStatus.NOT_ASKING
