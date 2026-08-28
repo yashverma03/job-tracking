@@ -29,6 +29,13 @@ def get_runs_for_today() -> list[ScraperRun]:
     )
 
 
+def count_runs_in_progress_today() -> int:
+    return ScraperRun.objects.filter(
+        status__in=[ScraperRunStatus.PENDING, ScraperRunStatus.PROCESSING],
+        created_at__date=timezone.now().date(),
+    ).count()
+
+
 def mark_processing(run: ScraperRun) -> None:
     run.status = ScraperRunStatus.PROCESSING
     run.save(update_fields=['status'])

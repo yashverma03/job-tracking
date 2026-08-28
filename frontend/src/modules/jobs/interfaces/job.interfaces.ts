@@ -35,6 +35,7 @@ export interface JobListQueryParams {
 export interface JobStatsResponse {
   toApplyCount: number;
   referralRequiredCount: number;
+  pendingJobsCount: number;
 }
 
 export interface GenerateResumesOutcome {

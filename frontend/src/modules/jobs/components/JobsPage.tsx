@@ -215,6 +215,9 @@ export function JobsPage() {
             <span className={styles.statPill}>
               Referral required: {stats?.referralRequiredCount ?? '—'}
             </span>
+            <span className={styles.statPill}>
+              Pending jobs: {stats?.pendingJobsCount ?? '—'}
+            </span>
           </div>
         )}
         <BulkActionsBar selectedJobs={selectedJobs} />
