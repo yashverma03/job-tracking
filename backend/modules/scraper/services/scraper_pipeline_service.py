@@ -1,4 +1,8 @@
-from django_q.tasks import async_task
+from datetime import timedelta
+
+from django.utils import timezone
+from django_q.models import Schedule
+from django_q.tasks import async_task, schedule
 
 from common.utils.env import get_env_int
 from common.utils.notification_manager import NotificationManager
@@ -16,6 +20,12 @@ TIME_RANGE_HOURS_ENV_KEY = 'SCRAPER_TIME_RANGE_HOURS'
 
 SUMMARY_NOTIFICATION_WIDTH = 520
 SUMMARY_NOTIFICATION_HEIGHT = 320
+
+# Give any run that was recorded slightly late (e.g. a scraper that gets picked up by a
+# worker a moment after the "last" task finishes) a chance to land in the DB before the
+# batch summary is read, so the notification reflects the fully-resolved state.
+NOTIFICATION_DELAY = timedelta(minutes=1)
+NOTIFY_PIPELINE_COMPLETE_TASK = 'modules.scraper.tasks.notify_pipeline_complete_task'
 
 
 def run_scraper(scraper: BaseScraper, max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> None:
@@ -74,9 +84,14 @@ def _build_summary_message(runs: list[ScraperRun]) -> str:
     header = f'{"Scraper":<18}{"Status":<12}{"Success":>8}{"Failed":>8}'
     rows = [header, '-' * len(header)]
 
+    total_new_jobs = 0
     for run in runs:
         success_count, error_count = _run_counts(run)
+        total_new_jobs += success_count
         rows.append(f'{run.name:<18}{run.status:<12}{success_count:>8}{error_count:>8}')
+
+    rows.append('-' * len(header))
+    rows.append(f'Total new jobs: {total_new_jobs}')
 
     # wrap in <tt> so zenity's pango markup renders the columns in a monospace font
     return '<tt>' + '\n'.join(rows) + '</tt>'
@@ -84,8 +99,29 @@ def _build_summary_message(runs: list[ScraperRun]) -> str:
 
 def _notify_if_pipeline_complete() -> None:
     """Every scraper task calls this when it finishes; only the task that finds no
-    other Pending/Processing runs left (i.e. the last one to complete) actually shows
-    the batch summary notification."""
+    other Pending/Processing runs left (i.e. the last one to complete) actually schedules
+    the batch summary notification. The notification itself is delayed (see
+    `check_and_notify_pipeline_complete`) so a run that gets recorded a moment after the
+    "last" task finishes still has time to land before the summary is read."""
+    if scraper_run_service.has_run_in_progress():
+        return
+
+    # Avoid scheduling duplicate notifications if more than one task observes an empty
+    # in-progress queue in quick succession.
+    if Schedule.objects.filter(func=NOTIFY_PIPELINE_COMPLETE_TASK, next_run__gte=timezone.now()).exists():
+        return
+
+    schedule(
+        NOTIFY_PIPELINE_COMPLETE_TASK,
+        schedule_type=Schedule.ONCE,
+        next_run=timezone.now() + NOTIFICATION_DELAY,
+    )
+
+
+def check_and_notify_pipeline_complete() -> None:
+    """Runs once, `NOTIFICATION_DELAY` after the pipeline appeared complete. Re-checks
+    that nothing is in progress (in case a new run started in the meantime) before
+    showing the summary notification for today's runs."""
     if scraper_run_service.has_run_in_progress():
         return
 

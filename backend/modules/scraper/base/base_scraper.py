@@ -57,7 +57,7 @@ class BaseScraper(ABC):
         url = listing.get('url')
 
         if job_unique_key_service.is_duplicate(url, None):
-            self._logger.info('duplicate skipped: %s', url)
+            self._logger.info('excluded by filter rule (duplicate): %s', url)
             return
 
         missing_fields = [field for field in REQUIRED_LISTING_FIELDS if not listing.get(field)]
@@ -65,8 +65,9 @@ class BaseScraper(ABC):
             self._record_error(url, f'missing required fields: {", ".join(missing_fields)}')
             return
 
-        if self.is_job_excluded(listing['title'], listing['location'], listing['company_name']):
-            self._logger.info('excluded by filter rules: %s', url)
+        exclusion_reason = self.get_exclusion_reason(listing['title'], listing['location'], listing['company_name'])
+        if exclusion_reason:
+            self._logger.info('excluded by filter rule (%s): %s', exclusion_reason, url)
             return
 
         try:
@@ -90,19 +91,20 @@ class BaseScraper(ABC):
             self._total_unique_count += 1
         self._logger.info('job inserted: %s', url)
 
-    def is_job_excluded(self, title: str | None, location: str | None, company_name: str | None) -> bool:
+    def get_exclusion_reason(self, title: str | None, location: str | None, company_name: str | None) -> str | None:
         """Shared pre-insert filter every scraper strategy should apply: excluded role
         titles, out-of-scope locations, blacklisted companies, and companies still in
-        their cooling-off period."""
+        their cooling-off period. Returns the name of the rule that excluded the job,
+        or None if it passes every rule."""
         if is_title_excluded(title):
-            return True
+            return 'title not allowed'
         if is_location_excluded(location):
-            return True
+            return 'location not allowed'
         if company_service.is_blacklisted(company_name):
-            return True
+            return 'company blacklisted'
         if company_service.is_in_cooling_period(company_name):
-            return True
-        return False
+            return 'company in cooling period'
+        return None
 
     def get_referral_status_for_company(self, company_name: str | None) -> str:
         # if company_service.is_top_company(company_name):
