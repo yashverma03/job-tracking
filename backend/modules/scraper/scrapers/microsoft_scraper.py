@@ -1,15 +1,10 @@
-import time
-
-from common.utils.http import get_with_retry
 from modules.jobs.utils.url_cleaner import clean_job_url
-from modules.scraper.base.base_scraper import BaseScraper
+from modules.scraper.base.api_scraper import ApiScraper
 from modules.scraper.enums.scraper_name import ScraperName
-from modules.scraper.types import ListingPage, ScraperJobData
-from modules.scraper.constants import REQUEST_TIMEOUT_SECONDS, SECONDS_PER_HOUR
-from modules.scraper.utils.http_session import new_session
-from modules.scraper.utils.rate_limiter import wait_between_requests
+from modules.scraper.scrapers.registry import register_scraper
+from modules.scraper.types import ScraperJobData
 from modules.scraper.utils.text_cleaner import clean_text
-from modules.scraper.utils.user_agent_rotator import get_random_user_agent
+from modules.scraper.utils.time_range import is_within_time_range
 
 SEARCH_URL = 'https://apply.careers.microsoft.com/api/pcsx/search'
 DETAIL_URL = 'https://apply.careers.microsoft.com/api/pcsx/position_details'
@@ -30,7 +25,8 @@ DEFAULT_SEARCH_FILTERS = {
 }
 
 
-class MicrosoftScraper(BaseScraper):
+@register_scraper
+class MicrosoftScraper(ApiScraper):
     @property
     def name(self) -> ScraperName:
         return ScraperName.MICROSOFT
@@ -39,67 +35,45 @@ class MicrosoftScraper(BaseScraper):
     def page_size(self) -> int:
         return PAGE_SIZE
 
-    def __init__(self):
-        super().__init__()
+    @property
+    def list_url(self) -> str:
+        return SEARCH_URL
 
-        self._session = new_session()
-        self._session.headers['User-Agent'] = get_random_user_agent()
+    @property
+    def detail_url(self) -> str:
+        return DETAIL_URL
 
-    def _request(self, url: str, **kwargs):
-        return get_with_retry(lambda: self._session, url, **kwargs)
+    def build_list_params(self, start: int) -> dict:
+        return {**DEFAULT_SEARCH_FILTERS, 'start': start}
 
-    def _fetch_listing_page(self, start: int, time_range_hours: int) -> ListingPage:
-        cutoff_ts = int(time.time()) - time_range_hours * SECONDS_PER_HOUR
+    def parse_list_items(self, response_json: dict) -> list[dict]:
+        return response_json.get('data', {}).get('positions', [])
 
-        params = {**DEFAULT_SEARCH_FILTERS, 'start': start}
-        response = self._request(SEARCH_URL, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
-        response.raise_for_status()
-        positions = response.json().get('data', {}).get('positions', [])
+    def is_item_in_time_range(self, item: dict, time_range_hours: int) -> bool:
+        posted_ts = item.get('postedTs') or item.get('creationTs')
+        return is_within_time_range(posted_ts, time_range_hours)
 
-        if not positions:
-            self._logger.info('stopping pagination, got an empty page')
-            return ListingPage(stop=True)
-
-        listings = []
-        for position in positions:
-            posted_ts = position.get('postedTs') or position.get('creationTs')
-            if posted_ts is not None and posted_ts < cutoff_ts:
-                continue
-
-            listing = self._to_listing(position)
-            if listing is not None:
-                listings.append(listing)
-
-        return ListingPage(listings=listings)
-
-    def _to_listing(self, position: dict) -> ScraperJobData | None:
-        position_id = position.get('id')
-        display_job_id = position.get('displayJobId')
+    def map_item_to_listing(self, item: dict) -> ScraperJobData | None:
+        position_id = item.get('id')
+        display_job_id = item.get('displayJobId')
         if position_id is None or not display_job_id:
-            message = 'missing position id or displayJobId'
-            self._logger.warning('%s: %s', message, position)
-            self._errors.append({'url': None, 'message': message})
+            self._record_error(None, f'missing position id or displayJobId: {item}')
             return None
 
-        locations = position.get('locations') or position.get('standardizedLocations') or []
+        locations = item.get('locations') or item.get('standardizedLocations') or []
 
         return ScraperJobData(
             url=clean_job_url(JOB_URL_TEMPLATE.format(position_id=position_id)),
             official_id=str(display_job_id),
-            title=clean_text(position.get('name')),
+            title=clean_text(item.get('name')),
             company_name=COMPANY_NAME,
             location=clean_text('; '.join(locations)) if locations else None,
             extra={'position_id': position_id},
         )
 
-    def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
-        return {'description': self._fetch_job_details(listing.extra['position_id'])}
+    def build_detail_params(self, listing: ScraperJobData) -> dict:
+        return {'position_id': listing.extra['position_id'], 'domain': 'microsoft.com', 'hl': 'en'}
 
-    def _fetch_job_details(self, position_id: int) -> str | None:
-        wait_between_requests()
-
-        params = {'position_id': position_id, 'domain': 'microsoft.com', 'hl': 'en'}
-        response = self._request(DETAIL_URL, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
-        response.raise_for_status()
-        description = response.json().get('data', {}).get('jobDescription')
-        return clean_text(description)
+    def parse_detail_fields(self, response_json: dict) -> dict:
+        description = response_json.get('data', {}).get('jobDescription')
+        return {'description': clean_text(description)}

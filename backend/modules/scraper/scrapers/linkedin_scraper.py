@@ -9,6 +9,7 @@ from common.utils.http import get_with_retry
 from modules.jobs.utils.url_cleaner import clean_job_url, extract_linkedin_job_id
 from modules.scraper.base.base_scraper import BaseScraper
 from modules.scraper.enums.scraper_name import ScraperName
+from modules.scraper.scrapers.registry import register_scraper
 from modules.scraper.types import ListingPage, ScraperJobData
 from modules.scraper.constants import REQUEST_TIMEOUT_SECONDS, SECONDS_PER_HOUR
 from modules.scraper.utils.http_session import new_session
@@ -57,6 +58,7 @@ class _ProxyLane:
         return get_with_retry(lambda: self.session, url, on_retry=on_retry, **kwargs)
 
 
+@register_scraper
 class LinkedInScraper(BaseScraper):
     @property
     def name(self) -> ScraperName:
@@ -140,9 +142,7 @@ class LinkedInScraper(BaseScraper):
             raw_url = link['href'].strip()
             job_id = extract_linkedin_job_id(raw_url)
             if job_id is None:
-                message = 'could not extract job id from url'
-                self._logger.warning('%s: %s', message, raw_url)
-                self._errors.append({'url': raw_url, 'message': message})
+                self._record_error(raw_url, 'could not extract job id from url')
                 continue
 
             title_el = card.find('h3', class_='base-search-card__title')
