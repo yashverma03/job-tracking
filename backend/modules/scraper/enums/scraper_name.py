@@ -7,3 +7,4 @@ class ScraperName(models.TextChoices):
     NATWEST = 'NatWest Group', 'NatWest Group'
     ADOBE = 'Adobe', 'Adobe'
     ORACLE = 'Oracle', 'Oracle'
+    AIRBUS = 'Airbus', 'Airbus'
