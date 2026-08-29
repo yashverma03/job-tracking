@@ -1,0 +1,165 @@
+import re
+import time
+from abc import abstractmethod
+
+from common.utils.http import post_with_retry
+from modules.jobs.utils.url_cleaner import clean_job_url
+from modules.scraper.base.api_scraper import ApiScraper
+from modules.scraper.constants import REQUEST_TIMEOUT_SECONDS, SECONDS_PER_HOUR
+from modules.scraper.types import ListingPage, ScraperJobData
+from modules.scraper.utils.rate_limiter import wait_between_requests
+from modules.scraper.utils.text_cleaner import clean_text
+from modules.scraper.utils.time_range import is_within_time_range
+
+# Matches Workday's relative "postedOn" text, e.g. "Posted Today", "Posted Yesterday",
+# "Posted 3 Days Ago", "Posted 30+ Days Ago".
+POSTED_ON_PATTERN = re.compile(r'Posted\s+(Today|Yesterday|(\d+)\+?\s+Days?\s+Ago)', re.IGNORECASE)
+
+
+class WorkdayScraper(ApiScraper):
+    """Base for scrapers targeting a Workday-hosted careers site (`*.myworkdayjobs.com`).
+    Many companies (Adobe included) run their external career site on Workday, sharing
+    the same list/detail API shape - only the host, tenant, site and search facets
+    differ. Subclasses only need to implement the properties below and
+    `map_item_to_listing`; pagination, the POST-based list request, and the
+    relative-date time-range check are handled here."""
+
+    @property
+    @abstractmethod
+    def workday_host(self) -> str:
+        """e.g. 'adobe.wd5.myworkdayjobs.com'."""
+
+    @property
+    @abstractmethod
+    def tenant(self) -> str:
+        """e.g. 'adobe'."""
+
+    @property
+    @abstractmethod
+    def site(self) -> str:
+        """e.g. 'external_experienced'."""
+
+    @property
+    @abstractmethod
+    def company_name(self) -> str:
+        """Display name to store on the job, e.g. 'Adobe'."""
+
+    @property
+    def applied_facets(self) -> dict:
+        """Workday search facets (job family, location, employment type, etc.) as
+        `{facetParameter: [id, ...]}`. Override to scope the search per company."""
+        return {}
+
+    @property
+    def search_text(self) -> str:
+        return ''
+
+    @property
+    def list_url(self) -> str:
+        return f'https://{self.workday_host}/wday/cxs/{self.tenant}/{self.site}/jobs'
+
+    @property
+    def detail_base_url(self) -> str:
+        return f'https://{self.workday_host}/wday/cxs/{self.tenant}/{self.site}'
+
+    @property
+    def job_url_base(self) -> str:
+        return f'https://{self.workday_host}/{self.site}'
+
+    @property
+    def detail_url(self) -> str:
+        # Unused: `_fetch_detail_fields` is overridden below since the per-job detail
+        # URL is built from each listing's own external path, not a fixed endpoint.
+        return self.detail_base_url
+
+    def build_detail_params(self, listing: ScraperJobData) -> dict:
+        return {}
+
+    def build_list_params(self, start: int) -> dict:
+        return {
+            'appliedFacets': self.applied_facets,
+            'searchText': self.search_text,
+            'limit': self.page_size,
+            'offset': start,
+        }
+
+    def parse_list_items(self, response_json: dict) -> list[dict]:
+        return response_json.get('jobPostings', [])
+
+    def is_item_in_time_range(self, item: dict, time_range_hours: int) -> bool:
+        posted_ts = _parse_posted_on(item.get('postedOn'))
+        return is_within_time_range(posted_ts, time_range_hours)
+
+    def map_item_to_listing(self, item: dict) -> ScraperJobData | None:
+        external_path = item.get('externalPath')
+        bullet_fields = item.get('bulletFields') or []
+        official_id = bullet_fields[0] if bullet_fields else None
+        if not external_path or not official_id:
+            self._record_error(None, f'missing externalPath or bulletFields: {item}')
+            return None
+
+        return ScraperJobData(
+            url=clean_job_url(self.job_url_base + external_path),
+            official_id=official_id,
+            title=clean_text(item.get('title')),
+            company_name=self.company_name,
+            extra={'external_path': external_path},
+        )
+
+    def parse_detail_fields(self, response_json: dict) -> dict:
+        posting_info = response_json.get('jobPostingInfo', {})
+        locations = [posting_info.get('location'), *(posting_info.get('additionalLocations') or [])]
+        location_text = ', '.join(location for location in locations if location)
+
+        return {
+            'description': clean_text(posting_info.get('jobDescription')),
+            'location': clean_text(location_text) if location_text else None,
+        }
+
+    def _fetch_listing_page(self, start: int, time_range_hours: int) -> ListingPage:
+        response = post_with_retry(
+            lambda: self._session,
+            self.list_url,
+            json=self.build_list_params(start),
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        items = self.parse_list_items(response.json())
+
+        if not items:
+            self._logger.info('stopping pagination, got an empty page')
+            return ListingPage(stop=True)
+
+        listings = []
+        for item in items:
+            if not self.is_item_in_time_range(item, time_range_hours):
+                continue
+            listing = self.map_item_to_listing(item)
+            if listing is not None:
+                listings.append(listing)
+
+        return ListingPage(listings=listings)
+
+    def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
+        wait_between_requests()
+        response = self._request(self.detail_base_url + listing.extra['external_path'])
+        response.raise_for_status()
+        return self.parse_detail_fields(response.json())
+
+
+def _parse_posted_on(posted_on: str | None) -> float | None:
+    if not posted_on:
+        return None
+
+    match = POSTED_ON_PATTERN.search(posted_on)
+    if not match:
+        return None
+
+    if match.group(1).lower() == 'today':
+        days_ago = 0
+    elif match.group(1).lower() == 'yesterday':
+        days_ago = 1
+    else:
+        days_ago = int(match.group(2))
+
+    return time.time() - days_ago * 24 * SECONDS_PER_HOUR
