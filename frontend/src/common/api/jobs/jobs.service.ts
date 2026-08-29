@@ -10,6 +10,7 @@ import type {
   JobResponse,
   JobStatsResponse,
   JobUpdateRequest,
+  ScraperNameOption,
   ScraperPipelineQueuedResponse,
 } from '../../../modules/jobs/interfaces/job.interfaces';
 
@@ -83,8 +84,17 @@ export async function fetchJobStats(): Promise<JobStatsResponse> {
   return data;
 }
 
-export async function triggerScraperPipeline(): Promise<ScraperPipelineQueuedResponse> {
-  const { data } = await client.post<ScraperPipelineQueuedResponse>('/scraper', {});
+export async function triggerScraperPipeline(
+  scraperNames?: string[],
+): Promise<ScraperPipelineQueuedResponse> {
+  const { data } = await client.post<ScraperPipelineQueuedResponse>('/scraper', {
+    scraperNames,
+  });
+  return data;
+}
+
+export async function fetchScraperNameOptions(): Promise<ScraperNameOption[]> {
+  const { data } = await client.get<ScraperNameOption[]>('/scraper');
   return data;
 }
 

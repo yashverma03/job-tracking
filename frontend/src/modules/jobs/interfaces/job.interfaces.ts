@@ -55,6 +55,11 @@ export interface ScraperPipelineQueuedResponse {
   message: string;
 }
 
+export interface ScraperNameOption {
+  value: string;
+  label: string;
+}
+
 export interface JobFormValues {
   url: string;
   secondaryUrl: string;

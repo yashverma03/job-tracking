@@ -6,6 +6,7 @@ import { JobsTable } from './JobsTable';
 import { BulkActionsBar } from './BulkActionsBar';
 import { JobFormModal, type JobCloneSource } from './JobFormModal';
 import { AddMultipleJobsModal } from './AddMultipleJobsModal';
+import { ScraperSelectModal } from './ScraperSelectModal';
 import { useJobMutations } from '../hooks/useJobMutations';
 import { useJobsQuery } from '../hooks/useJobsQuery';
 import { useJobStatsQuery } from '../hooks/useJobStatsQuery';
@@ -45,6 +46,7 @@ export function JobsPage() {
   const [cloneSource, setCloneSource] = useState<JobCloneSource | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isAddMultipleOpen, setIsAddMultipleOpen] = useState(false);
+  const [isScraperSelectOpen, setIsScraperSelectOpen] = useState(false);
 
   const { data, isLoading, isError } = useJobsQuery(filters);
   const { data: stats } = useJobStatsQuery();
@@ -183,7 +185,7 @@ export function JobsPage() {
           type="button"
           className={styles.fetchLatestJobsButton}
           disabled={fetchLatestJobsMutation.isPending}
-          onClick={() => fetchLatestJobsMutation.mutate()}
+          onClick={() => setIsScraperSelectOpen(true)}
         >
           {fetchLatestJobsMutation.isPending ? 'Queuing...' : 'Get Latest Jobs'}
         </button>
@@ -278,6 +280,18 @@ export function JobsPage() {
 
       {isAddMultipleOpen && (
         <AddMultipleJobsModal onClose={() => setIsAddMultipleOpen(false)} />
+      )}
+
+      {isScraperSelectOpen && (
+        <ScraperSelectModal
+          isSubmitting={fetchLatestJobsMutation.isPending}
+          onClose={() => setIsScraperSelectOpen(false)}
+          onConfirm={(scraperNames) => {
+            fetchLatestJobsMutation.mutate(scraperNames.length > 0 ? scraperNames : undefined, {
+              onSuccess: () => setIsScraperSelectOpen(false),
+            });
+          }}
+        />
       )}
     </div>
   );

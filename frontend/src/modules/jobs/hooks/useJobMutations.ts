@@ -94,7 +94,7 @@ export function useJobMutations() {
   });
 
   const fetchLatestJobsMutation = useMutation({
-    mutationFn: () => triggerScraperPipeline(),
+    mutationFn: (scraperNames?: string[]) => triggerScraperPipeline(scraperNames),
     onSuccess: (result) => {
       if (result.queued) {
         toast.success(result.message);

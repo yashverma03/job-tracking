@@ -53,7 +53,10 @@ def run_scraper(scraper: BaseScraper, max_jobs_per_run: int, start_offset: int, 
         logger.error('run finished: Failed error=%s', exc)
 
 
-def trigger_scraper_pipeline() -> dict:
+def trigger_scraper_pipeline(scraper_names: list[str] | None = None) -> dict:
+    """`scraper_names`, if given, restricts the run to just those scrapers (matched
+    against `ScraperName` values) - None/omitted runs every registered scraper, same as
+    before this parameter existed."""
     if scraper_run_service.has_run_in_progress():
         return {'queued': False, 'message': 'A scraper pipeline run is already in progress.'}
 
@@ -61,7 +64,11 @@ def trigger_scraper_pipeline() -> dict:
     start_offset = get_env_int(START_OFFSET_ENV_KEY)
     time_range_hours = get_env_int(TIME_RANGE_HOURS_ENV_KEY)
 
-    for scraper in get_enabled_scrapers():
+    scrapers = get_enabled_scrapers()
+    if scraper_names is not None:
+        scrapers = [scraper for scraper in scrapers if scraper.name in scraper_names]
+
+    for scraper in scrapers:
         async_task(
             'modules.scraper.tasks.run_scraper_task',
             scraper.name,
