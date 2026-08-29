@@ -1,3 +1,4 @@
+import json
 import threading
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor, wait as wait_futures
@@ -5,6 +6,7 @@ from dataclasses import replace
 
 from curl_cffi.requests.exceptions import HTTPError
 
+from common.exceptions.api_exceptions import ApiError
 from common.utils.env import get_env_int
 from modules.company.services import company_service
 from modules.jobs.enums.job_referral_status import JobReferralStatus
@@ -78,6 +80,17 @@ class BaseScraper(ABC):
         self._total_unique_count = 0
         self._errors = []
 
+    def _listing_json(self, listing: ScraperJobData) -> str:
+        return json.dumps(
+            {
+                'url': listing.url,
+                'title': listing.title,
+                'company_name': listing.company_name,
+                'location': listing.location,
+                'official_id': listing.official_id,
+            }
+        )
+
     def _record_error(self, url: str | None, message: str) -> None:
         self._logger.warning('job processing failed for %s: %s', url, message)
         with self._state_lock:
@@ -150,12 +163,12 @@ class BaseScraper(ABC):
         response has filled the gaps, and a final compulsory-field check runs right
         before insert."""
         if job_unique_key_service.is_duplicate(listing.url, None):
-            self._logger.info('excluded by filter rule (duplicate): %s', listing.url)
+            self._logger.info('excluded by filter rule (duplicate): %s', self._listing_json(listing))
             return False
 
         exclusion_reason = self.get_exclusion_reason(listing.title, listing.location, listing.company_name)
         if exclusion_reason:
-            self._logger.info('excluded by filter rule (%s): %s', exclusion_reason, listing.url)
+            self._logger.info('excluded by filter rule (%s): %s', exclusion_reason, self._listing_json(listing))
             return False
 
         return True
@@ -173,12 +186,14 @@ class BaseScraper(ABC):
 
             exclusion_reason = self.get_exclusion_reason(listing.title, listing.location, listing.company_name)
             if exclusion_reason:
-                self._logger.info('excluded by filter rule (%s): %s', exclusion_reason, listing.url)
+                self._logger.info('excluded by filter rule (%s): %s', exclusion_reason, self._listing_json(listing))
                 return
 
             missing_fields = [field for field in REQUIRED_JOB_FIELDS if not getattr(listing, field)]
             if missing_fields:
-                self._record_error(listing.url, f'missing required fields: {", ".join(missing_fields)}')
+                self._record_error(
+                    listing.url, f'missing required fields: {", ".join(missing_fields)} | {self._listing_json(listing)}'
+                )
                 return
 
             job_service.create_scraped_job(
@@ -190,6 +205,15 @@ class BaseScraper(ABC):
                 referral_status=self.get_referral_status_for_company(listing.company_name),
                 official_id=listing.official_id,
             )
+        except ApiError as exc:
+            if str(exc) in (
+                'A job with this URL already exists.',
+                'A job with this company and official ID already exists.',
+            ):
+                self._logger.info('skipped duplicate job: %s', self._listing_json(listing))
+                return
+            self._record_error(listing.url, str(exc))
+            return
         except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the run
             self._record_error(listing.url, str(exc))
             return
