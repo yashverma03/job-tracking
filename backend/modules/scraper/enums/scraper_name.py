@@ -9,3 +9,4 @@ class ScraperName(models.TextChoices):
     ORACLE = 'Oracle', 'Oracle'
     AIRBUS = 'Airbus', 'Airbus'
     MASTERCARD = 'Mastercard', 'Mastercard'
+    JPMORGANCHASE = 'JPMorganChase', 'JPMorganChase'
