@@ -1,19 +1,12 @@
-import re
-import time
 from abc import abstractmethod
 
 from common.utils.http import post_with_retry
 from modules.jobs.utils.url_cleaner import clean_job_url
 from modules.scraper.base.api_scraper import ApiScraper
-from modules.scraper.constants import REQUEST_TIMEOUT_SECONDS, SECONDS_PER_HOUR
+from modules.scraper.constants import REQUEST_TIMEOUT_SECONDS
 from modules.scraper.types import ListingPage, ScraperJobData
 from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.text_cleaner import clean_text
-from modules.scraper.utils.time_range import is_within_time_range
-
-# Matches Workday's relative "postedOn" text, e.g. "Posted Today", "Posted Yesterday",
-# "Posted 3 Days Ago", "Posted 30+ Days Ago".
-POSTED_ON_PATTERN = re.compile(r'Posted\s+(Today|Yesterday|(\d+)\+?\s+Days?\s+Ago)', re.IGNORECASE)
 
 
 class WorkdayScraper(ApiScraper):
@@ -21,8 +14,8 @@ class WorkdayScraper(ApiScraper):
     Many companies (Adobe included) run their external career site on Workday, sharing
     the same list/detail API shape - only the host, tenant, site and search facets
     differ. Subclasses only need to implement the properties below and
-    `map_item_to_listing`; pagination, the POST-based list request, and the
-    relative-date time-range check are handled here."""
+    `map_item_to_listing`; pagination and the POST-based list request are handled
+    here."""
 
     @property
     @abstractmethod
@@ -86,10 +79,6 @@ class WorkdayScraper(ApiScraper):
     def parse_list_items(self, response_json: dict) -> list[dict]:
         return response_json.get('jobPostings', [])
 
-    def is_item_in_time_range(self, item: dict, time_range_hours: int) -> bool:
-        posted_ts = _parse_posted_on(item.get('postedOn'))
-        return is_within_time_range(posted_ts, time_range_hours)
-
     def map_item_to_listing(self, item: dict) -> ScraperJobData | None:
         external_path = item.get('externalPath')
         bullet_fields = item.get('bulletFields') or []
@@ -132,8 +121,6 @@ class WorkdayScraper(ApiScraper):
 
         listings = []
         for item in items:
-            if not self.is_item_in_time_range(item, time_range_hours):
-                continue
             listing = self.map_item_to_listing(item)
             if listing is not None:
                 listings.append(listing)
@@ -145,21 +132,3 @@ class WorkdayScraper(ApiScraper):
         response = self._request(self.detail_base_url + listing.extra['external_path'])
         response.raise_for_status()
         return self.parse_detail_fields(response.json())
-
-
-def _parse_posted_on(posted_on: str | None) -> float | None:
-    if not posted_on:
-        return None
-
-    match = POSTED_ON_PATTERN.search(posted_on)
-    if not match:
-        return None
-
-    if match.group(1).lower() == 'today':
-        days_ago = 0
-    elif match.group(1).lower() == 'yesterday':
-        days_ago = 1
-    else:
-        days_ago = int(match.group(2))
-
-    return time.time() - days_ago * 24 * SECONDS_PER_HOUR

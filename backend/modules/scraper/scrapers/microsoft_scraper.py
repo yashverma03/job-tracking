@@ -4,7 +4,6 @@ from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.scrapers.registry import register_scraper
 from modules.scraper.types import ScraperJobData
 from modules.scraper.utils.text_cleaner import clean_text
-from modules.scraper.utils.time_range import is_within_time_range
 
 SEARCH_URL = 'https://apply.careers.microsoft.com/api/pcsx/search'
 DETAIL_URL = 'https://apply.careers.microsoft.com/api/pcsx/position_details'
@@ -48,10 +47,6 @@ class MicrosoftScraper(ApiScraper):
 
     def parse_list_items(self, response_json: dict) -> list[dict]:
         return response_json.get('data', {}).get('positions', [])
-
-    def is_item_in_time_range(self, item: dict, time_range_hours: int) -> bool:
-        posted_ts = item.get('postedTs') or item.get('creationTs')
-        return is_within_time_range(posted_ts, time_range_hours)
 
     def map_item_to_listing(self, item: dict) -> ScraperJobData | None:
         position_id = item.get('id')

@@ -61,11 +61,6 @@ class ApiScraper(BaseScraper):
         """Pull whatever fields the detail endpoint provides, as a dict to merge onto
         the listing (typically just `description`)."""
 
-    def is_item_in_time_range(self, item: dict, time_range_hours: int) -> bool:
-        """Override to filter out stale items using a source-specific timestamp field.
-        Defaults to including everything."""
-        return True
-
     def _fetch_listing_page(self, start: int, time_range_hours: int) -> ListingPage:
         response = self._request(self.list_url, params=self.build_list_params(start))
         response.raise_for_status()
@@ -77,8 +72,6 @@ class ApiScraper(BaseScraper):
 
         listings = []
         for item in items:
-            if not self.is_item_in_time_range(item, time_range_hours):
-                continue
             listing = self.map_item_to_listing(item)
             if listing is not None:
                 listings.append(listing)
