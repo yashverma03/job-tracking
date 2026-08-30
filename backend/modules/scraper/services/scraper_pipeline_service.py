@@ -53,10 +53,17 @@ def run_scraper(scraper: BaseScraper, max_jobs_per_run: int, start_offset: int, 
         logger.error('run finished: Failed error=%s', exc)
 
 
-def trigger_scraper_pipeline(scraper_names: list[str] | None = None) -> dict:
+def trigger_scraper_pipeline(scraper_names: list[str] | None = None, init_only: bool = False) -> dict:
     """`scraper_names`, if given, restricts the run to just those scrapers (matched
     against `ScraperName` values) - None/omitted runs every registered scraper, same as
-    before this parameter existed."""
+    before this parameter existed.
+
+    `init_only` restricts triggering to once per day overall: if a scraper pipeline run
+    already exists for today, the call is a no-op. Intended for the daily cron trigger,
+    so re-triggering it (e.g. after a machine restart) doesn't queue a second run."""
+    if init_only and scraper_run_service.has_run_today():
+        return {'queued': False, 'message': 'A scraper pipeline run already exists for today.'}
+
     max_jobs_per_run = get_env_int(MAX_JOBS_PER_RUN_ENV_KEY)
     start_offset = get_env_int(START_OFFSET_ENV_KEY)
     time_range_hours = get_env_int(TIME_RANGE_HOURS_ENV_KEY)
@@ -76,10 +83,3 @@ def trigger_scraper_pipeline(scraper_names: list[str] | None = None) -> dict:
         )
 
     return {'queued': True, 'message': 'Scraper pipeline started.'}
-
-
-def init_scraper_pipeline() -> dict:
-    if scraper_run_service.has_run_today():
-        return {'queued': False, 'message': 'A scraper pipeline run already exists for today.'}
-
-    return trigger_scraper_pipeline()
