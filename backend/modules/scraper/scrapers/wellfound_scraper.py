@@ -13,7 +13,6 @@ from modules.scraper.constants import SECONDS_PER_HOUR
 from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.scrapers.registry import register_scraper
 from modules.scraper.types import ListingPage, ScraperJobData
-from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.text_cleaner import clean_text
 
 LOGIN_URL = 'https://wellfound.com/login'
@@ -25,24 +24,24 @@ EMAIL_ENV_KEY = 'SCRAPER_WELLFOUND_EMAIL'
 PASSWORD_ENV_KEY = 'SCRAPER_WELLFOUND_PASSWORD'
 
 NAVIGATION_TIMEOUT_MS = 45000
-RESPONSE_WAIT_TIMEOUT_MS = 15000
+SETTLE_WAIT_MS = 3000
 SCROLL_PX = 4000
-SCROLL_UP_PX = 800
-SCROLL_RETRY_TIMEOUT_MS = 4000
-SCROLL_BACKOFF_BASE_SECONDS = 1
-MAX_SCROLL_RETRIES_PER_PAGE = 6
+SCROLL_WAIT_MS = 2500
 MAX_SCROLL_PAGES = 10
-POLL_INTERVAL_MS = 250
 
 
-def _is_job_search_response(response) -> bool:
+def _job_search_results(response) -> dict | None:
     if 'graphql' not in response.url:
-        return False
+        return None
     try:
-        body = response.request.post_data_json
+        body = response.json()
     except Exception:  # noqa: BLE001
-        return False
-    return bool(body) and body.get('operationName') == 'JobSearchResultsX'
+        return None
+    if not isinstance(body, dict):
+        return None
+    if body.get('data', {}).get('talent', {}).get('jobSearchResults') is None:
+        return None
+    return body
 
 
 @register_scraper
@@ -67,8 +66,7 @@ class WellfoundScraper(BaseScraper):
 
     def __init__(self):
         super().__init__()
-        self._has_next_page = True
-        self._latest_job_search_response: dict | None = None
+        self._captured_responses: list[dict] = []
         self._browser_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='wellfound-browser')
         self._run_on_browser_thread(self._start_browser)
 
@@ -85,20 +83,9 @@ class WellfoundScraper(BaseScraper):
         self._login()
 
     def _on_response(self, response) -> None:
-        if not _is_job_search_response(response):
-            return
-        try:
-            self._latest_job_search_response = response.json()
-        except Exception as exc:  # noqa: BLE001
-            self._logger.info('failed to read JobSearchResultsX response body: %s', exc)
-
-    def _wait_for_job_search_response(self, timeout_ms: int) -> dict | None:
-        self._latest_job_search_response = None
-        elapsed_ms = 0
-        while self._latest_job_search_response is None and elapsed_ms < timeout_ms:
-            self._page.wait_for_timeout(POLL_INTERVAL_MS)
-            elapsed_ms += POLL_INTERVAL_MS
-        return self._latest_job_search_response
+        results = _job_search_results(response)
+        if results is not None:
+            self._captured_responses.append(results)
 
     def _shutdown_browser(self) -> None:
         try:
@@ -121,33 +108,6 @@ class WellfoundScraper(BaseScraper):
             raise RuntimeError('Wellfound login failed: no session cookie set after login attempt')
 
         self._logger.info('logged into Wellfound as %s', email)
-
-    def _sort_by_most_recent(self) -> dict | None:
-        self._page.get_by_text('Recommended', exact=True).first.click()
-        self._page.wait_for_timeout(300)
-        self._page.get_by_text('Most recent', exact=True).first.click()
-        return self._wait_for_job_search_response(RESPONSE_WAIT_TIMEOUT_MS)
-
-    def _scroll_for_next_page(self) -> dict | None:
-        for attempt in range(MAX_SCROLL_RETRIES_PER_PAGE):
-            wait_between_requests()
-            self._page.mouse.wheel(0, -SCROLL_UP_PX)
-            self._page.wait_for_timeout(200)
-            self._page.mouse.wheel(0, SCROLL_PX)
-
-            response_json = self._wait_for_job_search_response(SCROLL_RETRY_TIMEOUT_MS)
-            if response_json is not None:
-                return response_json
-
-            backoff_seconds = SCROLL_BACKOFF_BASE_SECONDS * (2**attempt)
-            self._logger.info(
-                'scroll attempt %s/%s produced no response, backing off %ss',
-                attempt + 1,
-                MAX_SCROLL_RETRIES_PER_PAGE,
-                backoff_seconds,
-            )
-            time.sleep(backoff_seconds)
-        return None
 
     def _startup_nodes(self, edges: list[dict]) -> list[dict]:
         startups = []
@@ -191,47 +151,50 @@ class WellfoundScraper(BaseScraper):
         )
 
     def _fetch_listing_page(self, start: int, time_range_hours: int) -> ListingPage:
-        return self._run_on_browser_thread(self._fetch_listing_page_on_browser_thread, start, time_range_hours)
-
-    def _fetch_listing_page_on_browser_thread(self, start: int, time_range_hours: int) -> ListingPage:
-        if start > MAX_SCROLL_PAGES:
-            self._logger.info('stopping pagination, reached max scroll pages=%s', MAX_SCROLL_PAGES)
+        if start > 0:
             return ListingPage(stop=True)
-        if start > 0 and not self._has_next_page:
-            return ListingPage(stop=True)
+        return self._run_on_browser_thread(self._fetch_all_listings_on_browser_thread, time_range_hours)
 
-        if start == 0:
-            self._page.goto(JOBS_URL, wait_until='load', timeout=NAVIGATION_TIMEOUT_MS)
-            response_json = self._sort_by_most_recent()
-        else:
-            response_json = self._scroll_for_next_page()
+    def _sort_by_most_recent(self) -> None:
+        self._page.get_by_text('Recommended', exact=True).first.click()
+        self._page.wait_for_timeout(300)
+        self._page.get_by_text('Most recent', exact=True).first.click()
 
-        if response_json is None:
-            self._logger.info('stopping pagination, no JobSearchResultsX response received')
-            return ListingPage(stop=True)
+    def _fetch_all_listings_on_browser_thread(self, time_range_hours: int) -> ListingPage:
+        self._captured_responses = []
 
-        items = self._parse_list_items(response_json)
-        self._has_next_page = bool(
-            response_json.get('data', {}).get('talent', {}).get('jobSearchResults', {}).get('hasNextPage')
-        )
+        self._page.goto(JOBS_URL, wait_until='load', timeout=NAVIGATION_TIMEOUT_MS)
+        self._sort_by_most_recent()
+        self._page.wait_for_timeout(SETTLE_WAIT_MS)
+
+        for _ in range(MAX_SCROLL_PAGES):
+            self._page.mouse.wheel(0, SCROLL_PX)
+            self._page.wait_for_timeout(SCROLL_WAIT_MS)
 
         cutoff = time.time() - time_range_hours * SECONDS_PER_HOUR
+        seen_job_ids = set()
         listings = []
-        for item in items:
-            live_start_at = item.get('liveStartAt')
-            if isinstance(live_start_at, (int, float)) and live_start_at < cutoff:
-                continue
-            listing = self._map_item_to_listing(item)
-            if listing is not None:
-                listings.append(listing)
+        for response_json in self._captured_responses:
+            for item in self._parse_list_items(response_json):
+                job_id = item.get('id')
+                if job_id is None or job_id in seen_job_ids:
+                    continue
+                seen_job_ids.add(job_id)
 
-        return ListingPage(listings=listings, stop=not self._has_next_page and not items)
+                live_start_at = item.get('liveStartAt')
+                if isinstance(live_start_at, (int, float)) and live_start_at < cutoff:
+                    continue
+
+                listing = self._map_item_to_listing(item)
+                if listing is not None:
+                    listings.append(listing)
+
+        return ListingPage(listings=listings, stop=True)
 
     def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
         return self._run_on_browser_thread(self._fetch_detail_fields_on_browser_thread, listing)
 
     def _fetch_detail_fields_on_browser_thread(self, listing: ScraperJobData) -> dict:
-        wait_between_requests()
         self._page.goto(listing.url, wait_until='load', timeout=NAVIGATION_TIMEOUT_MS)
         html = self._page.content()
 
