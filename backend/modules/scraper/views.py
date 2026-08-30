@@ -8,7 +8,7 @@ from modules.scraper.services.scraper_pipeline_service import init_scraper_pipel
 
 
 class TriggerScraperPipelineView(APIView):
-    def get(self):
+    def get(self, request):
         options = [{'value': value, 'label': label} for value, label in ScraperName.choices]
         return Response(ScraperNameOptionDTO(options, many=True).data)
 
@@ -21,7 +21,7 @@ class TriggerScraperPipelineView(APIView):
 
 
 class InitScraperPipelineView(APIView):
-    def post(self):
+    def post(self, request):
         result = init_scraper_pipeline()
         status_code = 202 if result['queued'] else 200
         return Response(ScraperPipelineQueuedDTO(result).data, status=status_code)
