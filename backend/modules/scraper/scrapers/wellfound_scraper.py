@@ -90,6 +90,12 @@ class WellfoundScraper(ApiScraper):
         login_page.raise_for_status()
         match = CSRF_TOKEN_PATTERN.search(login_page.text)
         if match is None:
+            self._logger.error(
+                'could not find csrf token on Wellfound login page, status=%s cf-mitigated=%s body_snippet=%r',
+                login_page.status_code,
+                login_page.headers.get('cf-mitigated'),
+                login_page.text[:2000],
+            )
             raise RuntimeError('could not find csrf token on Wellfound login page')
 
         response = post_with_retry(
