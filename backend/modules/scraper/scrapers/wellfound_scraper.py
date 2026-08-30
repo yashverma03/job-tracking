@@ -14,6 +14,7 @@ from modules.scraper.constants import SECONDS_PER_HOUR
 from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.scrapers.registry import register_scraper
 from modules.scraper.types import ListingPage, ScraperJobData
+from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.text_cleaner import clean_text
 
 LOGIN_URL = 'https://wellfound.com/login'
@@ -194,6 +195,7 @@ class WellfoundScraper(BaseScraper):
                 self._page.goto(JOBS_URL, wait_until='load', timeout=NAVIGATION_TIMEOUT_MS)
                 response = self._sort_by_most_recent()
             else:
+                wait_between_requests()
                 with self._page.expect_response(_is_job_search_response, timeout=RESPONSE_WAIT_TIMEOUT_MS) as response_info:
                     self._page.mouse.wheel(0, SCROLL_PX)
                 response = response_info.value
@@ -223,6 +225,7 @@ class WellfoundScraper(BaseScraper):
         return self._run_on_browser_thread(self._fetch_detail_fields_on_browser_thread, listing)
 
     def _fetch_detail_fields_on_browser_thread(self, listing: ScraperJobData) -> dict:
+        wait_between_requests()
         self._page.goto(listing.url, wait_until='load', timeout=NAVIGATION_TIMEOUT_MS)
         html = self._page.content()
 
