@@ -12,6 +12,7 @@ class Company(models.Model):
     note = models.TextField(null=True, blank=True)
     career_portal_url = models.TextField(null=True, blank=True)
     referral_type = models.TextField(null=True, blank=True)
+    has_scraper = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True, db_default=Now())
     updated_at = models.DateTimeField(auto_now=True, db_default=Now())
     deleted_at = models.DateTimeField(null=True, blank=True)
