@@ -134,7 +134,7 @@ class BaseScraper(ABC):
                 wait_between_requests()
 
                 if page.stop:
-                    self._logger.info('stopping pagination (signaled by scraper)')
+                    self._logger.info('stopping pagination')
                     break
 
             wait_futures(pending)
