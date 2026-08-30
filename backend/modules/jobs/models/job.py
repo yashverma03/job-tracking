@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.functions import Now
 
 from modules.jobs.enums.job_referral_status import JobReferralStatus
 from modules.jobs.enums.job_status import JobStatus
@@ -27,8 +28,8 @@ class Job(models.Model):
     analysis = models.TextField(null=True, blank=True)
     is_custom_resume_generated = models.BooleanField(default=False)
     is_manual_created = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_default=Now())
+    updated_at = models.DateTimeField(auto_now=True, db_default=Now())
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:

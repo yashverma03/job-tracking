@@ -1,6 +1,7 @@
 from typing import cast
 
 from django.db import models
+from django.db.models.functions import Now
 
 from modules.scraper.enums.scraper_run_status import ScraperRunStatus
 
@@ -11,7 +12,7 @@ class ScraperRun(models.Model):
     status = models.TextField(choices=ScraperRunStatus.choices, default=ScraperRunStatus.PENDING)
     error: dict | None = cast('dict | None', models.JSONField(null=True, blank=True))
     metadata: dict | None = cast('dict | None', models.JSONField(null=True, blank=True))
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_default=Now())
     completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
