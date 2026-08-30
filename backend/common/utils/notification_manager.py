@@ -21,6 +21,29 @@ class NotificationManager:
 
     @staticmethod
     def show(title: str, message: str, width: int | None = None, height: int | None = None) -> None:
+        command = ['zenity', '--info', '--title', title, '--text', message]
+        NotificationManager._run(command, title, width=width, height=height)
+
+    @staticmethod
+    def show_table(
+        title: str,
+        columns: list[str],
+        rows: list[list[str]],
+        width: int | None = None,
+        height: int | None = None,
+    ) -> None:
+        """Displays a read-only table dialog (zenity's `--list`) - one row per entry in
+        `rows`, each a list of cell values matching `columns` in order."""
+        command = ['zenity', '--list', '--title', title]
+        for column in columns:
+            command += ['--column', column]
+        for row in rows:
+            command += [str(cell) for cell in row]
+
+        NotificationManager._run(command, title, width=width, height=height)
+
+    @staticmethod
+    def _run(command: list[str], title: str, width: int | None = None, height: int | None = None) -> None:
         env = os.environ.copy()
         env.setdefault('DISPLAY', _DEFAULT_DISPLAY)
         env.setdefault('DBUS_SESSION_BUS_ADDRESS', _DEFAULT_DBUS_ADDRESS)
@@ -32,7 +55,6 @@ class NotificationManager:
             else:
                 logger.warning('Could not discover XAUTHORITY; notification may fail to display: %s', title)
 
-        command = ['zenity', '--info', '--title', title, '--text', message]
         if width is not None:
             command += ['--width', str(width)]
         if height is not None:

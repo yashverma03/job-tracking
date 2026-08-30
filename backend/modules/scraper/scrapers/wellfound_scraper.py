@@ -173,7 +173,6 @@ class WellfoundScraper(BaseScraper):
 
         return ScraperJobData(
             url=clean_job_url(JOB_URL_TEMPLATE.format(job_id=job_id, slug=slug)),
-            official_id=str(job_id),
             title=clean_text(item.get('title')),
             company_name=clean_text(item.get('_startup_name')),
             location=clean_text(location),

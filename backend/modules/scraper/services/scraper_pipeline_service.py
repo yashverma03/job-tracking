@@ -133,26 +133,24 @@ def run_scraper_pipeline(
 
 
 def _notify_pipeline_summary(outcomes: list[ScraperRunOutcome]) -> None:
-    succeeded = [outcome for outcome in outcomes if outcome.status == 'success']
-    failed = [outcome for outcome in outcomes if outcome.status == 'failed']
-    skipped = [outcome for outcome in outcomes if outcome.status == 'skipped']
-    total_jobs_added = sum(outcome.total_unique_count for outcome in outcomes)
-
-    lines = [
-        f'Scrapers run: {len(outcomes)}',
-        f'Succeeded: {len(succeeded)}',
-        f'Failed: {len(failed)}',
-        f'Skipped (already ran today): {len(skipped)}',
-        f'Jobs added: {total_jobs_added}',
-        '',
+    rows = [
+        [
+            outcome.scraper_name.label,
+            outcome.total_count,
+            outcome.total_unique_count,
+            outcome.error_count,
+            outcome.status.capitalize(),
+        ]
+        for outcome in sorted(outcomes, key=lambda outcome: outcome.scraper_name.label)
     ]
-    for outcome in sorted(outcomes, key=lambda outcome: outcome.scraper_name.label):
-        lines.append(
-            f'{outcome.scraper_name.label}: {outcome.status.capitalize()} - '
-            f'fetched={outcome.total_count} added={outcome.total_unique_count} errors={outcome.error_count}'
-        )
 
-    NotificationManager.show('Scraper pipeline complete', '\n'.join(lines), width=600)
+    NotificationManager.show_table(
+        'Scraper pipeline complete',
+        ['Name', 'Total Count', 'Added', 'Failed', 'Status'],
+        rows,
+        width=900,
+        height=600,
+    )
 
 
 def trigger_scraper_pipeline(scraper_names: list[str] | None = None, init_only: bool = False) -> dict:
