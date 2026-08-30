@@ -56,16 +56,8 @@ def _handle_termination_signal(signum: int, frame) -> None:
 def run_scraper(scraper: BaseScraper, max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> ScraperRunOutcome:
     """Run a single scraper end-to-end (its own run record and status transitions).
     Runs on its own thread within the pipeline's thread pool so scrapers execute
-    concurrently instead of one after another.
-
-    Idempotent per scraper per day: if this scraper already has a run recorded for
-    today, it's skipped - re-triggering the pipeline (e.g. clicking the button again)
-    only picks up scrapers that haven't run yet today."""
+    concurrently instead of one after another."""
     logger = get_scraper_logger(scraper.name)
-
-    if scraper_run_service.has_run_today_for_scraper(scraper.name):
-        logger.info('skipping run, already ran today')
-        return ScraperRunOutcome(scraper.name, status='skipped')
 
     run = scraper_run_service.create_pending_run(scraper.name)
     logger.info('run started: run_id=%s', run.id)
