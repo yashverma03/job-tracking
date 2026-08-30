@@ -1,5 +1,6 @@
-import re
 import time
+
+from bs4 import BeautifulSoup
 
 from common.utils.env import get_env
 from common.utils.http import post_with_retry
@@ -19,7 +20,6 @@ PAGE_SIZE = 1  # `start` is used directly as the GraphQL `page` number, advanced
 EMAIL_ENV_KEY = 'SCRAPER_WELLFOUND_EMAIL'
 PASSWORD_ENV_KEY = 'SCRAPER_WELLFOUND_PASSWORD'
 
-CSRF_TOKEN_PATTERN = re.compile(r'name="csrf-token" content="([^"]+)"')
 
 SEARCH_OPERATION_ID = 'tfe/5f366cd305b4f13cf6098df75f7ff2bb92fa42b9a74cb3a3aec7bdc69c6b051e'
 DETAIL_OPERATION_ID = 'tfe/e32faab6776e2e8617eefb0dada42582512247d281de5a7bf30fb8f7e695e787'
@@ -82,14 +82,30 @@ class WellfoundScraper(ApiScraper):
         )
         self._login()
 
+    def _extract_csrf_token(self, html: str) -> str | None:
+        """The login page renders as a bare auth-form fragment (no <head>), so the
+        token lives on the form's own hidden input rather than a csrf-token meta tag -
+        fall back to the meta tag too in case that ever changes."""
+        soup = BeautifulSoup(html, 'html.parser')
+
+        token_input = soup.find('input', attrs={'name': 'authenticity_token'})
+        if token_input is not None and token_input.get('value'):
+            return token_input['value']
+
+        meta_tag = soup.find('meta', attrs={'name': 'csrf-token'})
+        if meta_tag is not None and meta_tag.get('content'):
+            return meta_tag['content']
+
+        return None
+
     def _login(self) -> None:
         email = get_env(EMAIL_ENV_KEY)
         password = get_env(PASSWORD_ENV_KEY)
 
         login_page = self._request(LOGIN_URL)
         login_page.raise_for_status()
-        match = CSRF_TOKEN_PATTERN.search(login_page.text)
-        if match is None:
+        csrf_token = self._extract_csrf_token(login_page.text)
+        if csrf_token is None:
             self._logger.error(
                 'could not find csrf token on Wellfound login page, status=%s cf-mitigated=%s body_snippet=%r',
                 login_page.status_code,
@@ -103,7 +119,7 @@ class WellfoundScraper(ApiScraper):
             LOGIN_URL,
             data={
                 'utf8': '✓',
-                'authenticity_token': match.group(1),
+                'authenticity_token': csrf_token,
                 'login_only': 'true',
                 'username': email,
                 'password': password,
