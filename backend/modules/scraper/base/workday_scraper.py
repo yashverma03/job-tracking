@@ -5,7 +5,6 @@ from modules.jobs.utils.url_cleaner import clean_job_url
 from modules.scraper.base.api_scraper import ApiScraper
 from modules.scraper.constants import REQUEST_TIMEOUT_SECONDS
 from modules.scraper.types import ListingPage, ScraperJobData
-from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.text_cleaner import clean_text
 
 
@@ -137,7 +136,6 @@ class WorkdayScraper(ApiScraper):
         return ListingPage(listings=listings, stop=stop)
 
     def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
-        wait_between_requests()
         response = self._request(self.detail_base_url + listing.extra['external_path'])
         response.raise_for_status()
         return self.parse_detail_fields(response.json())

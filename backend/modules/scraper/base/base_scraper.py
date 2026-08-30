@@ -14,7 +14,6 @@ from modules.jobs.services import job_service, job_unique_key_service
 from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.types import ListingPage, ScraperJobData, ScraperRunResult
 from modules.scraper.utils.job_filter import is_location_excluded, is_title_excluded
-from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.scraper_logger import get_scraper_logger
 
 REQUIRED_JOB_FIELDS = ('url', 'title', 'company_name', 'location')
@@ -96,10 +95,28 @@ class BaseScraper(ABC):
         with self._state_lock:
             self._errors.append({'url': url, 'message': message})
 
+    def current_metadata(self) -> dict:
+        """Snapshot of run progress so far - same shape as the metadata `run()` returns
+        on completion. Lets a caller persist partial progress (e.g. counts at the point
+        the process was killed) instead of losing it."""
+        with self._state_lock:
+            return {
+                'total_count': self._total_count,
+                'total_unique_count': self._total_unique_count,
+                'error_count': len(self._errors),
+            }
+
     def run(self, max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> ScraperRunResult:
         """Page through listings, filter, then fetch details concurrently for anything
         worth fetching. Identical across every scraper - only the abstract hooks above
-        vary per source."""
+        vary per source.
+
+        `max_jobs_per_run` is a hard cap on raw listings pulled from the list API
+        (tracked by `_total_count`), enforced here regardless of `_fetch_listing_page`'s
+        own pagination-end logic - a last-resort bound so a scraper-specific pagination
+        bug (or a source that never reports "no more pages") can't page through an
+        unbounded number of listings. Exclusion filtering happens only within that
+        budget, same as before."""
         self._reset_run_state()
         start = start_offset
         pending: list[Future] = []
@@ -121,20 +138,22 @@ class BaseScraper(ABC):
                         break
                     raise
 
-                for listing in page.listings:
-                    if self._total_count >= max_jobs_per_run:
-                        break
-                    if not self._passes_pre_detail_filter(listing):
-                        continue
+                remaining_budget = max_jobs_per_run - self._total_count
+                listings = page.listings[:remaining_budget]
+                self._total_count += len(listings)
 
-                    self._total_count += 1
-                    pending.append(executor.submit(self._process_listing, listing))
+                for listing in listings:
+                    if self._passes_pre_detail_filter(listing):
+                        pending.append(executor.submit(self._process_listing, listing))
 
                 start += self.page_size
-                wait_between_requests()
 
                 if page.stop:
                     self._logger.info('stopping pagination')
+                    break
+
+                if len(listings) < len(page.listings):
+                    self._logger.info('stopping pagination, reached max_jobs_per_run=%s', max_jobs_per_run)
                     break
 
             wait_futures(pending)
@@ -142,20 +161,13 @@ class BaseScraper(ABC):
                 future.result()  # surface any unexpected (non-per-job) exception
 
         self._logger.info(
-            'run complete, checked=%s inserted=%s errors=%s',
+            'run complete, fetched=%s inserted=%s errors=%s',
             self._total_count,
             self._total_unique_count,
             len(self._errors),
         )
 
-        return ScraperRunResult(
-            metadata={
-                'total_count': self._total_count,
-                'total_unique_count': self._total_unique_count,
-                'error_count': len(self._errors),
-            },
-            errors=self._errors,
-        )
+        return ScraperRunResult(metadata=self.current_metadata(), errors=self._errors)
 
     def _passes_pre_detail_filter(self, listing: ScraperJobData) -> bool:
         """First-pass filter, applied before spending an HTTP request on the job's

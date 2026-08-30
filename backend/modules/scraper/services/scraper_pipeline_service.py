@@ -1,9 +1,16 @@
+import os
+import signal
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
 from django_q.tasks import async_task
 
 from common.utils.env import get_env_int
+from common.utils.notification_manager import NotificationManager
 from modules.scraper.base.base_scraper import BaseScraper
 from modules.scraper.scrapers.registry import get_enabled_scrapers
 from modules.scraper.services import scraper_run_service
+from modules.scraper.types import ScraperRunOutcome
 from modules.scraper.utils.scraper_logger import get_scraper_logger
 
 SCRAPER_PIPELINE_TASK_GROUP = 'scraper_pipeline'
@@ -11,12 +18,45 @@ SCRAPER_PIPELINE_TASK_GROUP = 'scraper_pipeline'
 MAX_JOBS_PER_RUN_ENV_KEY = 'SCRAPER_MAX_JOBS_PER_RUN'
 START_OFFSET_ENV_KEY = 'SCRAPER_START_OFFSET'
 TIME_RANGE_HOURS_ENV_KEY = 'SCRAPER_TIME_RANGE_HOURS'
+CONCURRENT_SCRAPER_LIMIT_ENV_KEY = 'SCRAPER_CONCURRENT_LIMIT'
+
+# The whole pipeline now runs as a single Django-Q task, with every scraper running
+# concurrently on its own thread inside that one task (each scraper in turn runs its own
+# detail-fetch thread pool, so this is threads-within-threads by design). Signal handling
+# therefore has to track every currently-running scraper, not just one - keyed by the
+# thread running it, guarded by a lock since scrapers report in/out from their own
+# threads while the signal handler (always invoked on the main thread) reads the set.
+_active_runs: dict[int, tuple] = {}
+_active_runs_lock = threading.Lock()
+
+# SIGKILL can't be caught by any process, so a `kill -9` can never be recovered from
+# here - these are the signals a terminated terminal/process actually sends
+# (Ctrl+C, `kill`, closing the terminal).
+_TERMINATION_SIGNALS = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP)
 
 
-def run_scraper(scraper: BaseScraper, max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> None:
+def _handle_termination_signal(signum: int, frame) -> None:
+    with _active_runs_lock:
+        contexts = list(_active_runs.values())
+
+    if not contexts:
+        os._exit(1)
+
+    signal_name = signal.Signals(signum).name
+    for run, scraper, logger in contexts:
+        logger.error('run finished: Failed - process terminated by signal %s', signal_name)
+        scraper_run_service.mark_failed(
+            run,
+            error={'message': f'process terminated ({signal_name})'},
+            metadata=scraper.current_metadata(),
+        )
+    os._exit(1)
+
+
+def run_scraper(scraper: BaseScraper, max_jobs_per_run: int, start_offset: int, time_range_hours: int) -> ScraperRunOutcome:
     """Run a single scraper end-to-end (its own run record and status transitions).
-    Queued as one Django-Q task per scraper so that scrapers execute in parallel across
-    worker processes instead of one after another.
+    Runs on its own thread within the pipeline's thread pool so scrapers execute
+    concurrently instead of one after another.
 
     Idempotent per scraper per day: if this scraper already has a run recorded for
     today, it's skipped - re-triggering the pipeline (e.g. clicking the button again)
@@ -25,10 +65,14 @@ def run_scraper(scraper: BaseScraper, max_jobs_per_run: int, start_offset: int, 
 
     if scraper_run_service.has_run_today_for_scraper(scraper.name):
         logger.info('skipping run, already ran today')
-        return
+        return ScraperRunOutcome(scraper.name, status='skipped')
 
     run = scraper_run_service.create_pending_run(scraper.name)
     logger.info('run started: run_id=%s', run.id)
+
+    active_run_key = threading.get_ident()
+    with _active_runs_lock:
+        _active_runs[active_run_key] = (run, scraper, logger)
 
     try:
         scraper_run_service.mark_processing(run)
@@ -45,12 +89,70 @@ def run_scraper(scraper: BaseScraper, max_jobs_per_run: int, start_offset: int, 
                 metadata=metadata,
             )
             logger.error('run finished: Failed error_count=%s', len(errors))
-        else:
-            scraper_run_service.mark_success(run, metadata=metadata)
-            logger.info('run finished: Success')
+            return ScraperRunOutcome(scraper.name, status='failed', **metadata)
+
+        scraper_run_service.mark_success(run, metadata=metadata)
+        logger.info('run finished: Success')
+        return ScraperRunOutcome(scraper.name, status='success', **metadata)
     except Exception as exc:  # noqa: BLE001 - one scraper's failure must not abort others
-        scraper_run_service.mark_failed(run, {'message': str(exc)})
+        metadata = scraper.current_metadata()
+        scraper_run_service.mark_failed(run, {'message': str(exc)}, metadata=metadata)
         logger.error('run finished: Failed error=%s', exc)
+        return ScraperRunOutcome(scraper.name, status='failed', **metadata)
+    finally:
+        with _active_runs_lock:
+            _active_runs.pop(active_run_key, None)
+
+
+def run_scraper_pipeline(
+    scraper_names: list[str] | None, max_jobs_per_run: int, start_offset: int, time_range_hours: int
+) -> None:
+    """Runs every requested scraper concurrently (bounded by
+    `SCRAPER_CONCURRENT_LIMIT`), waits for all of them to finish, then shows a single
+    notification summarizing how many succeeded/failed/were skipped and how many jobs
+    each added. This is the single Django-Q task queued per pipeline trigger."""
+    scrapers = get_enabled_scrapers()
+    if scraper_names is not None:
+        scrapers = [scraper for scraper in scrapers if scraper.name in scraper_names]
+
+    concurrent_limit = get_env_int(CONCURRENT_SCRAPER_LIMIT_ENV_KEY)
+
+    previous_handlers = {sig: signal.signal(sig, _handle_termination_signal) for sig in _TERMINATION_SIGNALS}
+    try:
+        with ThreadPoolExecutor(max_workers=concurrent_limit, thread_name_prefix='scraper-pipeline') as executor:
+            futures = [
+                executor.submit(run_scraper, scraper, max_jobs_per_run, start_offset, time_range_hours)
+                for scraper in scrapers
+            ]
+            outcomes = [future.result() for future in futures]
+    finally:
+        for sig, previous_handler in previous_handlers.items():
+            signal.signal(sig, previous_handler)
+
+    _notify_pipeline_summary(outcomes)
+
+
+def _notify_pipeline_summary(outcomes: list[ScraperRunOutcome]) -> None:
+    succeeded = [outcome for outcome in outcomes if outcome.status == 'success']
+    failed = [outcome for outcome in outcomes if outcome.status == 'failed']
+    skipped = [outcome for outcome in outcomes if outcome.status == 'skipped']
+    total_jobs_added = sum(outcome.total_unique_count for outcome in outcomes)
+
+    lines = [
+        f'Scrapers run: {len(outcomes)}',
+        f'Succeeded: {len(succeeded)}',
+        f'Failed: {len(failed)}',
+        f'Skipped (already ran today): {len(skipped)}',
+        f'Jobs added: {total_jobs_added}',
+        '',
+    ]
+    for outcome in sorted(outcomes, key=lambda outcome: outcome.scraper_name.label):
+        lines.append(
+            f'{outcome.scraper_name.label}: {outcome.status.capitalize()} - '
+            f'fetched={outcome.total_count} added={outcome.total_unique_count} errors={outcome.error_count}'
+        )
+
+    NotificationManager.show('Scraper pipeline complete', '\n'.join(lines), width=600)
 
 
 def trigger_scraper_pipeline(scraper_names: list[str] | None = None, init_only: bool = False) -> dict:
@@ -68,18 +170,13 @@ def trigger_scraper_pipeline(scraper_names: list[str] | None = None, init_only: 
     start_offset = get_env_int(START_OFFSET_ENV_KEY)
     time_range_hours = get_env_int(TIME_RANGE_HOURS_ENV_KEY)
 
-    scrapers = get_enabled_scrapers()
-    if scraper_names is not None:
-        scrapers = [scraper for scraper in scrapers if scraper.name in scraper_names]
-
-    for scraper in scrapers:
-        async_task(
-            'modules.scraper.tasks.run_scraper_task',
-            scraper.name,
-            max_jobs_per_run,
-            start_offset,
-            time_range_hours,
-            group=SCRAPER_PIPELINE_TASK_GROUP,
-        )
+    async_task(
+        'modules.scraper.tasks.run_scraper_pipeline_task',
+        scraper_names,
+        max_jobs_per_run,
+        start_offset,
+        time_range_hours,
+        group=SCRAPER_PIPELINE_TASK_GROUP,
+    )
 
     return {'queued': True, 'message': 'Scraper pipeline started.'}

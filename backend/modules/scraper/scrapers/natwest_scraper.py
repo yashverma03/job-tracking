@@ -5,7 +5,6 @@ from modules.scraper.base.api_scraper import ApiScraper
 from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.scrapers.registry import register_scraper
 from modules.scraper.types import ScraperJobData
-from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.text_cleaner import clean_text
 
 SEARCH_URL = 'https://jobs.natwestgroup.com/search/jobs.json'
@@ -64,7 +63,6 @@ class NatwestScraper(ApiScraper):
         return {}
 
     def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
-        wait_between_requests()
         response = self._request(self.detail_url.format(job_id=listing.extra['job_id']))
         response.raise_for_status()
         return self.parse_detail_fields(response.text)

@@ -3,7 +3,6 @@ from abc import abstractmethod
 from modules.jobs.utils.url_cleaner import clean_job_url
 from modules.scraper.base.api_scraper import ApiScraper
 from modules.scraper.types import ScraperJobData
-from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.text_cleaner import clean_text
 
 FACETS_LIST = 'LOCATIONS;WORK_LOCATIONS;WORKPLACE_TYPES;TITLES;CATEGORIES;ORGANIZATIONS;POSTING_DATES;FLEX_FIELDS'
@@ -138,7 +137,6 @@ class OracleCloudHcmScraper(ApiScraper):
         return {}
 
     def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
-        wait_between_requests()
         response = self._request(
             self.detail_url_template.format(job_id=listing.extra['job_id']),
             params={'onlyData': 'true', 'expand': 'all'},

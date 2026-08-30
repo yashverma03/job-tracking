@@ -5,7 +5,6 @@ from modules.scraper.base.base_scraper import BaseScraper
 from modules.scraper.constants import REQUEST_TIMEOUT_SECONDS
 from modules.scraper.types import ListingPage, ScraperJobData
 from modules.scraper.utils.http_session import new_session
-from modules.scraper.utils.rate_limiter import wait_between_requests
 from modules.scraper.utils.user_agent_rotator import get_random_user_agent
 
 
@@ -79,7 +78,6 @@ class ApiScraper(BaseScraper):
         return ListingPage(listings=listings)
 
     def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
-        wait_between_requests()
         response = self._request(self.detail_url, params=self.build_detail_params(listing))
         response.raise_for_status()
         return self.parse_detail_fields(response.json())
