@@ -155,7 +155,12 @@ class WellfoundScraper(BaseScraper):
             return None
 
         location_names = item.get('locationNames') or []
-        location = '; '.join(location_names) if location_names else ('Remote' if item.get('remote') else None)
+        if location_names:
+            location = '; '.join(location_names)
+        elif item.get('remote'):
+            location = 'Remote'
+        else:
+            location = 'Unknown'
 
         return ScraperJobData(
             url=clean_job_url(JOB_URL_TEMPLATE.format(job_id=job_id, slug=slug)),
@@ -214,11 +219,7 @@ class WellfoundScraper(BaseScraper):
                 if listing is not None:
                     listings.append(listing)
 
-        self._logger.info(
-            'captured %s page responses, %s unique jobs after dedup/time filter',
-            len(self._captured_responses),
-            len(listings),
-        )
+        self._logger.info('total jobs found: %s (from %s page responses)', len(listings), len(self._captured_responses))
         return ListingPage(listings=listings, stop=True)
 
     def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
