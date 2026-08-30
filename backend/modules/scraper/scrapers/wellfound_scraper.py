@@ -4,7 +4,6 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 from common.utils.env import get_env
@@ -28,7 +27,12 @@ PASSWORD_ENV_KEY = 'SCRAPER_WELLFOUND_PASSWORD'
 NAVIGATION_TIMEOUT_MS = 45000
 RESPONSE_WAIT_TIMEOUT_MS = 15000
 SCROLL_PX = 4000
-MAX_SCROLL_ATTEMPTS = 10
+SCROLL_UP_PX = 800
+SCROLL_RETRY_TIMEOUT_MS = 4000
+SCROLL_BACKOFF_BASE_SECONDS = 1
+MAX_SCROLL_RETRIES_PER_PAGE = 6
+MAX_SCROLL_PAGES = 10
+POLL_INTERVAL_MS = 250
 
 
 def _is_job_search_response(response) -> bool:
@@ -36,37 +40,18 @@ def _is_job_search_response(response) -> bool:
         return False
     try:
         body = response.request.post_data_json
-    except Exception:  # noqa: BLE001 - a request with a non-JSON body just isn't a match
+    except Exception:  # noqa: BLE001
         return False
     return bool(body) and body.get('operationName') == 'JobSearchResultsX'
 
 
 @register_scraper
 class WellfoundScraper(BaseScraper):
-    """Wellfound protects its GraphQL endpoint with per-request signature headers
-    (`x-apollo-signature`, `x-wf-cfp`) that its own Apollo Client middleware computes -
-    confirmed by testing that a hand-built request, even with a fully authenticated
-    session's cookies attached, gets hard-blocked with a Cloudflare/Turnstile "Security
-    Check" challenge page. No plain HTTP client can produce a valid one, so unlike
-    every other scraper here this can't extend `ApiScraper` - it drives a real
-    (headless) browser via Playwright instead, letting Wellfound's own page code build
-    and send every request.
+    """Drives a real headless browser via Playwright instead of extending
+    `ApiScraper`, since Wellfound's GraphQL endpoint rejects plain HTTP requests.
 
-    Listing: the account's search filters are saved server-side, so simply loading
-    `/jobs` re-fires `JobSearchResultsX` with them already applied (verified against
-    this account); further pages come from the same infinite-scroll requests a real
-    user's scrolling would trigger.
-
-    Detail: navigating straight to a job's URL renders it server-side with the full
-    listing (including `descriptionHtml`/`compensation`) embedded in a Next.js
-    `__NEXT_DATA__` Apollo-cache blob - no click-through or second GraphQL call needed.
-
-    All Playwright calls are funnelled through one dedicated thread
-    (`_browser_executor`, max_workers=1): the sync Playwright API requires every call
-    against one browser/page to happen on the same thread, but `BaseScraper.run` calls
-    `_fetch_listing_page` from its own loop thread and `_fetch_detail_fields` from a
-    separate detail-worker pool - without this they'd fight over the same page from
-    two threads at once."""
+    All Playwright calls run on one dedicated thread (`_browser_executor`), since
+    `BaseScraper.run` calls the listing and detail hooks from different threads."""
 
     @property
     def name(self) -> ScraperName:
@@ -78,14 +63,12 @@ class WellfoundScraper(BaseScraper):
 
     @property
     def detail_worker_count(self) -> int:
-        # Detail fetches are real page navigations funnelled through the one Playwright
-        # thread anyway - more external worker threads would only queue up, not add
-        # throughput.
         return 1
 
     def __init__(self):
         super().__init__()
         self._has_next_page = True
+        self._latest_job_search_response: dict | None = None
         self._browser_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='wellfound-browser')
         self._run_on_browser_thread(self._start_browser)
 
@@ -97,14 +80,31 @@ class WellfoundScraper(BaseScraper):
         self._browser = self._playwright.chromium.launch(headless=True)
         self._context = self._browser.new_context()
         self._page = self._context.new_page()
+        self._page.on('response', self._on_response)
         atexit.register(self._shutdown_browser)
         self._login()
+
+    def _on_response(self, response) -> None:
+        if not _is_job_search_response(response):
+            return
+        try:
+            self._latest_job_search_response = response.json()
+        except Exception as exc:  # noqa: BLE001
+            self._logger.info('failed to read JobSearchResultsX response body: %s', exc)
+
+    def _wait_for_job_search_response(self, timeout_ms: int) -> dict | None:
+        self._latest_job_search_response = None
+        elapsed_ms = 0
+        while self._latest_job_search_response is None and elapsed_ms < timeout_ms:
+            self._page.wait_for_timeout(POLL_INTERVAL_MS)
+            elapsed_ms += POLL_INTERVAL_MS
+        return self._latest_job_search_response
 
     def _shutdown_browser(self) -> None:
         try:
             self._browser.close()
             self._playwright.stop()
-        except Exception:  # noqa: BLE001 - best-effort cleanup on interpreter exit
+        except Exception:  # noqa: BLE001
             pass
 
     def _login(self) -> None:
@@ -122,23 +122,34 @@ class WellfoundScraper(BaseScraper):
 
         self._logger.info('logged into Wellfound as %s', email)
 
-    def _sort_by_most_recent(self):
-        """Selects "Most recent" from the results sort dropdown (defaults to
-        "Recommended" each fresh session) and returns the JobSearchResultsX response
-        that selection triggers, so callers get the first page already sorted by
-        `sortBy: LAST_POSTED` instead of an extra throwaway request."""
-        with self._page.expect_response(_is_job_search_response, timeout=RESPONSE_WAIT_TIMEOUT_MS) as response_info:
-            self._page.get_by_text('Recommended', exact=True).first.click()
-            self._page.wait_for_timeout(300)
-            self._page.get_by_text('Most recent', exact=True).first.click()
-        return response_info.value
+    def _sort_by_most_recent(self) -> dict | None:
+        self._page.get_by_text('Recommended', exact=True).first.click()
+        self._page.wait_for_timeout(300)
+        self._page.get_by_text('Most recent', exact=True).first.click()
+        return self._wait_for_job_search_response(RESPONSE_WAIT_TIMEOUT_MS)
+
+    def _scroll_for_next_page(self) -> dict | None:
+        for attempt in range(MAX_SCROLL_RETRIES_PER_PAGE):
+            wait_between_requests()
+            self._page.mouse.wheel(0, -SCROLL_UP_PX)
+            self._page.wait_for_timeout(200)
+            self._page.mouse.wheel(0, SCROLL_PX)
+
+            response_json = self._wait_for_job_search_response(SCROLL_RETRY_TIMEOUT_MS)
+            if response_json is not None:
+                return response_json
+
+            backoff_seconds = SCROLL_BACKOFF_BASE_SECONDS * (2**attempt)
+            self._logger.info(
+                'scroll attempt %s/%s produced no response, backing off %ss',
+                attempt + 1,
+                MAX_SCROLL_RETRIES_PER_PAGE,
+                backoff_seconds,
+            )
+            time.sleep(backoff_seconds)
+        return None
 
     def _startup_nodes(self, edges: list[dict]) -> list[dict]:
-        """Flatten each search-result edge into a list of startup-shaped nodes. Most
-        edges' `node` already is one (a plain `StartupSearchResult` or a `PromotedResult`
-        wrapping one in `promotedStartup`), but a `FeaturedStartups` node instead wraps
-        several such startups in `featuredStartups` - unwrap those too, or every job
-        listing nested inside them is silently dropped."""
         startups = []
         for edge in edges:
             node = edge.get('node') or {}
@@ -183,26 +194,22 @@ class WellfoundScraper(BaseScraper):
         return self._run_on_browser_thread(self._fetch_listing_page_on_browser_thread, start, time_range_hours)
 
     def _fetch_listing_page_on_browser_thread(self, start: int, time_range_hours: int) -> ListingPage:
-        if start > MAX_SCROLL_ATTEMPTS:
-            self._logger.info('stopping pagination, reached max scroll attempts=%s', MAX_SCROLL_ATTEMPTS)
+        if start > MAX_SCROLL_PAGES:
+            self._logger.info('stopping pagination, reached max scroll pages=%s', MAX_SCROLL_PAGES)
             return ListingPage(stop=True)
         if start > 0 and not self._has_next_page:
             return ListingPage(stop=True)
 
-        try:
-            if start == 0:
-                self._page.goto(JOBS_URL, wait_until='load', timeout=NAVIGATION_TIMEOUT_MS)
-                response = self._sort_by_most_recent()
-            else:
-                wait_between_requests()
-                with self._page.expect_response(_is_job_search_response, timeout=RESPONSE_WAIT_TIMEOUT_MS) as response_info:
-                    self._page.mouse.wheel(0, SCROLL_PX)
-                response = response_info.value
-        except PlaywrightTimeoutError:
-            self._logger.info('stopping pagination, no JobSearchResultsX response after scrolling')
+        if start == 0:
+            self._page.goto(JOBS_URL, wait_until='load', timeout=NAVIGATION_TIMEOUT_MS)
+            response_json = self._sort_by_most_recent()
+        else:
+            response_json = self._scroll_for_next_page()
+
+        if response_json is None:
+            self._logger.info('stopping pagination, no JobSearchResultsX response received')
             return ListingPage(stop=True)
 
-        response_json = response.json()
         items = self._parse_list_items(response_json)
         self._has_next_page = bool(
             response_json.get('data', {}).get('talent', {}).get('jobSearchResults', {}).get('hasNextPage')
