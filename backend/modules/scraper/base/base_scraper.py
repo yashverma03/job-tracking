@@ -16,7 +16,7 @@ from modules.scraper.types import ListingPage, ScraperJobData, ScraperRunResult
 from modules.scraper.utils.job_filter import is_location_excluded, is_title_excluded
 from modules.scraper.utils.scraper_logger import get_scraper_logger
 
-REQUIRED_JOB_FIELDS = ('url', 'title', 'company_name', 'location')
+REQUIRED_JOB_FIELDS = ('url', 'title', 'company_name', 'location', 'description')
 DETAIL_WORKER_COUNT_ENV_KEY = 'SCRAPER_DETAIL_WORKER_COUNT'
 
 

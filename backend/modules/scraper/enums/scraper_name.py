@@ -11,3 +11,4 @@ class ScraperName(models.TextChoices):
     MASTERCARD = 'Mastercard', 'Mastercard'
     JPMORGANCHASE = 'JPMorganChase', 'JPMorganChase'
     NETAPP = 'NetApp', 'NetApp'
+    CISCO = 'Cisco', 'Cisco'
