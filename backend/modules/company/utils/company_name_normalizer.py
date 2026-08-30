@@ -9,10 +9,12 @@ from common.utils.text_normalizer import normalize_text
 # patterns are written the same way - as contiguous alphanumeric runs, not phrases.
 _SUFFIX_PATTERN = re.compile(
     r'('
-    r'forindia|india|'
-    r'pvtltd|privatelimited|'
+    r'forindia|inindia|india|'
+    r'pvtltd|privatelimited|pvt|'
     r'ltd|limited|'
-    r'llp|incorporated'
+    r'llp|llc|incorporated|inc|'
+    r'corporation|corp|'
+    r'gmbh|plc'
     r')$'
 )
 
