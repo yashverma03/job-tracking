@@ -79,7 +79,8 @@ EXCLUDED_TITLE_WORDS: list[str] = [
     'distinguished engineer',
     'associate vp',
     'vice president',
-    'junior'
+    'junior',
+    'director'
 ]
 
 # Cities/regions in scope, matched as a normalized substring of the incoming location
@@ -104,6 +105,7 @@ ALLOWED_LOCATION_SUBSTRINGS: list[str] = [
     'navi mumbai',
     'bombay',
     'remote',
+    'location'
 ]
 
 # Only an exact "India" (no city specified) is in scope, not any location that merely

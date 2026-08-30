@@ -113,7 +113,8 @@ class WorkdayScraper(ApiScraper):
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
-        items = self.parse_list_items(response.json())
+        response_json = response.json()
+        items = self.parse_list_items(response_json)
 
         if not items:
             self._logger.info('stopping pagination, got an empty page')
@@ -125,7 +126,15 @@ class WorkdayScraper(ApiScraper):
             if listing is not None:
                 listings.append(listing)
 
-        return ListingPage(listings=listings)
+        # Once `start` passes the real result count, Workday re-serves the last page
+        # instead of an empty one, which would otherwise page forever. `total` in the
+        # response is authoritative, so stop as soon as this page reaches/passes it.
+        total = response_json.get('total')
+        stop = isinstance(total, int) and start + len(items) >= total
+        if stop:
+            self._logger.info('stopping pagination, reached total=%s at start=%s', total, start)
+
+        return ListingPage(listings=listings, stop=stop)
 
     def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
         wait_between_requests()
