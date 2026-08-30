@@ -1,7 +1,6 @@
 import atexit
 import json
 import re
-import time
 from concurrent.futures import ThreadPoolExecutor
 
 from playwright.sync_api import sync_playwright
@@ -9,7 +8,6 @@ from playwright.sync_api import sync_playwright
 from common.utils.env import get_env
 from modules.jobs.utils.url_cleaner import clean_job_url
 from modules.scraper.base.base_scraper import BaseScraper
-from modules.scraper.constants import SECONDS_PER_HOUR
 from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.scrapers.registry import register_scraper
 from modules.scraper.types import ListingPage, ScraperJobData
@@ -26,8 +24,20 @@ PASSWORD_ENV_KEY = 'SCRAPER_WELLFOUND_PASSWORD'
 NAVIGATION_TIMEOUT_MS = 45000
 SETTLE_WAIT_MS = 3000
 SCROLL_PX = 4000
+SCROLL_UP_PX = 800
 SCROLL_WAIT_MS = 2500
 MAX_SCROLL_PAGES = 10
+SCROLL_RETRIES_PER_PAGE = 3
+
+
+def _job_search_page_number(response) -> int | None:
+    try:
+        request_body = response.request.post_data_json
+    except Exception:  # noqa: BLE001
+        return None
+    if not isinstance(request_body, dict):
+        return None
+    return request_body.get('variables', {}).get('filterConfigurationInput', {}).get('page')
 
 
 def _job_search_results(response) -> dict | None:
@@ -67,6 +77,7 @@ class WellfoundScraper(BaseScraper):
     def __init__(self):
         super().__init__()
         self._captured_responses: list[dict] = []
+        self._captured_pages: set[int] = set()
         self._browser_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='wellfound-browser')
         self._run_on_browser_thread(self._start_browser)
 
@@ -84,8 +95,12 @@ class WellfoundScraper(BaseScraper):
 
     def _on_response(self, response) -> None:
         results = _job_search_results(response)
-        if results is not None:
-            self._captured_responses.append(results)
+        if results is None:
+            return
+        self._captured_responses.append(results)
+        page_number = _job_search_page_number(response)
+        if page_number is not None:
+            self._captured_pages.add(page_number)
 
     def _shutdown_browser(self) -> None:
         try:
@@ -153,25 +168,39 @@ class WellfoundScraper(BaseScraper):
     def _fetch_listing_page(self, start: int, time_range_hours: int) -> ListingPage:
         if start > 0:
             return ListingPage(stop=True)
-        return self._run_on_browser_thread(self._fetch_all_listings_on_browser_thread, time_range_hours)
+        return self._run_on_browser_thread(self._fetch_all_listings_on_browser_thread)
 
     def _sort_by_most_recent(self) -> None:
         self._page.get_by_text('Recommended', exact=True).first.click()
         self._page.wait_for_timeout(300)
         self._page.get_by_text('Most recent', exact=True).first.click()
 
-    def _fetch_all_listings_on_browser_thread(self, time_range_hours: int) -> ListingPage:
+    def _fetch_all_listings_on_browser_thread(self) -> ListingPage:
         self._captured_responses = []
+        self._captured_pages = set()
 
         self._page.goto(JOBS_URL, wait_until='load', timeout=NAVIGATION_TIMEOUT_MS)
         self._sort_by_most_recent()
         self._page.wait_for_timeout(SETTLE_WAIT_MS)
 
-        for _ in range(MAX_SCROLL_PAGES):
-            self._page.mouse.wheel(0, SCROLL_PX)
-            self._page.wait_for_timeout(SCROLL_WAIT_MS)
+        for page_num in range(MAX_SCROLL_PAGES):
+            pages_before = len(self._captured_pages)
+            for _ in range(SCROLL_RETRIES_PER_PAGE):
+                self._page.mouse.wheel(0, -SCROLL_UP_PX)
+                self._page.wait_for_timeout(200)
+                self._page.mouse.wheel(0, SCROLL_PX)
+                self._page.wait_for_timeout(SCROLL_WAIT_MS)
+                if len(self._captured_pages) > pages_before:
+                    break
+            else:
+                self._logger.info(
+                    'scroll page %s/%s did not advance to a new page after %s retries, pages seen=%s',
+                    page_num + 1,
+                    MAX_SCROLL_PAGES,
+                    SCROLL_RETRIES_PER_PAGE,
+                    sorted(self._captured_pages),
+                )
 
-        cutoff = time.time() - time_range_hours * SECONDS_PER_HOUR
         seen_job_ids = set()
         listings = []
         for response_json in self._captured_responses:
@@ -181,14 +210,15 @@ class WellfoundScraper(BaseScraper):
                     continue
                 seen_job_ids.add(job_id)
 
-                live_start_at = item.get('liveStartAt')
-                if isinstance(live_start_at, (int, float)) and live_start_at < cutoff:
-                    continue
-
                 listing = self._map_item_to_listing(item)
                 if listing is not None:
                     listings.append(listing)
 
+        self._logger.info(
+            'captured %s page responses, %s unique jobs after dedup/time filter',
+            len(self._captured_responses),
+            len(listings),
+        )
         return ListingPage(listings=listings, stop=True)
 
     def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
