@@ -113,8 +113,11 @@ class BaseScraper(ABC):
                     page = self._fetch_listing_page(start, time_range_hours)
                 except HTTPError as exc:
                     status_code = exc.response.status_code if exc.response is not None else None
-                    if status_code is not None and 400 <= status_code < 500:
-                        self._logger.warning('stopping pagination, listing page failed with %s', exc)
+                    body = exc.response.text if exc.response is not None else None
+                    if status_code is not None and (status_code == 404 or status_code >= 500):
+                        self._logger.warning(
+                            'stopping pagination, listing page failed with %s, body=%s', exc, body
+                        )
                         break
                     raise
 
