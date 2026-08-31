@@ -10,8 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-import os
-import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -22,9 +20,6 @@ from common.utils.env import get_env, get_env_int
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / '.env')
-
-os.environ['TZ'] = 'Asia/Kolkata'
-time.tzset()
 
 
 # Quick-start development settings - unsuitable for production
@@ -167,7 +162,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
