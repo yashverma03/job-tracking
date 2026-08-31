@@ -179,13 +179,13 @@ class BaseScraper(ABC):
         response has filled the gaps, and a final compulsory-field check runs right
         before insert."""
         if job_unique_key_service.is_duplicate(listing.url, None):
-            self._logger.info('excluded by filter rule (duplicate): %s', self._listing_json(listing))
+            self._logger.info('excluded by filter rule (duplicate url): %s', self._listing_json(listing))
             return False
 
         exclusion_reason = self.get_exclusion_reason(listing.title, listing.location, listing.company_name)
         if exclusion_reason:
-            self._logger.info('excluded by filter rule (%s): %s', exclusion_reason, self._listing_json(listing))
-            self._insert_excluded_job(listing)
+            self._logger.info('excluded (%s): %s', exclusion_reason, self._listing_json(listing))
+            self._insert_excluded_job(listing, exclusion_reason)
             return False
 
         return True
@@ -203,8 +203,8 @@ class BaseScraper(ABC):
 
             exclusion_reason = self.get_exclusion_reason(listing.title, listing.location, listing.company_name)
             if exclusion_reason:
-                self._logger.info('excluded by filter rule (%s): %s', exclusion_reason, self._listing_json(listing))
-                self._insert_excluded_job(listing)
+                self._logger.info('excluded (%s): %s', exclusion_reason, self._listing_json(listing))
+                self._insert_excluded_job(listing, exclusion_reason)
                 return
 
             missing_fields = [field for field in REQUIRED_JOB_FIELDS if not getattr(listing, field)]
@@ -224,11 +224,9 @@ class BaseScraper(ABC):
                 official_id=listing.official_id,
             )
         except ApiError as exc:
-            if str(exc) in (
-                'A job with this URL already exists.',
-                'A job with this company and official ID already exists.',
-            ):
-                self._logger.info('skipped duplicate job: %s', self._listing_json(listing))
+            duplicate_reason = self._duplicate_reason(exc)
+            if duplicate_reason:
+                self._logger.info('skipped duplicate job (%s): %s', duplicate_reason, self._listing_json(listing))
                 return
             self._record_error(listing.url, str(exc))
             return
@@ -240,7 +238,14 @@ class BaseScraper(ABC):
             self._total_unique_count += 1
         self._logger.info('job inserted: %s', listing.url)
 
-    def _insert_excluded_job(self, listing: ScraperJobData) -> None:
+    def _duplicate_reason(self, exc: ApiError) -> str | None:
+        if str(exc) == 'A job with this URL already exists.':
+            return 'duplicate url'
+        if str(exc) == 'A job with this company and official ID already exists.':
+            return 'duplicate company + official id'
+        return None
+
+    def _insert_excluded_job(self, listing: ScraperJobData, exclusion_reason: str) -> None:
         try:
             job_service.create_scraped_job(
                 title=listing.title,
@@ -251,13 +256,14 @@ class BaseScraper(ABC):
                 referral_status=self.get_referral_status_for_company(listing.company_name),
                 official_id=listing.official_id,
                 status=JobStatus.NOT_RELEVANT,
+                analysis=exclusion_reason,
             )
         except ApiError as exc:
-            if str(exc) in (
-                'A job with this URL already exists.',
-                'A job with this company and official ID already exists.',
-            ):
-                self._logger.info('skipped duplicate excluded job: %s', self._listing_json(listing))
+            duplicate_reason = self._duplicate_reason(exc)
+            if duplicate_reason:
+                self._logger.info(
+                    'skipped duplicate excluded job (%s): %s', duplicate_reason, self._listing_json(listing)
+                )
                 return
             self._record_error(listing.url, str(exc))
         except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the run
@@ -269,13 +275,13 @@ class BaseScraper(ABC):
         their cooling-off period. Returns the name of the rule that excluded the job,
         or None if it passes every rule."""
         if is_title_excluded(title):
-            return 'title not allowed'
+            return 'Filter Rule: title not allowed'
         if is_location_excluded(location):
-            return 'location not allowed'
+            return 'Filter Rule: location not allowed'
         if company_service.is_blacklisted(company_name):
-            return 'company blacklisted'
+            return 'Filter Rule: company blacklisted'
         if company_service.is_in_cooling_period(company_name):
-            return 'company in cooling period'
+            return 'Filter Rule: company in cooling period'
         return None
 
     def get_referral_status_for_company(self, company_name: str | None) -> str:
