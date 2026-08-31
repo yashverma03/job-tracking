@@ -13,7 +13,6 @@ from modules.jobs.services import job_unique_key_service
 from modules.jobs.types.job_types import JobFilterParams
 from modules.jobs.utils.domain import extract_domain, is_job_board_domain
 from modules.jobs.utils.url_cleaner import clean_job_url
-from modules.scraper.services import scraper_run_service
 
 SEARCH_FIELDS = ['url', 'secondary_url', 'title', 'company_name', 'official_id']
 
@@ -142,7 +141,7 @@ def get_job_stats() -> dict:
     return {
         'to_apply_count': queryset.filter(status=JobStatus.TO_APPLY).count(),
         'referral_required_count': queryset.filter(referral_status=JobReferralStatus.REQUIRED).count(),
-        'pending_jobs_count': scraper_run_service.count_runs_in_progress_today(),
+        'pending_jobs_count': queryset.filter(status=JobStatus.PENDING).count(),
     }
 
 

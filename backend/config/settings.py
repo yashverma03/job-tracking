@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -20,6 +22,9 @@ from common.utils.env import get_env, get_env_int
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / '.env')
+
+os.environ['TZ'] = 'Asia/Kolkata'
+time.tzset()
 
 
 # Quick-start development settings - unsuitable for production
@@ -181,9 +186,24 @@ STATIC_URL = 'static/'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'timestamped': {
+            'format': '[%(asctime)s] %(levelname)s %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'django_q': {
+            'format': '%(asctime)s [Q] %(levelname)s %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'timestamped',
+        },
+        'django_q_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'django_q',
         },
     },
     'loggers': {
@@ -195,6 +215,11 @@ LOGGING = {
         'django.request': {
             'handlers': ['console'],
             'level': 'ERROR',
+            'propagate': False,
+        },
+        'django-q': {
+            'handlers': ['django_q_console'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
