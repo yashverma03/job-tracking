@@ -10,6 +10,7 @@ from common.exceptions.api_exceptions import ApiError
 from common.utils.env import get_env_int
 from modules.company.services import company_service
 from modules.jobs.enums.job_referral_status import JobReferralStatus
+from modules.jobs.enums.job_status import JobStatus
 from modules.jobs.services import job_service, job_unique_key_service
 from modules.scraper.enums.scraper_name import ScraperName
 from modules.scraper.types import ListingPage, ScraperJobData, ScraperRunResult
@@ -184,6 +185,7 @@ class BaseScraper(ABC):
         exclusion_reason = self.get_exclusion_reason(listing.title, listing.location, listing.company_name)
         if exclusion_reason:
             self._logger.info('excluded by filter rule (%s): %s', exclusion_reason, self._listing_json(listing))
+            self._insert_excluded_job(listing)
             return False
 
         return True
@@ -202,6 +204,7 @@ class BaseScraper(ABC):
             exclusion_reason = self.get_exclusion_reason(listing.title, listing.location, listing.company_name)
             if exclusion_reason:
                 self._logger.info('excluded by filter rule (%s): %s', exclusion_reason, self._listing_json(listing))
+                self._insert_excluded_job(listing)
                 return
 
             missing_fields = [field for field in REQUIRED_JOB_FIELDS if not getattr(listing, field)]
@@ -236,6 +239,29 @@ class BaseScraper(ABC):
         with self._state_lock:
             self._total_unique_count += 1
         self._logger.info('job inserted: %s', listing.url)
+
+    def _insert_excluded_job(self, listing: ScraperJobData) -> None:
+        try:
+            job_service.create_scraped_job(
+                title=listing.title,
+                company_name=listing.company_name,
+                location=listing.location,
+                description=listing.description,
+                url=listing.url,
+                referral_status=self.get_referral_status_for_company(listing.company_name),
+                official_id=listing.official_id,
+                status=JobStatus.NOT_RELEVANT,
+            )
+        except ApiError as exc:
+            if str(exc) in (
+                'A job with this URL already exists.',
+                'A job with this company and official ID already exists.',
+            ):
+                self._logger.info('skipped duplicate excluded job: %s', self._listing_json(listing))
+                return
+            self._record_error(listing.url, str(exc))
+        except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the run
+            self._record_error(listing.url, str(exc))
 
     def get_exclusion_reason(self, title: str | None, location: str | None, company_name: str | None) -> str | None:
         """Shared pre-insert filter every scraper strategy should apply: excluded role

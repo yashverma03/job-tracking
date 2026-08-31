@@ -80,7 +80,12 @@ EXCLUDED_TITLE_WORDS: list[str] = [
     'associate vp',
     'vice president',
     'junior',
-    'director'
+    'director',
+    'leader',
+    'leadership',
+    'tester',
+    'testing',
+    'internship',
 ]
 
 # Cities/regions in scope, matched as a normalized substring of the incoming location
