@@ -48,10 +48,10 @@ EXCLUDED_TITLE_WORDS: list[str] = [
     'rust',
     'ruby on rails',
     'ruby developer',
-    'php developer',
-    'php engineer',
+    'php',
     'laravel',
     'qa engineer',
+    'qa',
     'sdet',
     'test',
     'embedded',
@@ -87,7 +87,9 @@ EXCLUDED_TITLE_WORDS: list[str] = [
     'tester',
     'testing',
     'internship',
-    'instructor'
+    'instructor',
+    'teaching',
+    'trainer',
     'Network Developer',
     'Network Engineer',
 ]
@@ -125,11 +127,24 @@ EXACT_ALLOWED_LOCATIONS: list[str] = [
 
 
 def is_title_excluded(title: str | None) -> bool:
-    normalized_title = normalize_text(title)
+    if not title:
+        return False
+
+    normalized_title = normalize_text(title, ' ').strip()
     if not normalized_title:
         return False
 
-    return any(normalize_text(word) in normalized_title for word in EXCLUDED_TITLE_WORDS)
+    title_words = normalized_title.split(' ')
+
+    for word in EXCLUDED_TITLE_WORDS:
+        normalized_word = word.lower().strip()
+        if len(normalized_word) == 1:
+            if normalized_word in title_words:
+                return True
+        elif normalized_word in normalized_title:
+            return True
+
+    return False
 
 
 def is_location_excluded(location: str | None) -> bool:
