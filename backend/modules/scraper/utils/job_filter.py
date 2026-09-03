@@ -34,9 +34,12 @@ EXCLUDED_TITLE_WORDS: list[str] = [
     'engineer 4',
     'engineer iii',
     'engineer iv',
-    'staff',
+    'staff software',
+    'staff developer',
+    'staff engineer',
     '.net developer',
-    '.net',
+    '.net engineer',
+    '.net software',
     'asp.net',
     'golang developer',
     'golang',
@@ -133,7 +136,9 @@ ALLOWED_LOCATION_SUBSTRINGS: list[str] = [
     'navi mumbai',
     'bombay',
     'remote',
-    'location'
+    'location',
+    'unknown',
+    'NA',
 ]
 
 # Only an exact "India" (no city specified) is in scope, not any location that merely
@@ -154,12 +159,11 @@ def is_title_excluded(title: str | None) -> bool:
     title_words = normalized_title.split(' ')
 
     for word in EXCLUDED_TITLE_WORDS:
-        normalized_word = word.lower().strip()
-        if len(normalized_word) == 1:
-            if normalized_word in title_words:
+        phrase_words = normalize_text(word, ' ').strip().split(' ')
+        phrase_len = len(phrase_words)
+        for start in range(len(title_words) - phrase_len + 1):
+            if title_words[start:start + phrase_len] == phrase_words:
                 return True
-        elif normalized_word in normalized_title:
-            return True
 
     return False
 
