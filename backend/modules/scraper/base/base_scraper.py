@@ -282,6 +282,8 @@ class BaseScraper(ABC):
             return 'Filter Rule: company blacklisted'
         if company_service.is_in_cooling_period(company_name):
             return 'Filter Rule: company in cooling period'
+        if company_service.is_covered_by_other_scraper(company_name, self.name.value):
+            return 'Filter Rule: company has dedicated scraper'
         return None
 
     def get_referral_status_for_company(self, company_name: str | None) -> str:
