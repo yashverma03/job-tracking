@@ -153,8 +153,11 @@ export function getLongReferralMessage(jobs: Job[]): string {
 
   const jobsList = formatJobsList(jobs);
   const company = sharedCompanyName(jobs) ?? 'your organisation';
+  const firstJobTitle = jobs[0].title;
 
   return `
+Requesting your kind consideration or referral for ${firstJobTitle} role
+
 Hi,
 
 ${PROFILE_INTRO_SENTENCE}
