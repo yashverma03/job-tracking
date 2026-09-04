@@ -75,6 +75,12 @@ class BaseScraper(ABC):
         listing. Only called for listings that already passed the pre-detail filter, so
         implementations can assume the request is actually needed."""
 
+    def close(self) -> None:
+        """Releases any resources the scraper acquired for this run (e.g. a browser
+        process for a Playwright-driven scraper). No-op by default; the caller is
+        responsible for calling this exactly once per instance, after `run()` finishes
+        (success or failure)."""
+
     def _reset_run_state(self) -> None:
         self._total_count = 0
         self._total_unique_count = 0

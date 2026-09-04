@@ -5,15 +5,10 @@ from anthropic.types import TextBlockParam
 
 from common.exceptions.api_exceptions import ApiError
 from common.utils.env import get_env
-from modules.ai.constants.ai_constants import ANTHROPIC_REQUEST_TIMEOUT_SECONDS, CLAUDE_LOG_PATH
+from modules.ai.constants.ai_constants import ANTHROPIC_REQUEST_TIMEOUT_SECONDS
+from modules.ai.utils.ai_log import log_ai_call
 
 _client = anthropic.Anthropic(api_key=get_env('ANTHROPIC_API_KEY'), timeout=ANTHROPIC_REQUEST_TIMEOUT_SECONDS)
-
-
-def log_ai_call(message: str) -> None:
-    timestamp = datetime.now().isoformat(sep=' ', timespec='seconds')
-    with open(CLAUDE_LOG_PATH, 'a', encoding='utf-8') as f:
-        f.write(f'[{timestamp}] {message}\n')
 
 
 def call_with_forced_tool(

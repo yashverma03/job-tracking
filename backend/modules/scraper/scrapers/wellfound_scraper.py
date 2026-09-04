@@ -141,6 +141,15 @@ class WellfoundScraper(BaseScraper):
         except Exception:  # noqa: BLE001
             pass
 
+    def close(self) -> None:
+        """Closes the browser/Playwright driver on the thread that owns them, then
+        shuts down that thread's executor - called once per instance after `run()`
+        finishes (success or failure) so no browser process outlives the run. The
+        `atexit` hook registered in `_start_browser` stays as a last-resort safety net
+        for an unclean process exit."""
+        self._run_on_browser_thread(self._shutdown_browser)
+        self._browser_executor.shutdown(wait=True)
+
     def _login(self) -> None:
         email = get_env(EMAIL_ENV_KEY)
         password = get_env(PASSWORD_ENV_KEY)

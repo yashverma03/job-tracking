@@ -7,6 +7,7 @@ from django_q.tasks import async_task
 
 from common.utils.env import get_env_int
 from common.utils.notification_manager import NotificationManager
+from modules.ai_scoring.services.job_scoring_service import trigger_job_scoring
 from modules.scraper.base.base_scraper import BaseScraper
 from modules.scraper.scrapers.registry import get_enabled_scrapers
 from modules.scraper.services import scraper_run_service
@@ -94,6 +95,7 @@ def run_scraper(scraper: BaseScraper, max_jobs_per_run: int, start_offset: int, 
     finally:
         with _active_runs_lock:
             _active_runs.pop(active_run_key, None)
+        scraper.close()
 
 
 def run_scraper_pipeline(
@@ -122,6 +124,9 @@ def run_scraper_pipeline(
             signal.signal(sig, previous_handler)
 
     _notify_pipeline_summary(outcomes)
+
+    if outcomes and all(outcome.status == 'success' for outcome in outcomes):
+        trigger_job_scoring()
 
 
 def _notify_pipeline_summary(outcomes: list[ScraperRunOutcome]) -> None:

@@ -21,6 +21,7 @@ class NotificationManager:
 
     @staticmethod
     def show(title: str, message: str, width: int | None = None, height: int | None = None) -> None:
+        logger.info('Notification: %s - %s', title, message)
         command = ['zenity', '--info', '--title', title, '--text', message]
         NotificationManager._run(command, title, width=width, height=height)
 
@@ -34,6 +35,7 @@ class NotificationManager:
     ) -> None:
         """Displays a read-only table dialog (zenity's `--list`) - one row per entry in
         `rows`, each a list of cell values matching `columns` in order."""
+        logger.info('Notification: %s - columns=%s rows=%s', title, columns, rows)
         command = ['zenity', '--list', '--title', title]
         for column in columns:
             command += ['--column', column]
