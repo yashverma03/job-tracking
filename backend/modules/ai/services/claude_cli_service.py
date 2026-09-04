@@ -11,7 +11,7 @@ def run_claude_skill(skill_command: str) -> None:
     start = datetime.now()
 
     result = subprocess.run(
-        ['claude', '-p', skill_command, '--permission-mode', 'bypassPermissions'],
+        ['claude', '-p', skill_command, '--permission-mode', 'bypassPermissions', '--output-format', 'json'],
         capture_output=True,
         text=True,
         timeout=CLAUDE_CLI_TIMEOUT_SECONDS,
@@ -19,10 +19,7 @@ def run_claude_skill(skill_command: str) -> None:
     )
 
     elapsed = (datetime.now() - start).total_seconds()
-    log_ai_call(
-        f'CLI RESPONSE elapsed={elapsed:.1f}s returncode={result.returncode}\n'
-        f'stdout: {result.stdout}\nstderr: {result.stderr}',
-    )
+    log_ai_call(f'CLI RESPONSE elapsed={elapsed:.1f}s {result}')
 
     if result.returncode != 0:
         raise RuntimeError(f'claude CLI exited with code {result.returncode}: {result.stderr.strip()}')
