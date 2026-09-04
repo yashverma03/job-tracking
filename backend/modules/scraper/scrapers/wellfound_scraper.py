@@ -1,8 +1,10 @@
 import atexit
 import json
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
 
 from common.utils.env import get_env
@@ -28,6 +30,9 @@ SCROLL_UP_PX = 800
 SCROLL_WAIT_MS = 60000
 MAX_SCROLL_PAGES = 10
 SCROLL_RETRIES_PER_PAGE = 3
+
+NETWORK_RETRY_INITIAL_DELAY_SECONDS = 5
+NETWORK_RETRY_MAX_TOTAL_WAIT_SECONDS = 120
 
 
 def _job_search_page_number(response) -> int | None:
@@ -84,6 +89,33 @@ class WellfoundScraper(BaseScraper):
     def _run_on_browser_thread(self, fn, *args, **kwargs):
         return self._browser_executor.submit(fn, *args, **kwargs).result()
 
+    def _with_network_retry(self, fn, *args, **kwargs):
+        """Retries a Playwright-driven action on transient network/navigation errors
+        (connection resets, DNS blips, navigation timeouts) with exponential backoff,
+        so a momentary internet drop doesn't kill an entire run. Keeps retrying until
+        the cumulative wait would exceed NETWORK_RETRY_MAX_TOTAL_WAIT_SECONDS, at which
+        point the next failure is raised. Non-network exceptions (e.g. a missing
+        element, bad login credentials) propagate immediately."""
+        delay = NETWORK_RETRY_INITIAL_DELAY_SECONDS
+        elapsed = 0
+        while True:
+            try:
+                return fn(*args, **kwargs)
+            except PlaywrightError as exc:
+                if elapsed >= NETWORK_RETRY_MAX_TOTAL_WAIT_SECONDS:
+                    raise
+                sleep_for = min(delay, NETWORK_RETRY_MAX_TOTAL_WAIT_SECONDS - elapsed)
+                self._logger.warning(
+                    'transient network error, retrying in %ss (%ss/%ss elapsed): %s',
+                    sleep_for,
+                    elapsed,
+                    NETWORK_RETRY_MAX_TOTAL_WAIT_SECONDS,
+                    exc,
+                )
+                time.sleep(sleep_for)
+                elapsed += sleep_for
+                delay *= 2
+
     def _start_browser(self) -> None:
         self._playwright = sync_playwright().start()
         self._browser = self._playwright.chromium.launch(headless=True)
@@ -91,7 +123,7 @@ class WellfoundScraper(BaseScraper):
         self._page = self._context.new_page()
         self._page.on('response', self._on_response)
         atexit.register(self._shutdown_browser)
-        self._login()
+        self._with_network_retry(self._login)
 
     def _on_response(self, response) -> None:
         results = _job_search_results(response)
@@ -173,7 +205,7 @@ class WellfoundScraper(BaseScraper):
     def _fetch_listing_page(self, start: int, time_range_hours: int) -> ListingPage:
         if start > 0:
             return ListingPage(stop=True)
-        return self._run_on_browser_thread(self._fetch_all_listings_on_browser_thread)
+        return self._run_on_browser_thread(self._with_network_retry, self._fetch_all_listings_on_browser_thread)
 
     def _sort_by_most_recent(self) -> None:
         self._page.get_by_text('Recommended', exact=True).first.click()
@@ -223,7 +255,9 @@ class WellfoundScraper(BaseScraper):
         return ListingPage(listings=listings, stop=True)
 
     def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
-        return self._run_on_browser_thread(self._fetch_detail_fields_on_browser_thread, listing)
+        return self._run_on_browser_thread(
+            self._with_network_retry, self._fetch_detail_fields_on_browser_thread, listing
+        )
 
     def _fetch_detail_fields_on_browser_thread(self, listing: ScraperJobData) -> dict:
         self._page.goto(listing.url, wait_until='load', timeout=NAVIGATION_TIMEOUT_MS)
