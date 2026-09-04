@@ -22,7 +22,6 @@ APPLIED_FACETS = {
     ],
     'startDate': [
         '29d7affdc34a10001f8fca3a631900f8',  # Posted within 1 Week
-        '29d7affdc34a10001f8fca311c1900f7',  # Posted within 1 Day
     ],
 }
 
