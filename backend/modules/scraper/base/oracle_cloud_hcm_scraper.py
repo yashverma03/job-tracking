@@ -142,7 +142,7 @@ class OracleCloudHcmScraper(ApiScraper):
             params={'onlyData': 'true', 'expand': 'all'},
         )
         response.raise_for_status()
-        return self.parse_detail_fields(response.json())
+        return self.parse_detail_fields(self._parse_json(response))
 
     def parse_detail_fields(self, response_json: dict) -> dict:
         description = '\n\n'.join(text for text in (response_json.get(field) for field in DESCRIPTION_FIELDS) if text)

@@ -112,7 +112,7 @@ class WorkdayScraper(ApiScraper):
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
-        response_json = response.json()
+        response_json = self._parse_json(response)
         items = self.parse_list_items(response_json)
 
         if not items:
@@ -138,4 +138,4 @@ class WorkdayScraper(ApiScraper):
     def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
         response = self._request(self.detail_base_url + listing.extra['external_path'])
         response.raise_for_status()
-        return self.parse_detail_fields(response.json())
+        return self.parse_detail_fields(self._parse_json(response))

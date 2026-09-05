@@ -28,6 +28,16 @@ class ApiScraper(BaseScraper):
         kwargs.setdefault('timeout', REQUEST_TIMEOUT_SECONDS)
         return get_with_retry(lambda: self._session, url, **kwargs)
 
+    def _parse_json(self, response) -> dict:
+        try:
+            return response.json()
+        except ValueError as exc:
+            body = response.text
+            truncated_body = body[:2000] if body else body
+            raise ValueError(
+                f'invalid JSON response: status={response.status_code} body={truncated_body!r}'
+            ) from exc
+
     @property
     @abstractmethod
     def list_url(self) -> str:
@@ -60,10 +70,10 @@ class ApiScraper(BaseScraper):
         """Pull whatever fields the detail endpoint provides, as a dict to merge onto
         the listing (typically just `description`)."""
 
-    def _fetch_listing_page(self, start: int, time_range_hours: int) -> ListingPage:
+    def _fetch_listing_page(self, start: int, _time_range_hours: int) -> ListingPage:
         response = self._request(self.list_url, params=self.build_list_params(start))
         response.raise_for_status()
-        items = self.parse_list_items(response.json())
+        items = self.parse_list_items(self._parse_json(response))
 
         if not items:
             self._logger.info('stopping pagination, got an empty page')
@@ -80,4 +90,4 @@ class ApiScraper(BaseScraper):
     def _fetch_detail_fields(self, listing: ScraperJobData) -> dict:
         response = self._request(self.detail_url, params=self.build_detail_params(listing))
         response.raise_for_status()
-        return self.parse_detail_fields(response.json())
+        return self.parse_detail_fields(self._parse_json(response))

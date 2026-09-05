@@ -113,7 +113,7 @@ class NetappScraper(ApiScraper):
         # offset/page param actually changes the result set, so always stop after it.
         response = self._request(self.list_url, params=self.build_list_params(start))
         response.raise_for_status()
-        items = self.parse_list_items(response.json())
+        items = self.parse_list_items(self._parse_json(response))
 
         listings = []
         for item in items:

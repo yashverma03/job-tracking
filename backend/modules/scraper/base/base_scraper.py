@@ -20,6 +20,14 @@ from modules.scraper.utils.scraper_logger import get_scraper_logger
 REQUIRED_JOB_FIELDS = ('url', 'title', 'company_name', 'location', 'description')
 DETAIL_WORKER_COUNT_ENV_KEY = 'SCRAPER_DETAIL_WORKER_COUNT'
 
+# Kept short so a large HTML error/challenge page doesn't blow up the log line.
+ERROR_BODY_LOG_LIMIT = 2000
+
+
+def _format_http_error(exc: HTTPError, status_code: int | None, body: str | None) -> str:
+    truncated_body = body[:ERROR_BODY_LOG_LIMIT] if body else body
+    return f'{exc} | status={status_code} body={truncated_body!r}'
+
 
 class BaseScraper(ABC):
     """Shared orchestration for every scraper strategy: pagination, the two-stage
@@ -143,7 +151,7 @@ class BaseScraper(ABC):
                             'stopping pagination, listing page failed with %s, body=%s', exc, body
                         )
                         break
-                    raise
+                    raise HTTPError(_format_http_error(exc, status_code, body)) from exc
 
                 remaining_budget = max_jobs_per_run - self._total_count
                 listings = page.listings[:remaining_budget]
@@ -235,6 +243,11 @@ class BaseScraper(ABC):
                 self._logger.info('skipped duplicate job (%s): %s', duplicate_reason, self._listing_json(listing))
                 return
             self._record_error(listing.url, str(exc))
+            return
+        except HTTPError as exc:
+            status_code = exc.response.status_code if exc.response is not None else None
+            body = exc.response.text if exc.response is not None else None
+            self._record_error(listing.url, _format_http_error(exc, status_code, body))
             return
         except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the run
             self._record_error(listing.url, str(exc))
