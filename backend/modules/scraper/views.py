@@ -15,6 +15,10 @@ class TriggerScraperPipelineView(APIView):
     def post(self, request):
         data = validate(ScraperPipelineTriggerDTO(data=request.data))
 
-        result = trigger_scraper_pipeline(data.get('scraper_names'), init_only=data.get('init_only', False))
+        result = trigger_scraper_pipeline(
+            data.get('scraper_names'),
+            init_only=data.get('init_only', False),
+            run_scoring=data.get('run_scoring', False),
+        )
         status_code = 202 if result['queued'] else 200
         return Response(ScraperPipelineQueuedDTO(result).data, status=status_code)

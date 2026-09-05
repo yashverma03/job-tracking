@@ -8,19 +8,20 @@ import styles from './ScraperSelectModal.module.css';
 
 interface ScraperSelectModalProps {
   onClose: () => void;
-  onConfirm: (scraperNames: string[]) => void;
+  onConfirm: (scraperNames: string[], runScoring: boolean) => void;
   isSubmitting: boolean;
 }
 
 export function ScraperSelectModal({ onClose, onConfirm, isSubmitting }: ScraperSelectModalProps) {
   const [selected, setSelected] = useState<string[]>([]);
+  const [runScoring, setRunScoring] = useState(false);
   const { data: options = [], isLoading } = useQuery({
     queryKey: ['scraper-names'],
     queryFn: fetchScraperNameOptions,
   });
 
   const handleConfirm = () => {
-    onConfirm(selected);
+    onConfirm(selected, runScoring);
   };
 
   return (
@@ -49,6 +50,15 @@ export function ScraperSelectModal({ onClose, onConfirm, isSubmitting }: Scraper
             emptyLabel="All scrapers"
           />
         )}
+
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={runScoring}
+            onChange={(event) => setRunScoring(event.target.checked)}
+          />
+          Run job scoring after scraping
+        </label>
 
         <div className={styles.actions}>
           <button type="button" className={styles.cancelButton} onClick={onClose}>

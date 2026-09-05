@@ -8,3 +8,4 @@ class ScraperPipelineTriggerDTO(serializers.Serializer):
         child=serializers.ChoiceField(choices=ScraperName.choices), required=False, allow_null=True
     )
     init_only = serializers.BooleanField(required=False, default=False)
+    run_scoring = serializers.BooleanField(required=False, default=False)

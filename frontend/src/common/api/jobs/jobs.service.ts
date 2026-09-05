@@ -86,9 +86,11 @@ export async function fetchJobStats(): Promise<JobStatsResponse> {
 
 export async function triggerScraperPipeline(
   scraperNames?: string[],
+  runScoring = false,
 ): Promise<ScraperPipelineQueuedResponse> {
   const { data } = await client.post<ScraperPipelineQueuedResponse>('/scraper', {
     scraperNames,
+    runScoring,
   });
   return data;
 }

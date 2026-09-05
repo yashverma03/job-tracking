@@ -99,7 +99,11 @@ def run_scraper(scraper: BaseScraper, max_jobs_per_run: int, start_offset: int, 
 
 
 def run_scraper_pipeline(
-    scraper_names: list[str] | None, max_jobs_per_run: int, start_offset: int, time_range_hours: int
+    scraper_names: list[str] | None,
+    max_jobs_per_run: int,
+    start_offset: int,
+    time_range_hours: int,
+    run_scoring: bool = False,
 ) -> None:
     """Runs every requested scraper concurrently (bounded by
     `SCRAPER_CONCURRENT_LIMIT`), waits for all of them to finish, then shows a single
@@ -125,7 +129,7 @@ def run_scraper_pipeline(
 
     _notify_pipeline_summary(outcomes)
 
-    if outcomes and all(outcome.status == 'success' for outcome in outcomes):
+    if run_scoring and outcomes and all(outcome.status == 'success' for outcome in outcomes):
         trigger_job_scoring()
 
 
@@ -150,14 +154,19 @@ def _notify_pipeline_summary(outcomes: list[ScraperRunOutcome]) -> None:
     )
 
 
-def trigger_scraper_pipeline(scraper_names: list[str] | None = None, init_only: bool = False) -> dict:
+def trigger_scraper_pipeline(
+    scraper_names: list[str] | None = None, init_only: bool = False, run_scoring: bool = False
+) -> dict:
     """`scraper_names`, if given, restricts the run to just those scrapers (matched
     against `ScraperName` values) - None/omitted runs every registered scraper, same as
     before this parameter existed.
 
     `init_only` restricts triggering to once per day overall: if a scraper pipeline run
     already exists for today, the call is a no-op. Intended for the daily cron trigger,
-    so re-triggering it (e.g. after a machine restart) doesn't queue a second run."""
+    so re-triggering it (e.g. after a machine restart) doesn't queue a second run.
+
+    `run_scoring` controls whether job scoring runs after a fully successful pipeline
+    run. Defaults to False; the daily cron trigger sets it to True."""
     if init_only and scraper_run_service.has_run_today():
         return {'queued': False, 'message': 'A scraper pipeline run already exists for today.'}
 
@@ -171,6 +180,7 @@ def trigger_scraper_pipeline(scraper_names: list[str] | None = None, init_only: 
         max_jobs_per_run,
         start_offset,
         time_range_hours,
+        run_scoring,
         group=SCRAPER_PIPELINE_TASK_GROUP,
     )
 

@@ -286,10 +286,11 @@ export function JobsPage() {
         <ScraperSelectModal
           isSubmitting={fetchLatestJobsMutation.isPending}
           onClose={() => setIsScraperSelectOpen(false)}
-          onConfirm={(scraperNames) => {
-            fetchLatestJobsMutation.mutate(scraperNames.length > 0 ? scraperNames : undefined, {
-              onSuccess: () => setIsScraperSelectOpen(false),
-            });
+          onConfirm={(scraperNames, runScoring) => {
+            fetchLatestJobsMutation.mutate(
+              { scraperNames: scraperNames.length > 0 ? scraperNames : undefined, runScoring },
+              { onSuccess: () => setIsScraperSelectOpen(false) },
+            );
           }}
         />
       )}
