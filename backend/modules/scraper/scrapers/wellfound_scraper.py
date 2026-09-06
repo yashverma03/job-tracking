@@ -231,11 +231,19 @@ class WellfoundScraper(BaseScraper):
 
         for page_num in range(MAX_SCROLL_PAGES):
             pages_before = len(self._captured_pages)
-            for _ in range(SCROLL_RETRIES_PER_PAGE):
+            for retry_num in range(SCROLL_RETRIES_PER_PAGE):
                 self._page.mouse.wheel(0, -SCROLL_UP_PX)
                 self._page.wait_for_timeout(200)
                 self._page.mouse.wheel(0, SCROLL_PX)
                 self._page.wait_for_timeout(SCROLL_WAIT_MS)
+                self._logger.info(
+                    'scroll page %s/%s retry %s/%s done, pages seen=%s',
+                    page_num + 1,
+                    MAX_SCROLL_PAGES,
+                    retry_num + 1,
+                    SCROLL_RETRIES_PER_PAGE,
+                    sorted(self._captured_pages),
+                )
                 if len(self._captured_pages) > pages_before:
                     break
             else:
