@@ -8,6 +8,7 @@ from modules.jobs.views import (
     JobScoreUpdateView,
     JobStatsView,
     JobTitlesView,
+    MarkToApplyAppliedView,
     MarkUrlSeenView,
 )
 
@@ -18,6 +19,7 @@ urlpatterns = [
     path('jobs/job-titles', JobTitlesView.as_view(), name='job-titles'),
     path('jobs/stats', JobStatsView.as_view(), name='job-stats'),
     path('jobs/mark-url-seen', MarkUrlSeenView.as_view(), name='job-mark-url-seen'),
+    path('jobs/mark-to-apply-applied', MarkToApplyAppliedView.as_view(), name='job-mark-to-apply-applied'),
     path('jobs/<int:job_id>/score', JobScoreUpdateView.as_view(), name='job-score-update'),
     path('jobs/<int:job_id>', JobDetailView.as_view(), name='job-detail'),
 ]

@@ -55,6 +55,13 @@ export async function triggerJobScoring(): Promise<ScraperPipelineQueuedResponse
   return data;
 }
 
+export async function markToApplyAsApplied(): Promise<{ updatedCount: number }> {
+  const { data } = await client.patch<{ updatedCount: number }>(
+    '/jobs/mark-to-apply-applied',
+  );
+  return data;
+}
+
 export async function generateResumeForJob(
   jobId: number,
 ): Promise<GenerateResumesOutcome> {

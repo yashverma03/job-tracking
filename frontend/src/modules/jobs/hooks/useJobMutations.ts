@@ -7,6 +7,7 @@ import {
   deleteJob,
   generateResumeForJob,
   generateResumes,
+  markToApplyAsApplied,
   triggerJobScoring,
   triggerScraperPipeline,
   updateJob,
@@ -108,6 +109,17 @@ export function useJobMutations() {
     },
   });
 
+  const markToApplyAsAppliedMutation = useMutation({
+    mutationFn: () => markToApplyAsApplied(),
+    onSuccess: (result) => {
+      invalidateJobs();
+      toast.success(`Marked ${result.updatedCount} job(s) as Applied`);
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error) ?? 'Failed to mark jobs as Applied');
+    },
+  });
+
   const fetchLatestJobsMutation = useMutation({
     mutationFn: ({ scraperNames, runScoring }: { scraperNames?: string[]; runScoring?: boolean }) =>
       triggerScraperPipeline(scraperNames, runScoring),
@@ -145,5 +157,6 @@ export function useJobMutations() {
     buildResumeMutation,
     fetchLatestJobsMutation,
     triggerJobScoringMutation,
+    markToApplyAsAppliedMutation,
   };
 }

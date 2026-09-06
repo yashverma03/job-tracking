@@ -58,6 +58,7 @@ export function JobsPage() {
     buildResumeMutation,
     fetchLatestJobsMutation,
     triggerJobScoringMutation,
+    markToApplyAsAppliedMutation,
   } = useJobMutations();
 
   const jobs = useMemo(() => data?.items ?? [], [data]);
@@ -182,6 +183,16 @@ export function JobsPage() {
       </div>
 
       <div className={styles.toolbar}>
+        <button
+          type="button"
+          className={styles.markToApplyAppliedButton}
+          disabled={markToApplyAsAppliedMutation.isPending}
+          onClick={() => markToApplyAsAppliedMutation.mutate()}
+        >
+          {markToApplyAsAppliedMutation.isPending
+            ? 'Marking...'
+            : 'Mark To Apply as Applied'}
+        </button>
         <button
           type="button"
           className={styles.fetchLatestJobsButton}

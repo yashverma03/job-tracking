@@ -221,6 +221,10 @@ def update_job_score(job_id: int, score: int, analysis: str) -> Job:
     return job
 
 
+def mark_all_to_apply_as_applied() -> int:
+    return _active_jobs_queryset().filter(status=JobStatus.TO_APPLY).update(status=JobStatus.APPLIED)
+
+
 def mark_url_seen(url: str) -> str:
     cleaned_url = clean_job_url(url)
     return job_unique_key_service.mark_url_seen(cleaned_url)

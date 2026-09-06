@@ -58,6 +58,12 @@ class JobScoreUpdateView(APIView):
         return Response(JobResponseDTO(updated_job).data)
 
 
+class MarkToApplyAppliedView(APIView):
+    def patch(self, request):
+        updated_count = job_service.mark_all_to_apply_as_applied()
+        return Response({'updatedCount': updated_count})
+
+
 class MarkUrlSeenView(APIView):
     def post(self, request):
         data = validate(MarkUrlSeenDTO(data=request.data))
