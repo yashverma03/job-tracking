@@ -3,9 +3,11 @@ import subprocess
 import time
 from datetime import datetime
 
+from common.utils.env import get_env
 from modules.ai.utils.ai_log import log_ai_call
 
 CLAUDE_CLI_TIMEOUT_SECONDS = 3 * 60 * 60
+CLAUDE_CLI_MODEL_ENV_KEY = 'CLAUDE_CLI_MODEL'
 
 # Vars that make the `claude` CLI authenticate against the pay-per-token Anthropic API
 # instead of the interactive claude.ai (subscription) login used everywhere else. Stripped
@@ -38,6 +40,8 @@ def run_claude_skill(skill_command: str) -> None:
             '--output-format',
             'stream-json',
             '--verbose',
+            '--model',
+            get_env(CLAUDE_CLI_MODEL_ENV_KEY),
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
