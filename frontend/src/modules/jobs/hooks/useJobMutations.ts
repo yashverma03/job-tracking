@@ -7,6 +7,7 @@ import {
   deleteJob,
   generateResumeForJob,
   generateResumes,
+  triggerJobScoring,
   triggerScraperPipeline,
   updateJob,
 } from '../../../common/api/jobs/jobs.service';
@@ -93,6 +94,20 @@ export function useJobMutations() {
     },
   });
 
+  const triggerJobScoringMutation = useMutation({
+    mutationFn: () => triggerJobScoring(),
+    onSuccess: (result) => {
+      if (result.queued) {
+        toast.success(result.message);
+      } else {
+        toast(result.message);
+      }
+    },
+    onError: (error) => {
+      toast.error(extractErrorMessage(error) ?? 'Failed to queue job scoring');
+    },
+  });
+
   const fetchLatestJobsMutation = useMutation({
     mutationFn: ({ scraperNames, runScoring }: { scraperNames?: string[]; runScoring?: boolean }) =>
       triggerScraperPipeline(scraperNames, runScoring),
@@ -129,5 +144,6 @@ export function useJobMutations() {
     generateResumesMutation,
     buildResumeMutation,
     fetchLatestJobsMutation,
+    triggerJobScoringMutation,
   };
 }

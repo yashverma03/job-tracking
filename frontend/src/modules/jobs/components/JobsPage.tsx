@@ -57,6 +57,7 @@ export function JobsPage() {
     generateResumesMutation,
     buildResumeMutation,
     fetchLatestJobsMutation,
+    triggerJobScoringMutation,
   } = useJobMutations();
 
   const jobs = useMemo(() => data?.items ?? [], [data]);
@@ -188,6 +189,16 @@ export function JobsPage() {
           onClick={() => setIsScraperSelectOpen(true)}
         >
           {fetchLatestJobsMutation.isPending ? 'Queuing...' : 'Get Latest Jobs'}
+        </button>
+        <button
+          type="button"
+          className={styles.generateResumesButton}
+          disabled={triggerJobScoringMutation.isPending}
+          onClick={() => triggerJobScoringMutation.mutate()}
+        >
+          {triggerJobScoringMutation.isPending
+            ? 'Queuing...'
+            : 'Score & Generate Resumes'}
         </button>
         <button
           type="button"

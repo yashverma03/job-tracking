@@ -50,6 +50,11 @@ export async function generateResumes(): Promise<GenerateResumesQueuedResponse> 
   return data;
 }
 
+export async function triggerJobScoring(): Promise<ScraperPipelineQueuedResponse> {
+  const { data } = await client.post<ScraperPipelineQueuedResponse>('/job-scoring');
+  return data;
+}
+
 export async function generateResumeForJob(
   jobId: number,
 ): Promise<GenerateResumesOutcome> {

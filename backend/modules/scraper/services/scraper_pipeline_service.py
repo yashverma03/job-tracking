@@ -144,6 +144,15 @@ def _notify_pipeline_summary(outcomes: list[ScraperRunOutcome]) -> None:
         ]
         for outcome in sorted(outcomes, key=lambda outcome: outcome.scraper_name.label)
     ]
+    rows.append(
+        [
+            'Total',
+            sum(outcome.total_count for outcome in outcomes),
+            sum(outcome.total_unique_count for outcome in outcomes),
+            sum(outcome.error_count for outcome in outcomes),
+            '',
+        ]
+    )
 
     NotificationManager.show_table(
         'Scraper pipeline complete',

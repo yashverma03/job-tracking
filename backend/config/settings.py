@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'django_filters',
     'corsheaders',
     'django_q',
+    'modules.ai_scoring',
     'modules.company',
     'modules.jobs',
     'modules.resume',
