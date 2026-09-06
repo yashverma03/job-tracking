@@ -1,5 +1,5 @@
 import type { Job } from '../types/job.types';
-import profileData from '../../../../../backend/modules/resume/data/resume-input.json';
+import profileData from '../../../../../data/resume-input.json';
 
 const PROFILE_NAME = profileData.contact.name;
 const PROFILE_TITLE = profileData.contact.title;
