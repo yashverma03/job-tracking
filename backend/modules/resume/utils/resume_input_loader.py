@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from common.exceptions.api_exceptions import ApiError
 from modules.resume.types.resume_types import ResumeInput
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..'))
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
 RESUME_INPUT_PATH = os.path.join(REPO_ROOT, 'data', 'resume-input.json')
 
 
