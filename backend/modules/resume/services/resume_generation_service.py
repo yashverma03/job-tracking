@@ -16,6 +16,7 @@ from modules.resume.utils.resume_input_loader import load_resume_input
 
 RESUME_BATCH_TASK_GROUP = 'resume_generation_batch'
 MAX_ELIGIBLE_JOBS = 10000
+MAX_RESUME_GENERATION_ATTEMPTS = 3
 
 
 def _resume_filename(resume_input: ResumeInput, job_id: int) -> str:
@@ -39,17 +40,22 @@ def _batch_in_progress() -> bool:
 
 
 def process_job(job: Job, resume_input: ResumeInput, output_dir: str) -> ResumeGenerationOutcome:
-    try:
-        ai_output = generate_resume_content(job.title or '', job.description or '', resume_input)
-        file_path = os.path.join(output_dir, _resume_filename(resume_input, job.pk))
-        render_resume_pdf(resume_input, ai_output, file_path)
+    last_error: Exception | None = None
 
-        job.is_custom_resume_generated = True
-        job.save(update_fields=['is_custom_resume_generated'])
+    for attempt in range(1, MAX_RESUME_GENERATION_ATTEMPTS + 1):
+        try:
+            ai_output = generate_resume_content(job.title or '', job.description or '', resume_input)
+            file_path = os.path.join(output_dir, _resume_filename(resume_input, job.pk))
+            render_resume_pdf(resume_input, ai_output, file_path)
 
-        return ResumeGenerationOutcome(job_id=job.pk, file_path=file_path)
-    except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the batch
-        return ResumeGenerationOutcome(job_id=job.pk, error=str(exc))
+            job.is_custom_resume_generated = True
+            job.save(update_fields=['is_custom_resume_generated'])
+
+            return ResumeGenerationOutcome(job_id=job.pk, file_path=file_path)
+        except Exception as exc:  # noqa: BLE001 - one job's failure must not abort the batch
+            last_error = exc
+
+    return ResumeGenerationOutcome(job_id=job.pk, error=str(last_error))
 
 
 def generate_resumes_for_pending_jobs() -> dict:
