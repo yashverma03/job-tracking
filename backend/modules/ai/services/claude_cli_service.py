@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import time
 from datetime import datetime
@@ -8,6 +9,11 @@ from modules.ai.utils.ai_log import log_ai_call
 
 CLAUDE_CLI_TIMEOUT_SECONDS = 3 * 60 * 60
 CLAUDE_CLI_MODEL_ENV_KEY = 'CLAUDE_CLI_MODEL'
+
+# The worker process (Django-Q) doesn't inherit the interactive shell's PATH, so `claude`
+# isn't found by name there even though it resolves fine in a terminal. Fall back to the
+# well-known install location used by the native installer if PATH lookup fails.
+CLAUDE_CLI_FALLBACK_PATH = os.path.expanduser('~/.local/bin/claude')
 
 # Vars that make the `claude` CLI authenticate against the pay-per-token Anthropic API
 # instead of the interactive claude.ai (subscription) login used everywhere else. Stripped
@@ -25,6 +31,17 @@ def _subprocess_env() -> dict:
     return {key: value for key, value in os.environ.items() if key not in API_KEY_ENV_VARS}
 
 
+def _resolve_claude_binary() -> str:
+    resolved = shutil.which('claude')
+    if resolved:
+        return resolved
+    if os.path.isfile(CLAUDE_CLI_FALLBACK_PATH):
+        return CLAUDE_CLI_FALLBACK_PATH
+    raise FileNotFoundError(
+        f"'claude' CLI not found on PATH and fallback path does not exist: {CLAUDE_CLI_FALLBACK_PATH}"
+    )
+
+
 def run_claude_skill(skill_command: str) -> None:
     log_ai_call(f'CLI REQUEST command={skill_command}')
     start = datetime.now()
@@ -32,7 +49,7 @@ def run_claude_skill(skill_command: str) -> None:
 
     process = subprocess.Popen(
         [
-            'claude',
+            _resolve_claude_binary(),
             '-p',
             skill_command,
             '--permission-mode',
