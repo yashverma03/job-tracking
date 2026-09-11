@@ -9,6 +9,7 @@ from modules.ai.utils.ai_log import log_ai_call
 
 CLAUDE_CLI_TIMEOUT_SECONDS = 3 * 60 * 60
 CLAUDE_CLI_MODEL_ENV_KEY = 'CLAUDE_CLI_MODEL'
+CLAUDE_CLI_CONFIG_DIR_ENV_KEY = 'CLAUDE_CLI_CONFIG_DIR'
 
 # The worker process (Django-Q) doesn't inherit the interactive shell's PATH, so `claude`
 # isn't found by name there even though it resolves fine in a terminal. Fall back to the
@@ -28,7 +29,11 @@ API_KEY_ENV_VARS = (
 
 
 def _subprocess_env() -> dict:
-    return {key: value for key, value in os.environ.items() if key not in API_KEY_ENV_VARS}
+    env = {key: value for key, value in os.environ.items() if key not in API_KEY_ENV_VARS}
+
+    env['CLAUDE_CONFIG_DIR'] = get_env(CLAUDE_CLI_CONFIG_DIR_ENV_KEY)
+
+    return env
 
 
 def _resolve_claude_binary() -> str:
